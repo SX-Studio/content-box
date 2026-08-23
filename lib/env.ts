@@ -20,6 +20,19 @@ export const env = {
   otpTtlSeconds: () => { const n = Number(process.env.OTP_TTL_SECONDS); return Number.isFinite(n) && n > 0 ? n : 300; },
   otpMaxAttempts: () => { const n = Number(process.env.OTP_MAX_ATTEMPTS); return Number.isFinite(n) && n > 0 ? n : 5; },
   otpSender: () => process.env.OTP_SENDER ?? 'stub',
+  // Twilio SMS (real OTP delivery). Authenticated with a Standard API Key
+  // (SK sid + secret) over the account, never the raw Auth Token. Returns null
+  // until fully configured so the sender can fall back to the stub safely.
+  twilio: () => {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID ?? '';
+    const apiKeySid = process.env.TWILIO_API_KEY_SID ?? '';
+    const apiKeySecret = process.env.TWILIO_API_KEY_SECRET ?? '';
+    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID ?? '';
+    const fromNumber = process.env.TWILIO_FROM_NUMBER ?? '';
+    if (!accountSid || !apiKeySid || !apiKeySecret) return null;
+    if (!messagingServiceSid && !fromNumber) return null;
+    return { accountSid, apiKeySid, apiKeySecret, messagingServiceSid, fromNumber };
+  },
   // WebAuthn (admin fingerprint). RP ID must be the registrable domain; origin the
   // full https origin. Local dev falls back to localhost.
   rpId: () => process.env.RP_ID ?? 'localhost',
