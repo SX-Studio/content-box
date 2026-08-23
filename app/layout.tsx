@@ -1,9 +1,18 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
+// icon.png / apple-icon.png in app/ are picked up as favicon + touch icon
+// automatically; manifest.ts adds the installable PWA icons.
 export const metadata: Metadata = {
+  metadataBase: new URL('https://content24market.space'),
   title: 'Content Box',
   description: 'Temporary multi-creator content rental marketplace.',
+  applicationName: 'Content Box',
+  appleWebApp: { capable: true, title: 'Content Box', statusBarStyle: 'black-translucent' },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#000000',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
