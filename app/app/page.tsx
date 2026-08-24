@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   const isOperator = !!me?.roles.some((r) => r.role === 'platform_operator');
+  const isCreator = !!me?.roles.some((r) => r.role === 'creator');
   const canAdmin = (b: Box) => isOperator || b.role === 'box_admin';
 
   const loadBoxes = useCallback(async () => {
@@ -59,6 +60,8 @@ export default function Dashboard() {
       </div>
 
       <Wallet />
+
+      {isCreator && <Earnings />}
 
       {isOperator && <CreateBox onCreated={loadBoxes} />}
 
@@ -196,6 +199,91 @@ function Wallet() {
               </div>
             </>
           )}
+        </>
+      )}
+    </div>
+  );
+}
+
+type Payout = { public_id: string; amount_tokens: number; eur_cents: number; status: string; note: string | null; requested_at: string; decided_at: string | null };
+type EarningsData = { available_tokens: number; reserved_tokens: number; withdrawn_tokens: number; threshold_tokens: number; payouts: Payout[] };
+
+function Earnings() {
+  const [data, setData] = useState<EarningsData | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
+
+  const load = useCallback(async () => {
+    const r = await fetch('/api/payouts/me');
+    if (r.ok) setData(await r.json());
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function request() {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetch('/api/payouts/request', { method: 'POST' });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Could not request payout');
+      setMsg({ kind: 'ok', text: `Payout ${j.payout.public_id} requested — an operator will review it.` });
+      load();
+    } catch (e) {
+      setMsg({ kind: 'err', text: (e as Error).message });
+    } finally { setBusy(false); }
+  }
+
+  if (!data) return null;
+  const eur = (t: number) => `€${(t / 100).toFixed(2)}`;
+  const pct = data.threshold_tokens > 0 ? Math.min(100, Math.round((data.available_tokens / data.threshold_tokens) * 100)) : 0;
+  const canRequest = data.available_tokens >= data.threshold_tokens && data.available_tokens > 0;
+
+  return (
+    <div className="card">
+      <div className="between">
+        <div>
+          <div className="dim" style={{ fontWeight: 600 }}>Creator earnings</div>
+          <div style={{ fontSize: 30, fontFamily: 'ui-monospace,monospace', color: 'var(--ok)', fontWeight: 700 }}>◈ {data.available_tokens}</div>
+          <div className="dim">{eur(data.available_tokens)} available · you keep 80% of each rental</div>
+        </div>
+        <button className="sm" onClick={request} disabled={busy || !canRequest}>
+          {busy ? 'Requesting…' : 'Request payout'}
+        </button>
+      </div>
+
+      {!canRequest && data.reserved_tokens === 0 && (
+        <>
+          <div style={{ height: 6, background: 'var(--line)', borderRadius: 4, marginTop: 12, overflow: 'hidden' }}>
+            <div style={{ width: `${pct}%`, height: '100%', background: 'var(--ok)' }} />
+          </div>
+          <div className="dim" style={{ fontSize: 12, marginTop: 6 }}>
+            {eur(data.available_tokens)} of {eur(data.threshold_tokens)} minimum payout ({pct}%)
+          </div>
+        </>
+      )}
+
+      {data.reserved_tokens > 0 && (
+        <div className="dim" style={{ marginTop: 8, fontSize: 13 }}>◷ {eur(data.reserved_tokens)} reserved in a pending request.</div>
+      )}
+      {data.withdrawn_tokens > 0 && (
+        <div className="dim" style={{ fontSize: 13 }}>✓ {eur(data.withdrawn_tokens)} paid out to date.</div>
+      )}
+
+      {msg && <div className={`msg ${msg.kind}`} style={{ marginTop: 10 }}>{msg.text}</div>}
+
+      {data.payouts.length > 0 && (
+        <>
+          <div className="dim" style={{ fontWeight: 600, margin: '14px 0 6px' }}>Payout history</div>
+          <div style={{ fontSize: 13 }}>
+            {data.payouts.map((p) => (
+              <div key={p.public_id} className="between" style={{ padding: '5px 0', borderTop: '1px solid var(--line)' }}>
+                <span className="dim"><span className="mono">{p.public_id}</span> · {new Date(p.requested_at).toLocaleDateString()}</span>
+                <span className="row" style={{ gap: 8 }}>
+                  <span className="mono">{eur(p.eur_cents)}</span>
+                  <span className="tag">{p.status}</span>
+                </span>
+              </div>
+            ))}
+          </div>
         </>
       )}
     </div>

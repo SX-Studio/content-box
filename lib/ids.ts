@@ -5,7 +5,7 @@ import { randomBytes } from 'crypto';
 // Crockford base32 (no I/L/O/U) keeps them unambiguous when read aloud or typed.
 const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
-export type IdPrefix = 'USR' | 'CRT' | 'BOX' | 'CNT' | 'INV' | 'MOD' | 'BAD' | 'RPT' | 'TOP' | 'ORD';
+export type IdPrefix = 'USR' | 'CRT' | 'BOX' | 'CNT' | 'INV' | 'MOD' | 'BAD' | 'RPT' | 'TOP' | 'ORD' | 'PAY';
 
 export function publicId(prefix: IdPrefix, length = 8): string {
   const bytes = randomBytes(length);

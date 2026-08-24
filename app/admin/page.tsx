@@ -4,6 +4,7 @@ import AdminBoxes, { type BoxStat } from './AdminBoxes';
 import AdminTools from './AdminTools';
 import AdminChat from './AdminChat';
 import AdminSearch from './AdminSearch';
+import AdminPayouts from './AdminPayouts';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +67,7 @@ export default async function AdminDashboard() {
           <p className="eyebrow" style={{ margin: '12px 0 2px' }}>Tools</p>
           <div className="card" style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <a className="dim" href="/moderation">Moderation</a>
+            <a className="dim" href="#payouts">Payouts</a>
             <a className="dim" href="#operators">Operators</a>
             <a className="dim" href="#boxes">Box groups</a>
             <a className="dim" href="/api/auth/logout">Log out</a>
@@ -92,6 +94,7 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
+          <div id="payouts" style={{ marginTop: 16 }}><AdminPayouts /></div>
           <div id="boxes" style={{ marginTop: 16 }}><AdminBoxes boxes={boxes} /></div>
           <div id="operators" style={{ marginTop: 16 }}><AdminTools /></div>
           <AdminChat />
