@@ -13,7 +13,7 @@ export async function currentAccount(): Promise<Account | null> {
   if (!sub) return null;
   const { data } = await admin()
     .from('account')
-    .select('id, public_id, status, phone_verified_at')
+    .select('id, public_id, status, phone_verified_at, email')
     .eq('id', sub)
     .maybeSingle();
   const acc = data as Account | null;

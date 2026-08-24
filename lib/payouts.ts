@@ -5,6 +5,7 @@ import { getConfig } from '@/lib/config';
 import { writeAudit } from '@/lib/audit';
 import { emit } from '@/lib/events';
 import { sendSms, smsConfigured } from '@/lib/sms';
+import { sendEmail, emailConfigured } from '@/lib/email';
 import { decryptPhone, fromBytea } from '@/lib/crypto';
 
 export type PayoutRow = {
@@ -104,20 +105,30 @@ export async function decidePayout(payoutPublicId: string, deciderId: string, pa
   return row;
 }
 
-// Fire-and-forget SMS to the creator about the decision. Decrypts the phone only
-// to send; failures are swallowed so a notification hiccup never fails the payout.
+// Fire-and-forget notification to the creator about the decision, over SMS and/or
+// email (whichever is configured and available). The phone is decrypted only to
+// send and never logged; failures are swallowed so a hiccup never fails the payout.
 async function notifyCreator(creatorId: string, row: PayoutRow, paid: boolean): Promise<void> {
-  if (!smsConfigured()) return;
+  const smsOn = smsConfigured();
+  const emailOn = emailConfigured();
+  if (!smsOn && !emailOn) return;
+
   try {
-    const { data } = await admin().from('account').select('phone_enc').eq('id', creatorId).maybeSingle();
-    const enc = (data as { phone_enc: string } | null)?.phone_enc;
-    if (!enc) return;
-    const e164 = decryptPhone(fromBytea(enc));
+    const { data } = await admin().from('account').select('phone_enc, email').eq('id', creatorId).maybeSingle();
+    const acc = data as { phone_enc: string | null; email: string | null } | null;
+    if (!acc) return;
+
     const eur = `EUR ${(row.eur_cents / 100).toFixed(2)}`;
-    const body = paid
-      ? `Content Box: your payout ${row.public_id} of ${eur} has been paid. Thank you!`
-      : `Content Box: your payout ${row.public_id} was declined; your earnings are back in your available balance.`;
-    await sendSms(e164, body);
+    const text = paid
+      ? `Your payout ${row.public_id} of ${eur} has been paid. Thank you!`
+      : `Your payout ${row.public_id} was declined; your earnings are back in your available balance.`;
+
+    if (smsOn && acc.phone_enc) {
+      await sendSms(decryptPhone(fromBytea(acc.phone_enc)), `Content Box: ${text}`);
+    }
+    if (emailOn && acc.email) {
+      await sendEmail(acc.email, paid ? 'Your Content Box payout was paid' : 'Your Content Box payout was declined', text);
+    }
   } catch {
     // eslint-disable-next-line no-console
     console.warn('[payouts] creator notification skipped');

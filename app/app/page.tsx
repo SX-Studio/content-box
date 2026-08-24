@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { PACKAGES } from '@/lib/packages';
 
-type Me = { account: { public_id: string; status: string }; roles: { role: string; box_id: string | null }[] };
+type Me = { account: { public_id: string; status: string; email: string | null }; roles: { role: string; box_id: string | null }[] };
 type Box = { public_id: string; name: string; description: string | null; status: string; role?: string };
 
 export default function Dashboard() {
@@ -62,6 +62,8 @@ export default function Dashboard() {
       <Wallet />
 
       {isCreator && <Earnings />}
+
+      <AccountSettings initialEmail={me?.account.email ?? null} />
 
       {isOperator && <CreateBox onCreated={loadBoxes} />}
 
@@ -284,6 +286,55 @@ function Earnings() {
               </div>
             ))}
           </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function AccountSettings({ initialEmail }: { initialEmail: string | null }) {
+  const [email, setEmail] = useState(initialEmail ?? '');
+  const [saved, setSaved] = useState(initialEmail ?? '');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
+  const [open, setOpen] = useState(false);
+
+  async function save() {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetch('/api/account/email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Could not save');
+      setSaved(j.email ?? '');
+      setEmail(j.email ?? '');
+      setMsg({ kind: 'ok', text: j.email ? 'Email saved.' : 'Email removed.' });
+    } catch (e) {
+      setMsg({ kind: 'err', text: (e as Error).message });
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="card">
+      <div className="between">
+        <div>
+          <div className="dim" style={{ fontWeight: 600 }}>Account settings</div>
+          <div className="dim" style={{ fontSize: 13 }}>{saved ? <>Notifications email: <span className="mono">{saved}</span></> : 'No notification email set'}</div>
+        </div>
+        <button className="ghost sm" onClick={() => setOpen((o) => !o)}>{open ? 'Hide' : 'Edit'}</button>
+      </div>
+
+      {open && (
+        <>
+          <hr />
+          <label htmlFor="acct-email">Contact email (optional)</label>
+          <div className="dim" style={{ fontSize: 12, marginBottom: 6 }}>Used for notifications like payout decisions. Leave empty to remove. Your phone stays your login.</div>
+          <div className="row" style={{ alignItems: 'flex-end', gap: 8 }}>
+            <input id="acct-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} style={{ flex: 1 }} />
+            <button className="sm" onClick={save} disabled={busy || email === saved}>{busy ? 'Saving…' : 'Save'}</button>
+          </div>
+          {msg && <div className={`msg ${msg.kind}`} style={{ marginTop: 10 }}>{msg.text}</div>}
         </>
       )}
     </div>

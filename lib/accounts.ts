@@ -10,13 +10,27 @@ export type Account = {
   public_id: string;
   status: string;
   phone_verified_at: string | null;
+  email: string | null;
 };
 
-const SELECT = 'id, public_id, status, phone_verified_at';
+const SELECT = 'id, public_id, status, phone_verified_at, email';
 
 // bytea columns take a Postgres hex literal (\x…) over PostgREST, not a raw Buffer.
 function toBytea(buf: Buffer): string {
   return `\\x${buf.toString('hex')}`;
+}
+
+// Normalise an optional contact email. Empty → null (clears it); throws on invalid.
+export function normalizeEmail(raw: unknown): string | null {
+  const s = String(raw ?? '').trim().toLowerCase();
+  if (!s) return null;
+  if (s.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) throw new Error('Enter a valid email address');
+  return s;
+}
+
+// Set (or clear, with null) an account's contact email.
+export async function setAccountEmail(accountId: string, email: string | null): Promise<void> {
+  await admin().from('account').update({ email }).eq('id', accountId);
 }
 
 export async function findAccountByPhoneHash(hash: string): Promise<Account | null> {
