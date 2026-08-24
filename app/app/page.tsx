@@ -61,6 +61,8 @@ export default function Dashboard() {
 
       <Wallet />
 
+      {isCreator && <Verification />}
+
       {isCreator && <Earnings />}
 
       <AccountSettings initialEmail={me?.account.email ?? null} />
@@ -289,6 +291,114 @@ function Earnings() {
         </>
       )}
     </div>
+  );
+}
+
+type VerificationState = { status: 'pending' | 'approved' | 'rejected'; rejection_reason: string | null; submitted_at: string } | null;
+
+function Verification() {
+  const [state, setState] = useState<VerificationState>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
+
+  const load = useCallback(async () => {
+    const r = await fetch('/api/verification');
+    if (r.ok) setState((await r.json()).verification);
+    setLoaded(true);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formEl = e.currentTarget;
+    const fd = new FormData(formEl);
+    fd.set('consent', (formEl.elements.namedItem('consent') as HTMLInputElement).checked ? 'true' : 'false');
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetch('/api/verification', { method: 'POST', body: fd });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Could not submit');
+      setMsg({ kind: 'ok', text: 'Submitted — a reviewer will verify you shortly.' });
+      load();
+    } catch (err) {
+      setMsg({ kind: 'err', text: (err as Error).message });
+    } finally { setBusy(false); }
+  }
+
+  if (!loaded) return null;
+
+  if (state?.status === 'approved') {
+    return (
+      <div className="card">
+        <div className="dim" style={{ fontWeight: 600 }}>Identity</div>
+        <div style={{ color: 'var(--ok)', fontWeight: 600, marginTop: 4 }}>✓ Verified (18+)</div>
+        <div className="dim" style={{ fontSize: 13 }}>You can publish content.</div>
+      </div>
+    );
+  }
+
+  if (state?.status === 'pending') {
+    return (
+      <div className="card">
+        <div className="dim" style={{ fontWeight: 600 }}>Identity</div>
+        <div style={{ fontWeight: 600, marginTop: 4 }}>◷ Under review</div>
+        <div className="dim" style={{ fontSize: 13 }}>Your documents were submitted and are awaiting review. You’ll be notified of the decision.</div>
+      </div>
+    );
+  }
+
+  // Not submitted, or rejected → show the form.
+  return (
+    <form className="card" onSubmit={submit}>
+      <div className="dim" style={{ fontWeight: 600 }}>Verify your identity (18+)</div>
+      <div className="dim" style={{ fontSize: 13, marginTop: 2 }}>Required before you can publish content. Your documents are stored privately and seen only by a reviewer.</div>
+      {state?.status === 'rejected' && (
+        <div className="msg err" style={{ marginTop: 10 }}>Previous submission declined{state.rejection_reason ? `: ${state.rejection_reason}` : ''}. Please resubmit.</div>
+      )}
+
+      <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+        <div>
+          <label htmlFor="v-name">Full legal name</label>
+          <input id="v-name" name="fullName" required placeholder="As shown on your ID" />
+        </div>
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 160px' }}>
+            <label htmlFor="v-dob">Date of birth</label>
+            <input id="v-dob" name="dob" type="date" required />
+          </div>
+          <div style={{ flex: '1 1 160px' }}>
+            <label htmlFor="v-country">Country (optional)</label>
+            <input id="v-country" name="country" placeholder="BE" />
+          </div>
+        </div>
+        <div>
+          <label htmlFor="v-doctype">Document type</label>
+          <select id="v-doctype" name="documentType" required defaultValue="passport">
+            <option value="passport">Passport</option>
+            <option value="id_card">ID card</option>
+            <option value="drivers_license">Driver’s licence</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="v-doc">ID document photo (max 2MB)</label>
+          <input id="v-doc" name="document" type="file" accept="image/jpeg,image/png,image/webp" required />
+        </div>
+        <div>
+          <label htmlFor="v-selfie">Selfie holding your ID (optional, max 2MB)</label>
+          <input id="v-selfie" name="selfie" type="file" accept="image/jpeg,image/png,image/webp" />
+        </div>
+        <label className="row" style={{ gap: 8, alignItems: 'flex-start', fontSize: 13 }}>
+          <input type="checkbox" name="consent" required style={{ marginTop: 3 }} />
+          <span className="dim">I confirm I am 18 or older, this is my own valid ID, and I consent to its processing for age/identity verification.</span>
+        </label>
+      </div>
+
+      <div className="row" style={{ marginTop: 14 }}>
+        <button disabled={busy}>{busy ? 'Submitting…' : 'Submit for verification'}</button>
+      </div>
+      {msg && <div className={`msg ${msg.kind}`} style={{ marginTop: 10 }}>{msg.text}</div>}
+    </form>
   );
 }
 

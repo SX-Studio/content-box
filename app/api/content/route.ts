@@ -8,6 +8,7 @@ import { publicId } from '@/lib/ids';
 import { writeAudit } from '@/lib/audit';
 import { emit } from '@/lib/events';
 import { screenImage, createModerationCase } from '@/lib/moderation';
+import { isAgeVerified } from '@/lib/identity';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,12 @@ export async function POST(req: NextRequest) {
     (await hasRole(account.id, 'creator', boxId)) ||
     (await hasRole(account.id, 'box_admin', boxId));
   if (!allowed) return NextResponse.json({ ok: false, error: 'You must be a creator in this box to upload' }, { status: 403 });
+
+  // 18+/ID gate: operators are exempt; every other uploader must be verified.
+  const isOperator = await hasRole(account.id, 'platform_operator');
+  if (!isOperator && !(await isAgeVerified(account.id))) {
+    return NextResponse.json({ ok: false, error: 'Verify your identity (18+) before publishing content', code: 'AGE_VERIFICATION_REQUIRED' }, { status: 403 });
+  }
 
   let title: string;
   let price: number;
