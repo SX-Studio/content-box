@@ -12,7 +12,15 @@ export default function Home() {
       <div className="row" style={{ marginTop: 20 }}>
         <Link href="/login"><button>Sign in</button></Link>
       </div>
-      <p className="dim" style={{ marginTop: 28 }}>Phase 1 — identity &amp; boxes. Content, wallet and rentals come next.</p>
+      <p className="dim" style={{ marginTop: 28 }}>Adults only (18+). Creators are identity-verified before publishing.</p>
+
+      <nav className="row" style={{ justifyContent: 'center', flexWrap: 'wrap', gap: 12, marginTop: 24 }}>
+        <Link href="/legal/terms" className="dim" style={{ fontSize: 13 }}>Terms</Link>
+        <Link href="/legal/privacy" className="dim" style={{ fontSize: 13 }}>Privacy</Link>
+        <Link href="/legal/2257" className="dim" style={{ fontSize: 13 }}>Age records</Link>
+        <Link href="/legal/dmca" className="dim" style={{ fontSize: 13 }}>DMCA</Link>
+        <Link href="/legal/refunds" className="dim" style={{ fontSize: 13 }}>Refunds</Link>
+      </nav>
     </div>
   );
 }
