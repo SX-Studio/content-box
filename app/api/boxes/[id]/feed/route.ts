@@ -29,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const { data } = await admin()
     .from('content')
-    .select('public_id, title, description, price_tokens, created_at, creator:creator_id ( public_id ), assets:content_asset ( preview_path, thumb_path, position )')
+    .select('public_id, title, description, price_tokens, created_at, creator:creator_id ( public_id ), assets:content_asset ( preview_path, thumb_path, kind, position )')
     .eq('box_id', boxId)
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
@@ -42,7 +42,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     price_tokens: number;
     created_at: string;
     creator: { public_id: string } | null;
-    assets: { preview_path: string | null; thumb_path: string | null; position: number }[];
+    assets: { preview_path: string | null; thumb_path: string | null; kind: string | null; position: number }[];
   }[]).map((c) => {
     const asset = [...(c.assets ?? [])].sort((a, b) => a.position - b.position)[0];
     return {
@@ -54,6 +54,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       creator: c.creator?.public_id ?? null,
       is_owner: c.creator?.public_id === account.public_id,
       asset_count: c.assets?.length ?? 0,
+      media_type: asset?.kind === 'video' ? 'video' : 'image',
       preview_url: asset?.preview_path ? publicUrl('preview', asset.preview_path) : null,
     };
   });
