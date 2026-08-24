@@ -4,6 +4,8 @@ import { publicId } from '@/lib/ids';
 import { getConfig } from '@/lib/config';
 import { writeAudit } from '@/lib/audit';
 import { emit } from '@/lib/events';
+import { sendSms, smsConfigured } from '@/lib/sms';
+import { decryptPhone, fromBytea } from '@/lib/crypto';
 
 export type PayoutRow = {
   public_id: string;
@@ -81,11 +83,12 @@ export async function listRequestedPayouts(): Promise<(PayoutRow & { creator: st
 
 // Operator decision. paid=true → earnings become withdrawn; false → released.
 export async function decidePayout(payoutPublicId: string, deciderId: string, paid: boolean, note: string | null): Promise<PayoutRow> {
-  const { data: found } = await admin().from('payout').select('id').eq('public_id', payoutPublicId).maybeSingle();
+  const { data: found } = await admin().from('payout').select('id, creator_id').eq('public_id', payoutPublicId).maybeSingle();
   if (!found) throw new Error('Payout not found');
+  const f = found as { id: string; creator_id: string };
 
   const { data, error } = await admin().rpc('decide_payout', {
-    p_payout: (found as { id: string }).id,
+    p_payout: f.id,
     p_decider: deciderId,
     p_paid: paid,
     p_note: note,
@@ -97,5 +100,26 @@ export async function decidePayout(payoutPublicId: string, deciderId: string, pa
   const row = data as PayoutRow;
   await writeAudit({ actorId: deciderId, action: paid ? 'payout.paid' : 'payout.rejected', targetType: 'payout', targetId: row.public_id });
   await emit(paid ? 'PAYOUT_PAID' : 'PAYOUT_REJECTED', { payout: row.public_id });
+  await notifyCreator(f.creator_id, row, paid); // best-effort SMS, never blocks the decision
   return row;
+}
+
+// Fire-and-forget SMS to the creator about the decision. Decrypts the phone only
+// to send; failures are swallowed so a notification hiccup never fails the payout.
+async function notifyCreator(creatorId: string, row: PayoutRow, paid: boolean): Promise<void> {
+  if (!smsConfigured()) return;
+  try {
+    const { data } = await admin().from('account').select('phone_enc').eq('id', creatorId).maybeSingle();
+    const enc = (data as { phone_enc: string } | null)?.phone_enc;
+    if (!enc) return;
+    const e164 = decryptPhone(fromBytea(enc));
+    const eur = `EUR ${(row.eur_cents / 100).toFixed(2)}`;
+    const body = paid
+      ? `Content Box: your payout ${row.public_id} of ${eur} has been paid. Thank you!`
+      : `Content Box: your payout ${row.public_id} was declined; your earnings are back in your available balance.`;
+    await sendSms(e164, body);
+  } catch {
+    // eslint-disable-next-line no-console
+    console.warn('[payouts] creator notification skipped');
+  }
 }

@@ -31,6 +31,12 @@ export function decryptPhone(blob: Buffer): string {
   return Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
 }
 
+// Postgres returns a bytea column as a `\x…` hex string over PostgREST; turn it
+// back into the Buffer decryptPhone expects.
+export function fromBytea(hexLiteral: string): Buffer {
+  return Buffer.from(hexLiteral.replace(/^\\x/, ''), 'hex');
+}
+
 export function phoneHash(e164: string): string {
   return createHmac('sha256', key32(env.phoneHashKey(), 'PHONE_HASH_KEY')).update(e164).digest('hex');
 }
