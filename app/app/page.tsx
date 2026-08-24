@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { PACKAGES } from '@/lib/packages';
 
 type Me = { account: { public_id: string; status: string }; roles: { role: string; box_id: string | null }[] };
 type Box = { public_id: string; name: string; description: string | null; status: string; role?: string };
@@ -90,19 +91,46 @@ function Wallet() {
   const [amount, setAmount] = useState('1000');
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [buyingId, setBuyingId] = useState<string | null>(null);
+  const [pspOff, setPspOff] = useState(false);
+  const [notice, setNotice] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
 
   const load = useCallback(async () => {
     const r = await fetch('/api/wallet');
     if (r.ok) { const j = await r.json(); setBalance(j.balance); setLedger(j.ledger || []); }
   }, []);
-  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    load();
+    // Verotel redirects back with ?status=success|cancel (set in the PSP panel).
+    const status = new URLSearchParams(window.location.search).get('status');
+    if (status === 'success') { setOpen(true); setNotice({ kind: 'ok', text: 'Payment received — your tokens appear here once the payment is confirmed.' }); }
+    if (status === 'cancel') { setOpen(true); setNotice({ kind: 'err', text: 'Payment canceled — no tokens were purchased.' }); }
+  }, [load]);
+
+  async function buy(packageId: string) {
+    setBuyingId(packageId); setNotice(null); setPspOff(false);
+    try {
+      const r = await fetch('/api/wallet/purchase', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageId }),
+      });
+      const j = await r.json();
+      if (j?.configured === false) { setPspOff(true); return; } // PSP not set up yet → dev top-up fallback
+      if (r.ok && j?.url) { window.location.href = j.url; return; } // → Verotel hosted payment page
+      setNotice({ kind: 'err', text: j?.error || 'Could not start checkout' });
+    } catch {
+      setNotice({ kind: 'err', text: 'Network error — please try again' });
+    } finally { setBuyingId(null); }
+  }
 
   async function topup() {
-    setBusy(true);
+    setBusy(true); setNotice(null);
     try {
       const r = await fetch('/api/wallet/topup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: Number(amount) }) });
       const j = await r.json();
       if (r.ok) { setBalance(j.balance); load(); }
+      else setNotice({ kind: 'err', text: j?.error || 'Top-up failed' });
     } finally { setBusy(false); }
   }
 
@@ -116,20 +144,42 @@ function Wallet() {
           </div>
           <div className="dim">≈ €{balance != null ? (balance / 100).toFixed(2) : '—'} · 100 tokens = €1</div>
         </div>
-        <button className="ghost sm" onClick={() => setOpen((o) => !o)}>{open ? 'Hide' : 'Wallet ▾'}</button>
+        <button className="sm" onClick={() => setOpen((o) => !o)}>{open ? 'Hide' : '＋ Buy tokens'}</button>
       </div>
 
       {open && (
         <>
           <hr />
-          <div className="dim" style={{ fontWeight: 600 }}>Add tokens (dev top-up — real purchase comes later)</div>
-          <div className="row" style={{ marginTop: 8, alignItems: 'flex-end' }}>
-            <div style={{ flex: '0 0 160px' }}>
-              <label htmlFor="topup">Tokens</label>
-              <input id="topup" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} />
-            </div>
-            <button className="sm" onClick={topup} disabled={busy || !amount}>{busy ? 'Adding…' : 'Add tokens'}</button>
+          <div className="dim" style={{ fontWeight: 600 }}>Buy tokens</div>
+          <div className="row" style={{ marginTop: 8, flexWrap: 'wrap', alignItems: 'stretch' }}>
+            {PACKAGES.map((p) => (
+              <div key={p.id} className="card" style={{ flex: '1 1 150px', margin: 0, textAlign: 'center' }}>
+                <div style={{ fontWeight: 700 }}>{p.label}</div>
+                <div className="mono" style={{ color: 'var(--teal)', fontSize: 20, fontWeight: 700, margin: '4px 0' }}>◈ {p.tokens}</div>
+                <div className="dim" style={{ marginBottom: 10 }}>€{(p.eurCents / 100).toFixed(2)}</div>
+                <button className="sm" style={{ width: '100%' }} disabled={buyingId !== null} onClick={() => buy(p.id)}>
+                  {buyingId === p.id ? 'Starting…' : 'Buy'}
+                </button>
+              </div>
+            ))}
           </div>
+
+          {notice && <div className={`msg ${notice.kind}`} style={{ marginTop: 10 }}>{notice.text}</div>}
+
+          {pspOff && (
+            <>
+              <div className="msg" style={{ marginTop: 10 }}>Card payments aren’t live yet. Use the dev top-up below to add test tokens.</div>
+              <hr />
+              <div className="dim" style={{ fontWeight: 600 }}>Dev top-up (pre-production only)</div>
+              <div className="row" style={{ marginTop: 8, alignItems: 'flex-end' }}>
+                <div style={{ flex: '0 0 160px' }}>
+                  <label htmlFor="topup">Tokens</label>
+                  <input id="topup" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} />
+                </div>
+                <button className="sm" onClick={topup} disabled={busy || !amount}>{busy ? 'Adding…' : 'Add tokens'}</button>
+              </div>
+            </>
+          )}
 
           {ledger.length > 0 && (
             <>
