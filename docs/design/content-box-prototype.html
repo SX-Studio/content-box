@@ -1,0 +1,513 @@
+<title>Content Box Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#e9eaef; --app:#ffffff; --surf:#f4f5f8; --surf2:#eceef3;
+  --ink:#171a21; --ink2:#525a68; --ink3:#8a92a1; --line:#e2e5ec; --line2:#d3d8e2;
+  --ember:#d94e2f; --ember-d:#b83c22; --ember-soft:rgba(217,78,47,.10);
+  --teal:#0f867a; --gold:#a9762a; --gold-soft:rgba(169,118,42,.12);
+  --ok:#2c8a57; --warn:#b8811c; --bad:#c23a2b;
+  --shadow:0 1px 2px rgba(20,24,34,.05),0 10px 34px -16px rgba(20,24,34,.28);
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#08090d; --app:#111319; --surf:#171a22; --surf2:#1e222c;
+  --ink:#eceef3; --ink2:#a7afbd; --ink3:#727b8b; --line:#242a34; --line2:#2f3542;
+  --ember:#f0764f; --ember-d:#d9603a; --ember-soft:rgba(240,118,79,.14);
+  --teal:#3cb6a7; --gold:#d3a24e; --gold-soft:rgba(211,162,78,.14);
+  --ok:#54b581; --warn:#d6a53f; --bad:#e46a58;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 44px -20px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --bg:#08090d; --app:#111319; --surf:#171a22; --surf2:#1e222c;
+  --ink:#eceef3; --ink2:#a7afbd; --ink3:#727b8b; --line:#242a34; --line2:#2f3542;
+  --ember:#f0764f; --ember-d:#d9603a; --ember-soft:rgba(240,118,79,.14);
+  --teal:#3cb6a7; --gold:#d3a24e; --gold-soft:rgba(211,162,78,.14);
+  --ok:#54b581; --warn:#d6a53f; --bad:#e46a58;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 44px -20px rgba(0,0,0,.8);
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:
+   radial-gradient(120% 90% at 15% 0%, var(--ember-soft), transparent 40%),
+   var(--bg);
+  min-height:100vh;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);
+  display:flex;align-items:flex-start;justify-content:center;gap:34px;padding:34px 18px;flex-wrap:wrap;-webkit-font-smoothing:antialiased}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+/* side caption on desktop */
+.aside{max-width:280px;padding-top:20px}
+.aside .ey{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ember)}
+.aside h1{font-family:'Fraunces',serif;font-weight:600;font-size:34px;line-height:1.05;margin:.3em 0 .4em;letter-spacing:-.02em}
+.aside p{font-size:14px;line-height:1.6;color:var(--ink2)}
+.aside .steps{list-style:none;padding:0;margin:18px 0 0;font-size:13px}
+.aside .steps li{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line);color:var(--ink2)}
+.aside .steps b{font-family:'IBM Plex Mono',monospace;color:var(--ember);font-size:11px;flex:none;width:64px;letter-spacing:.05em}
+.aside .note{margin-top:16px;font-size:12px;color:var(--ink3)}
+@media(max-width:820px){.aside{display:none}}
+
+/* phone */
+.phone{width:394px;max-width:100%;height:812px;max-height:calc(100vh - 60px);background:var(--app);
+  border:1px solid var(--line2);border-radius:40px;box-shadow:var(--shadow);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.status{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:12px;color:var(--ink3);flex:none}
+.status .mono{font-size:11px;letter-spacing:.05em}
+
+/* top bar */
+.top{padding:6px 18px 12px;flex:none;border-bottom:1px solid var(--line)}
+.boxrow{display:flex;align-items:center;gap:11px}
+.boxbadge{width:42px;height:42px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--ember),#8f2f1c);color:#fff;font-size:20px;box-shadow:0 6px 16px -6px var(--ember)}
+.boxrow .nm{font-family:'Fraunces',serif;font-weight:600;font-size:20px;line-height:1.1}
+.boxrow .sub{font-size:11.5px;color:var(--ink3)}
+.walletchip{margin-left:auto;display:flex;align-items:center;gap:6px;background:var(--gold-soft);color:var(--gold);
+  border:1px solid transparent;border-radius:999px;padding:6px 11px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;cursor:pointer}
+
+/* scroll body */
+.view{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 16px 96px;scrollbar-width:thin}
+.view::-webkit-scrollbar{width:6px}.view::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+.vhead{display:flex;align-items:baseline;justify-content:space-between;margin:2px 2px 12px}
+.vhead h2{font-family:'Fraunces',serif;font-weight:600;font-size:22px;margin:0}
+.vhead .cnt{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink3)}
+
+/* content card */
+.card{background:var(--surf);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s,border-color .15s}
+.card.sel{border-color:var(--ember);box-shadow:0 0 0 1px var(--ember),var(--shadow)}
+.media{position:relative;height:210px;overflow:hidden;cursor:pointer}
+.ph{position:absolute;inset:0;background-size:cover;background-position:center;transition:filter .5s ease, transform .5s ease}
+.ph.blur{filter:blur(26px) saturate(1.2) brightness(.9);transform:scale(1.18)}
+.mediaface{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.85)}
+.mediaface svg{width:74px;height:74px;opacity:.9;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4))}
+.lockrow{position:absolute;left:0;right:0;bottom:0;padding:12px 14px;display:flex;align-items:center;gap:8px;
+  background:linear-gradient(to top,rgba(6,7,12,.82),transparent);color:#fff}
+.lockrow .lk{font-size:12px;display:flex;align-items:center;gap:5px;opacity:.92}
+.selbtn{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(255,255,255,.7);
+  background:rgba(8,9,14,.4);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;font-size:15px}
+.selbtn.on{background:var(--ember);border-color:var(--ember)}
+.tags{position:absolute;top:10px;left:10px;display:flex;gap:6px}
+.tg{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.04em;background:rgba(8,9,14,.55);backdrop-filter:blur(6px);color:#fff;padding:4px 8px;border-radius:6px}
+.tg.pend{background:var(--warn);color:#1a1406}
+.body{padding:12px 14px 14px}
+.crow{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.cav{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:600}
+.cname{font-size:12px;color:var(--ink2)}
+.cid{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink3);margin-left:auto}
+.title{font-weight:600;font-size:15.5px;margin:0 0 3px}
+.meta{font-size:12px;color:var(--ink3);display:flex;gap:12px;margin-bottom:12px}
+.buyrow{display:flex;align-items:center;gap:10px}
+.price{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:15px;color:var(--gold);display:flex;align-items:center;gap:5px}
+.btn{border:none;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13.5px;border-radius:11px;padding:10px 15px;transition:filter .15s,transform .05s}
+.btn:active{transform:scale(.97)}
+.btn-ember{background:var(--ember);color:#fff;margin-left:auto}
+.btn-ember:hover{filter:brightness(1.05)}
+.btn-ghost{background:var(--surf2);color:var(--ink);border:1px solid var(--line)}
+.btn-block{width:100%;justify-content:center;display:flex;align-items:center;gap:8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* rented / library */
+.rcard{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:12px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow)}
+.rthumb{width:66px;height:66px;border-radius:12px;flex:none;background-size:cover;background-position:center;position:relative;overflow:hidden}
+.rmeta{flex:1;min-width:0}
+.rmeta .t{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rmeta .c{font-size:11.5px;color:var(--ink3)}
+.timer{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--teal);display:flex;align-items:center;gap:5px;margin-top:3px}
+.timer.exp{color:var(--bad)}
+.rcard.expired{opacity:.6}
+.rcard.expired .rthumb .ph{filter:blur(20px) grayscale(.6);transform:scale(1.2)}
+.miniexp{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink3);background:none;border:1px dashed var(--line2);border-radius:7px;padding:5px 8px;cursor:pointer;margin-top:4px}
+
+/* wallet */
+.balcard{background:linear-gradient(150deg,var(--ember),#7e2a19);border-radius:20px;padding:22px;color:#fff;box-shadow:var(--shadow);margin-bottom:16px}
+.balcard .lab{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.8}
+.balcard .big{font-family:'Fraunces',serif;font-weight:600;font-size:46px;line-height:1;margin:6px 0 2px;display:flex;align-items:baseline;gap:8px}
+.balcard .big span{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:400;opacity:.85}
+.balcard .eur{font-size:12.5px;opacity:.85}
+.pkgs{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:20px}
+.pkg{background:var(--surf);border:1px solid var(--line);border-radius:13px;padding:12px 6px;text-align:center;cursor:pointer;transition:border-color .15s}
+.pkg:hover{border-color:var(--gold)}
+.pkg .tk{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:15px;color:var(--gold)}
+.pkg .pr{font-size:11px;color:var(--ink3);margin-top:2px}
+.ledlab{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin:0 2px 8px}
+.led{background:var(--surf);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.led .r{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);font-size:13px}
+.led .r:last-child{border-bottom:none}
+.led .r .d{color:var(--ink2);flex:1;min-width:0}
+.led .r .d small{display:block;color:var(--ink3);font-size:11px;font-family:'IBM Plex Mono',monospace}
+.led .r .a{font-family:'IBM Plex Mono',monospace;font-weight:500}
+.a.pos{color:var(--ok)} .a.neg{color:var(--ink2)}
+
+/* drop form */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px}
+.field input,.field textarea{width:100%;background:var(--surf);border:1px solid var(--line2);border-radius:11px;padding:11px 13px;
+  font-family:inherit;font-size:14px;color:var(--ink);outline:none}
+.field input:focus,.field textarea:focus{border-color:var(--ember)}
+.field.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.picker{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pk{aspect-ratio:1;width:calc(25% - 6px);border-radius:11px;background-size:cover;cursor:pointer;position:relative;border:2px solid transparent}
+.pk.on{border-color:var(--ember)}
+.pk.on::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(217,78,47,.35);color:#fff;border-radius:9px;font-weight:700}
+.dropnote{font-size:12px;color:var(--ink3);text-align:center;margin-top:10px}
+
+/* cart bar */
+.cart{position:absolute;left:14px;right:14px;bottom:78px;background:var(--ink);color:var(--app);border-radius:16px;
+  padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 14px 34px -12px rgba(0,0,0,.6);
+  transform:translateY(140%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.cart.show{transform:none}
+.cart .info{font-size:12.5px;line-height:1.3}
+.cart .info b{font-family:'IBM Plex Mono',monospace;font-size:15px;display:block;color:var(--gold)}
+.cart .btn{margin-left:auto;background:var(--ember);color:#fff}
+
+/* nav */
+.nav{position:absolute;left:0;right:0;bottom:0;height:66px;background:color-mix(in srgb,var(--app) 92%,transparent);
+  backdrop-filter:blur(16px);border-top:1px solid var(--line);display:flex;flex:none}
+.nav button{flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink3);font-size:10.5px;font-weight:500;position:relative;padding-top:4px}
+.nav button.on{color:var(--ember)}
+.nav svg{width:22px;height:22px}
+.nav .dot{position:absolute;top:6px;right:calc(50% - 18px);min-width:16px;height:16px;border-radius:8px;background:var(--ember);color:#fff;font-size:10px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* toast */
+.toast{position:absolute;left:50%;bottom:84px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--ink);color:var(--app);font-size:13px;font-weight:500;padding:11px 18px;border-radius:12px;box-shadow:var(--shadow);transition:.25s;max-width:86%;text-align:center;z-index:5}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.empty{text-align:center;padding:48px 20px;color:var(--ink3)}
+.empty svg{width:44px;height:44px;opacity:.5;margin-bottom:10px}
+.empty .h{font-family:'Fraunces',serif;font-size:19px;color:var(--ink2);margin-bottom:4px}
+.empty p{font-size:13px;margin:0}
+.hide{display:none!important}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<aside class="aside">
+  <div class="ey">Interactief prototype</div>
+  <h1>Content Box</h1>
+  <p>Een tijdelijke multi-creator marktplaats. Alles hier werkt in je browser met mock-data — geen backend. Probeer de kernlus:</p>
+  <ul class="steps">
+    <li><b>DISCOVER</b> Bekijk de blurred feed van meerdere creators</li>
+    <li><b>RENT</b> Selecteer items → huur met tokens → content ontblurt</li>
+    <li><b>EXPIRE</b> Zie de 24u-timer lopen; “expire now” trekt toegang in</li>
+    <li><b>DROP</b> Post als creator → Pending review → Approved</li>
+  </ul>
+  <p class="note">Placeholders zijn abstracte gradients — puur om de flow te tonen, geen echte content.</p>
+</aside>
+
+<div class="phone" id="app">
+  <div class="status"><span class="mono">9:41</span><span class="mono">BOX-0007 · AFRICAN GIRLS</span></div>
+
+  <div class="top">
+    <div class="boxrow">
+      <div class="boxbadge">✦</div>
+      <div>
+        <div class="nm" id="topTitle">African Girls</div>
+        <div class="sub" id="topSub">12 creators · besloten box</div>
+      </div>
+      <div class="walletchip" id="wchip" role="button" tabindex="0">◈ <span id="wbal">600</span></div>
+    </div>
+  </div>
+
+  <div class="view" id="view"></div>
+
+  <div class="cart" id="cart">
+    <div class="info">Rent selected<b id="cartTotal">0 tokens</b></div>
+    <div style="font-size:11px;opacity:.7" id="cartCount">0 items</div>
+    <button class="btn" id="cartBtn">Rent 24u</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <nav class="nav" id="nav">
+    <button data-tab="feed" class="on">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Discover
+    </button>
+    <button data-tab="rentals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+      My Rentals
+    </button>
+    <button data-tab="drop">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15V3m0 0L8 7m4-4 4 4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+      Drop
+    </button>
+    <button data-tab="wallet">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18"/><circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+      Wallet
+    </button>
+  </nav>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var RENT_SECONDS = 24*3600; // echte 24u; demo-knop laat je expiren
+  var grad = [
+    'linear-gradient(135deg,#e85d78,#7b2ff7)',
+    'linear-gradient(135deg,#f7971e,#d92662)',
+    'linear-gradient(135deg,#11998e,#38ef7d)',
+    'linear-gradient(135deg,#8e2de2,#f9508b)',
+    'linear-gradient(135deg,#c94b4b,#4b134f)',
+    'linear-gradient(135deg,#0083b0,#ff5f6d)',
+    'linear-gradient(135deg,#654ea3,#eaafc8)',
+    'linear-gradient(135deg,#d38312,#a83279)'
+  ];
+  var creatorColors = {A:'#e85d78',B:'#f7971e',C:'#11998e',D:'#8e2de2',E:'#0083b0',You:'#d94e2f'};
+  function gid(){return Math.random().toString(36).slice(2,7)}
+  var cntSeq = 100;
+  function makeContent(creator, title, photos, videos, price, gi){
+    cntSeq++;
+    return {id:'CNT-'+cntSeq, creator:creator, title:title, photos:photos, videos:videos,
+      price:price, grad:grad[gi%grad.length], status:'approved'};
+  }
+  var state = {
+    tab:'feed',
+    tokens:600,
+    selected:{},
+    content:[
+      makeContent('A','Nairobi Weekend',10,2,250,0),
+      makeContent('B','Friday Collection',14,1,300,1),
+      makeContent('C','Golden Hour Set',8,0,150,2),
+      makeContent('D','Private Collection',6,3,400,3),
+      makeContent('E','Rooftop Series',12,1,220,4),
+      makeContent('A','Studio Night',9,0,180,5)
+    ],
+    rentals:[], // {id, contentId, creator, title, grad, expiresAt, expired}
+    ledger:[{d:'Welkomstsaldo',t:'Startbonus',a:+600}]
+  };
+
+  var svgPhoto='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-4 3 2 4-4 4 4"/></svg>';
+  var svgLock='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4.5" y="10" width="15" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+
+  var view=document.getElementById('view');
+  var toastEl=document.getElementById('toast'), toastT;
+  function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+  function setTokens(n){state.tokens=n;document.getElementById('wbal').textContent=n}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+  function cav(creator){var c=creatorColors[creator]||'#888';return '<span class="cav" style="background:'+c+'">'+esc(creator[0])+'</span>'}
+
+  /* ---------- FEED ---------- */
+  function renderFeed(){
+    document.getElementById('topTitle').textContent='African Girls';
+    document.getElementById('topSub').textContent='12 creators · besloten box';
+    var live=state.content;
+    var html='<div class="vhead"><h2>Discover</h2><span class="cnt">'+live.length+' drops</span></div>';
+    live.forEach(function(c){
+      var sel=state.selected[c.id];
+      var rented=state.rentals.some(function(r){return r.contentId===c.id && !r.expired});
+      var pending=c.status==='pending';
+      html+='<div class="card '+(sel?'sel':'')+'" data-card="'+c.id+'">'+
+        '<div class="media" data-media="'+c.id+'">'+
+          '<div class="ph '+((rented||!pending&&false)?'':'blur')+'" style="background-image:'+c.grad+'"></div>'+
+          '<div class="mediaface">'+svgPhoto+'</div>'+
+          '<div class="tags"><span class="tg">'+c.id+'</span>'+(pending?'<span class="tg pend">PENDING REVIEW</span>':'')+'</div>'+
+          (pending?'' : '<div class="selbtn '+(sel?'on':'')+'" data-sel="'+c.id+'">'+(sel?'✓':'')+'</div>')+
+          '<div class="lockrow"><span class="lk">'+svgLock+' Blurred preview · huur om te bekijken</span></div>'+
+        '</div>'+
+        '<div class="body">'+
+          '<div class="crow">'+cav(c.creator)+'<span class="cname">Creator '+esc(c.creator)+'</span><span class="cid">CRT-'+esc(c.creator)+'92</span></div>'+
+          '<div class="title">'+esc(c.title)+'</div>'+
+          '<div class="meta"><span>'+c.photos+' foto\'s</span><span>'+c.videos+' video\'s</span><span>24u toegang</span></div>'+
+          '<div class="buyrow"><span class="price">◈ '+c.price+'</span>'+
+            (pending
+              ? '<button class="btn btn-ghost" disabled style="margin-left:auto">In review…</button>'
+              : '<button class="btn btn-ember" data-rent="'+c.id+'">Rent 24u</button>')+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    });
+    view.innerHTML=html;
+  }
+
+  /* ---------- RENTALS ---------- */
+  function renderRentals(){
+    document.getElementById('topTitle').textContent='My Rentals';
+    document.getElementById('topSub').textContent='jouw tijdelijke library';
+    var active=state.rentals;
+    if(!active.length){
+      view.innerHTML='<div class="vhead"><h2>My Rentals</h2></div><div class="empty">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>'+
+        '<div class="h">Nog niets gehuurd</div><p>Huur content in Discover — het verschijnt hier met een 24u-timer.</p></div>';
+      return;
+    }
+    var html='<div class="vhead"><h2>My Rentals</h2><span class="cnt">'+active.filter(function(r){return !r.expired}).length+' actief</span></div>';
+    active.slice().reverse().forEach(function(r){
+      html+='<div class="rcard '+(r.expired?'expired':'')+'" data-rental="'+r.id+'">'+
+        '<div class="rthumb"><div class="ph" style="background-image:'+r.grad+'"></div></div>'+
+        '<div class="rmeta">'+
+          '<div class="t">'+esc(r.title)+'</div>'+
+          '<div class="c">Creator '+esc(r.creator)+' · '+r.contentId+'</div>'+
+          '<div class="c mono" style="font-size:10.5px;margin-top:2px">'+clock(r.purchasedAt)+' → '+clock(r.expiresAt)+'</div>'+
+          (r.expired
+            ? '<div class="timer exp">'+svgLock+' Toegang verlopen</div>'
+            : '<div class="timer" data-timer="'+r.id+'">◷ --:--:--</div>'+
+              '<button class="miniexp" data-expire="'+r.id+'">▸ demo: expire now</button>')+
+        '</div>'+
+      '</div>';
+    });
+    view.innerHTML=html;
+    tickTimers();
+  }
+
+  function clock(ms){var d=new Date(ms);function p(n){return(n<10?'0':'')+n}
+    var days=['zo','ma','di','wo','do','vr','za'];
+    return days[d.getDay()]+' '+p(d.getHours())+':'+p(d.getMinutes());}
+  function fmt(sec){
+    if(sec<0)sec=0;
+    var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=Math.floor(sec%60);
+    function p(n){return(n<10?'0':'')+n}
+    return p(h)+':'+p(m)+':'+p(s);
+  }
+  function tickTimers(){
+    if(state.tab!=='rentals')return;
+    var now=Date.now();
+    state.rentals.forEach(function(r){
+      if(r.expired)return;
+      var left=Math.round((r.expiresAt-now)/1000);
+      if(left<=0){ r.expired=true; renderRentals(); refreshNavBadge(); return; }
+      var el=view.querySelector('[data-timer="'+r.id+'"]');
+      if(el){ el.textContent='◷ '+fmt(left)+' resterend'; if(left<3600)el.classList.add('exp'); }
+    });
+  }
+
+  /* ---------- WALLET ---------- */
+  function renderWallet(){
+    document.getElementById('topTitle').textContent='Wallet';
+    document.getElementById('topSub').textContent='tokens · transactie-ledger';
+    var eur=(state.tokens/100).toFixed(2);
+    var html='<div class="balcard"><div class="lab">User wallet · USR-4471</div>'+
+      '<div class="big">'+state.tokens+' <span>tokens</span></div>'+
+      '<div class="eur">≈ €'+eur+' · 100 tokens = €1</div></div>'+
+      '<div class="ledlab">Koop tokens</div>'+
+      '<div class="pkgs">'+
+        '<div class="pkg" data-buy="500"><div class="tk">◈ 500</div><div class="pr">€5</div></div>'+
+        '<div class="pkg" data-buy="1000"><div class="tk">◈ 1000</div><div class="pr">€10</div></div>'+
+        '<div class="pkg" data-buy="2500"><div class="tk">◈ 2500</div><div class="pr">€25</div></div>'+
+      '</div>'+
+      '<div class="ledlab">Ledger — onveranderlijk</div><div class="led">';
+    state.ledger.slice().reverse().forEach(function(e){
+      html+='<div class="r"><div class="d">'+esc(e.d)+'<small>'+esc(e.t)+'</small></div>'+
+        '<div class="a '+(e.a>0?'pos':'neg')+'">'+(e.a>0?'+':'')+e.a+'</div></div>';
+    });
+    html+='</div>';
+    view.innerHTML=html;
+  }
+
+  /* ---------- DROP ---------- */
+  function renderDrop(){
+    document.getElementById('topTitle').textContent='Drop content';
+    document.getElementById('topSub').textContent='als Creator You · CRT-You92';
+    var thumbs='';
+    for(var i=0;i<8;i++){thumbs+='<div class="pk" data-pk="'+i+'" style="background:'+grad[i]+'"></div>';}
+    view.innerHTML='<div class="vhead"><h2>Drop content</h2></div>'+
+      '<div style="font-size:12.5px;color:var(--ink3);margin:0 2px 12px">Selecteer uit je galerij, geef titel &amp; prijs, en post. Content gaat eerst naar moderatie.</div>'+
+      '<div class="picker" id="picker">'+thumbs+'</div>'+
+      '<div class="field"><label>Titel</label><input id="dTitle" placeholder="bv. Sunset Session" value="Sunset Session"></div>'+
+      '<div class="field"><label>Beschrijving</label><input id="dDesc" placeholder="New collection" value="New collection"></div>'+
+      '<div class="field row2"><div><label>Prijs (tokens)</label><input id="dPrice" type="number" value="200" min="10"></div>'+
+        '<div><label>Duur</label><input value="24 uur" disabled style="opacity:.7"></div></div>'+
+      '<button class="btn btn-ember btn-block" id="postBtn" style="margin-top:4px">▲ Post naar Box</button>'+
+      '<div class="dropnote">Standaard blurred &amp; niet-gepubliceerd tot screening klaar is.</div>';
+    var picks={};
+    view.querySelectorAll('[data-pk]').forEach(function(el){
+      el.addEventListener('click',function(){var k=el.getAttribute('data-pk');if(picks[k]){delete picks[k];el.classList.remove('on')}else{picks[k]=1;el.classList.add('on')}});
+    });
+    // preselect two
+    ['0','2'].forEach(function(k){picks[k]=1;view.querySelector('[data-pk="'+k+'"]').classList.add('on')});
+    document.getElementById('postBtn').addEventListener('click',function(){
+      var n=Object.keys(picks).length;
+      if(!n){toast('Selecteer eerst minstens één foto');return;}
+      var title=(document.getElementById('dTitle').value||'Untitled').trim();
+      var price=Math.max(10,parseInt(document.getElementById('dPrice').value,10)||200);
+      var c=makeContent('You',title,n,0,price,cntSeq%8);
+      c.status='pending';
+      state.content.unshift(c);
+      toast('Gepost → PROCESSING → PENDING REVIEW');
+      go('feed');
+      // simulate moderation approving after a moment
+      setTimeout(function(){
+        c.status='approved';
+        if(state.tab==='feed')renderFeed();
+        toast('✓ '+c.id+' goedgekeurd door moderatie');
+      },3800);
+    });
+  }
+
+  /* ---------- RENT ACTION ---------- */
+  function rentItems(ids){
+    var items=ids.map(function(id){return state.content.find(function(c){return c.id===id})}).filter(Boolean)
+      .filter(function(c){return c.status==='approved'});
+    if(!items.length)return;
+    var total=items.reduce(function(s,c){return s+c.price},0);
+    if(total>state.tokens){
+      toast('Te weinig tokens — koop er bij in Wallet');
+      go('wallet');
+      return;
+    }
+    setTokens(state.tokens-total);
+    var now=Date.now(); // = purchased_at, vastgelegd op het koopmoment (server-side in productie)
+    items.forEach(function(c){
+      state.ledger.push({d:'Rental '+c.id+' · '+c.title,t:'Creator '+c.creator+' +'+Math.round(c.price*0.8)+' · platform +'+Math.round(c.price*0.2),a:-c.price});
+      state.rentals.push({id:'RNT-'+gid(),contentId:c.id,creator:c.creator,title:c.title,grad:c.grad,purchasedAt:now,expiresAt:now+RENT_SECONDS*1000,expired:false});
+    });
+    state.selected={};
+    toast(items.length>1?(items.length+' items gehuurd · 24u toegang'):'Gehuurd · 24u toegang actief');
+    refreshNavBadge();
+    go('rentals');
+  }
+
+  /* ---------- CART ---------- */
+  var cartEl=document.getElementById('cart');
+  function refreshCart(){
+    var ids=Object.keys(state.selected).filter(function(k){return state.selected[k]});
+    if(!ids.length){cartEl.classList.remove('show');return;}
+    var total=ids.reduce(function(s,id){var c=state.content.find(function(x){return x.id===id});return s+(c?c.price:0)},0);
+    document.getElementById('cartTotal').textContent=total+' tokens';
+    document.getElementById('cartCount').textContent=ids.length+' item'+(ids.length>1?'s':'');
+    cartEl.classList.add('show');
+  }
+  document.getElementById('cartBtn').addEventListener('click',function(){
+    rentItems(Object.keys(state.selected).filter(function(k){return state.selected[k]}));
+  });
+
+  /* ---------- NAV / BADGE ---------- */
+  function refreshNavBadge(){
+    var n=state.rentals.filter(function(r){return !r.expired}).length;
+    var btn=document.querySelector('.nav button[data-tab="rentals"]');
+    var old=btn.querySelector('.dot'); if(old)old.remove();
+    if(n){var d=document.createElement('span');d.className='dot';d.textContent=n;btn.appendChild(d);}
+  }
+  document.getElementById('nav').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b)return; go(b.getAttribute('data-tab'));
+  });
+  function go(tab){
+    state.tab=tab;
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===tab)});
+    cartEl.classList.remove('show');
+    if(tab==='feed'){renderFeed();refreshCart();}
+    else if(tab==='rentals')renderRentals();
+    else if(tab==='wallet')renderWallet();
+    else if(tab==='drop')renderDrop();
+  }
+
+  /* ---------- delegated clicks in view ---------- */
+  view.addEventListener('click',function(e){
+    var sel=e.target.closest('[data-sel]');
+    if(sel){var id=sel.getAttribute('data-sel');state.selected[id]=!state.selected[id];renderFeed();refreshCart();return;}
+    var media=e.target.closest('[data-media]');
+    if(media && state.tab==='feed'){var id=media.getAttribute('data-media');var c=state.content.find(function(x){return x.id===id});
+      if(c&&c.status==='pending'){toast('Nog in review — nog niet te huren');return;}
+      state.selected[id]=!state.selected[id];renderFeed();refreshCart();return;}
+    var rent=e.target.closest('[data-rent]');
+    if(rent){rentItems([rent.getAttribute('data-rent')]);return;}
+    var buy=e.target.closest('[data-buy]');
+    if(buy){var amt=parseInt(buy.getAttribute('data-buy'),10);setTokens(state.tokens+amt);
+      state.ledger.push({d:'Token purchase',t:'via payment provider · €'+(amt/100).toFixed(0),a:+amt});renderWallet();toast('+'+amt+' tokens toegevoegd');return;}
+    var exp=e.target.closest('[data-expire]');
+    if(exp){var rid=exp.getAttribute('data-expire');var r=state.rentals.find(function(x){return x.id===rid});
+      if(r){r.expired=true;renderRentals();refreshNavBadge();toast('Toegang ingetrokken · status EXPIRED');}return;}
+  });
+
+  document.getElementById('wchip').addEventListener('click',function(){go('wallet')});
+
+  setInterval(tickTimers,1000);
+  go('feed');
+})();
+</script>

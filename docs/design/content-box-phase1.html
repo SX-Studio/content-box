@@ -1,0 +1,403 @@
+<title>Content Box Phase 1 Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f3f4f7; --surface:#ffffff; --surface-2:#eceef3; --surface-3:#e3e6ee;
+  --ink:#171a21; --ink-2:#404757; --ink-3:#6b7280; --line:#dde1e9; --line-2:#cfd4de;
+  --ember:#d94e2f; --ember-soft:rgba(217,78,47,.10);
+  --teal:#0f867a; --teal-soft:rgba(15,134,122,.12); --gold:#a9762a;
+  --ok:#2c8a57; --warn:#b8811c; --bad:#c23a2b;
+  --ok-soft:rgba(44,138,87,.12); --warn-soft:rgba(184,129,28,.13);
+  --code-bg:#f7f8fa; --shadow:0 1px 2px rgba(20,24,34,.04),0 8px 30px -14px rgba(20,24,34,.18);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c0e13; --surface:#14171e; --surface-2:#1a1e27; --surface-3:#222732;
+  --ink:#ecedf2; --ink-2:#abb3c1; --ink-3:#7b8494; --line:#242a34; --line-2:#2e3542;
+  --ember:#f0764f; --ember-soft:rgba(240,118,79,.14);
+  --teal:#3cb6a7; --teal-soft:rgba(60,182,167,.14); --gold:#d3a24e;
+  --ok:#54b581; --warn:#d6a53f; --bad:#e46a58;
+  --ok-soft:rgba(84,181,129,.14); --warn-soft:rgba(214,165,63,.14);
+  --code-bg:#0f1218; --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 40px -18px rgba(0,0,0,.7);
+}}
+:root[data-theme="dark"]{
+  --bg:#0c0e13; --surface:#14171e; --surface-2:#1a1e27; --surface-3:#222732;
+  --ink:#ecedf2; --ink-2:#abb3c1; --ink-3:#7b8494; --line:#242a34; --line-2:#2e3542;
+  --ember:#f0764f; --ember-soft:rgba(240,118,79,.14);
+  --teal:#3cb6a7; --teal-soft:rgba(60,182,167,.14); --gold:#d3a24e;
+  --ok:#54b581; --warn:#d6a53f; --bad:#e46a58;
+  --ok-soft:rgba(84,181,129,.14); --warn-soft:rgba(214,165,63,.14);
+  --code-bg:#0f1218; --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 40px -18px rgba(0,0,0,.7);
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px}
+.prose{max-width:72ch}
+h1,h2,h3,h4{font-family:'Fraunces',Georgia,serif;font-weight:500;text-wrap:balance;line-height:1.12}
+h2{font-size:clamp(24px,3.2vw,32px);margin:0 0 .3em;letter-spacing:-.01em}
+h3{font-size:19px;margin:2em 0 .5em;font-weight:600}
+h4{font-size:15.5px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;margin:1.5em 0 .4em}
+p{margin:0 0 1.05em}
+a{color:var(--ember)}
+strong{font-weight:600}
+code,.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+:not(pre)>code{font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:.06em .36em;border-radius:5px;color:var(--ink-2)}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ember);font-weight:500}
+.lead{font-size:18px;color:var(--ink-2);max-width:64ch}
+ul,ol{margin:0 0 1.1em;padding-left:1.25em}
+li{margin:.26em 0}
+li::marker{color:var(--ink-3)}
+
+header.hero{padding:56px 0 30px;border-bottom:1px solid var(--line);
+  background:radial-gradient(120% 140% at 90% -10%,var(--teal-soft),transparent 46%),linear-gradient(180deg,var(--surface),var(--bg))}
+.hero .badge{display:inline-flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);padding:6px 12px;border-radius:999px;margin-bottom:20px}
+.hero .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
+h1{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(34px,5.4vw,54px);line-height:1.03;letter-spacing:-.02em;margin:0 0 .35em}
+h1 .s{display:block;font-size:clamp(15px,2.2vw,19px);font-weight:400;color:var(--ink-3);letter-spacing:0;margin-top:.55em;font-family:'IBM Plex Sans',sans-serif}
+
+main section{padding:44px 0;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:16px;align-items:baseline;margin-bottom:18px}
+.sec-num{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ember);font-weight:500;flex:none;padding-top:.5em}
+.sec-head h2{margin:0}
+
+.grid{display:grid;gap:14px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:17px 19px;box-shadow:var(--shadow)}
+.card h4{margin-top:0}.card p:last-child{margin-bottom:0}
+.card .k{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.in .card{border-color:var(--ok);}
+.in .card .k{color:var(--ok)}
+.out .card{border-style:dashed;opacity:.85}
+.out .card .k{color:var(--ink-3)}
+
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;margin:1.1em 0;box-shadow:var(--shadow)}
+pre code{font-family:'IBM Plex Mono',monospace;font-size:12.8px;line-height:1.66;color:var(--ink-2);white-space:pre}
+.cm{color:var(--ink-3)} .kw{color:var(--ember)} .ty{color:var(--teal)} .st{color:var(--gold)}
+
+.tbl-wrap{overflow-x:auto;margin:1.1em 0;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:var(--surface);min-width:560px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{background:var(--surface-2);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
+tbody tr:last-child td{border-bottom:none}
+td .mono{font-size:12px;color:var(--ember)}
+.method{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;padding:2px 7px;border-radius:5px}
+.m-post{background:var(--ok-soft);color:var(--ok)} .m-get{background:var(--teal-soft);color:var(--teal)}
+
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px}
+.chip.ok{color:var(--ok);background:var(--ok-soft)} .chip.warn{color:var(--warn);background:var(--warn-soft)}
+
+.why{border-left:2.5px solid var(--ember);background:var(--ember-soft);padding:11px 17px;border-radius:0 10px 10px 0;margin:1.2em 0;max-width:74ch}
+.why b{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ember);display:block;margin-bottom:2px}
+.why p{margin:0;color:var(--ink-2);font-size:14.5px}
+.note{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:14px 18px;margin:1.2em 0;font-size:14px;color:var(--ink-2)}
+.note strong{color:var(--ink)}
+.checklist{list-style:none;padding:0;margin:.6em 0}
+.checklist li{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line);font-size:14.5px;color:var(--ink-2)}
+.checklist li:first-child{border-top:none}
+.checklist .bx{color:var(--teal);flex:none;font-family:'IBM Plex Mono',monospace;font-weight:600}
+nav.toc{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+nav.toc .inner{display:flex;gap:4px;overflow-x:auto;padding:9px 24px;max-width:1000px;margin:0 auto;scrollbar-width:none}
+nav.toc .inner::-webkit-scrollbar{display:none}
+nav.toc a{flex:none;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-3);text-decoration:none;padding:5px 9px;border-radius:7px;white-space:nowrap}
+nav.toc a:hover{color:var(--ink);background:var(--surface-2)}
+footer{padding:42px 0 70px}
+.cta{background:var(--surface);border:1px solid var(--line-2);border-radius:15px;padding:24px 26px;box-shadow:var(--shadow)}
+.cta h3{margin-top:0}
+@media(max-width:720px){.g2,.g3{grid-template-columns:1fr}.sec-head{flex-direction:column;gap:3px}.sec-num{padding-top:0}body{font-size:15.5px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<nav class="toc">
+  <div class="inner">
+    <a href="#scope">Scope</a>
+    <a href="#files">Bestanden</a>
+    <a href="#schema">Schema</a>
+    <a href="#rls">RLS</a>
+    <a href="#otp">OTP-adapter</a>
+    <a href="#api">API</a>
+    <a href="#invite">Invitations</a>
+    <a href="#audit">Audit &amp; Events</a>
+    <a href="#tests">Tests</a>
+    <a href="#sec">Security</a>
+    <a href="#done">Done-when</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="badge"><span class="dot"></span> Fase 1 · te bouwen ná jouw akkoord op dit plan</span>
+    <div class="eyebrow">MVP Technical Blueprint</div>
+    <h1>Fase 1 — Identiteit &amp; Box-fundament
+      <span class="s">GSM/OTP-auth · rollen · boxen · uitnodigingen · audit-skelet. Next.js + Supabase, één app met modulegrenzen. Nog géén content, wallet of rentals.</span>
+    </h1>
+    <p class="lead" style="margin-top:18px">Dit is een <strong>plan</strong>, geen code. Het benoemt exact welke bestanden, tabellen, policies, endpoints en tests Fase&nbsp;1 vormen — zodat je het kunt goedkeuren vóór de eerste regel code.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="scope">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Scope &amp; non-goals</h2></div>
+    <p class="prose">Fase 1 levert het fundament waar al het andere op rust: een geverifieerde identiteit, een box, en een veilige manier om mensen erin uit te nodigen. Alles wat content, geld of moderatie raakt is bewust uitgesteld.</p>
+    <div class="grid g2 in" style="margin-bottom:14px">
+      <div class="card"><span class="k">In scope</span><h4>Wat Fase 1 bouwt</h4>
+        <ul style="margin-bottom:0"><li>Standalone project bootstrap (Next.js + Supabase)</li><li>GSM + SMS-OTP auth (provider-agnostische stub)</li><li>Sessies + role-based access</li><li>Box aanmaken · box-membership</li><li>Uitnodigingen: eenmalig, tijdgebonden, intrekbaar</li><li>Accept-flow → deelnemer gekoppeld aan box</li><li>RLS op elke tabel · audit-log + events-skelet</li></ul></div>
+      <div class="card" style="border-color:var(--line);border-style:dashed;opacity:.9"><span class="k" style="color:var(--ink-3)">Non-goals (later)</span><h4>Bewust uitgesteld</h4>
+        <ul style="margin-bottom:0"><li>Content-upload &amp; processing → <strong>Fase 2</strong></li><li>Wallet, tokens, rentals, payouts → <strong>Fase 3</strong></li><li>Moderation console, AI-screening → <strong>Fase 4</strong></li><li>Echte SMS-provider &amp; PSP → compliance-spoor</li><li>Native mobiele app (Fase 1 = web, mobile-first)</li><li>SX-koppeling</li></ul></div>
+    </div>
+    <div class="why"><b>Waarom hier beginnen</b><p>Zonder geverifieerde accounts, boxen en veilige uitnodigingen kan niets anders bestaan. Dit is ook de laag met de meeste beveiligings- en privacy-consequenties — die willen we goed hebben vóórdat er content of geld doorheen stroomt.</p></div>
+  </section>
+
+  <section id="files">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Projectstructuur &amp; bestanden</h2></div>
+    <p class="prose">Eén Next.js App Router-project. De 11 diensten uit de architectuur leven als <strong>mappen/modules</strong> onder <code>lib/</code>, niet als aparte deployments.</p>
+<pre><code><span class="cm"># nieuw, zelfstandig project — eigen repo + eigen Supabase</span>
+content-box/
+├─ app/
+│  ├─ (auth)/login/page.tsx           <span class="cm"># telefoon invoeren → OTP</span>
+│  ├─ (auth)/invite/[token]/page.tsx  <span class="cm"># uitnodiging openen → verifiëren → joinen</span>
+│  ├─ box/[id]/page.tsx               <span class="cm"># box-landing (admin/creator)</span>
+│  └─ api/
+│     ├─ auth/otp/start/route.ts      <span class="cm"># POST — stuur OTP</span>
+│     ├─ auth/otp/verify/route.ts     <span class="cm"># POST — verifieer → sessie</span>
+│     ├─ boxes/route.ts               <span class="cm"># POST create · (GET mine)</span>
+│     ├─ boxes/[id]/route.ts          <span class="cm"># GET detail</span>
+│     ├─ boxes/[id]/invitations/route.ts  <span class="cm"># POST invite</span>
+│     └─ invitations/[token]/accept/route.ts <span class="cm"># POST accept</span>
+├─ lib/
+│  ├─ supabase/{server,admin,client}.ts   <span class="cm"># SSR · service-role · browser</span>
+│  ├─ auth/otp-adapter.ts    <span class="cm"># interface OtpSender</span>
+│  ├─ auth/otp-stub.ts       <span class="cm"># dev-sender: logt code naar console</span>
+│  ├─ auth/session.ts        <span class="cm"># wie ben ik + rollen</span>
+│  ├─ authz.ts               <span class="cm"># requireRole(), requireBoxRole()</span>
+│  ├─ ids.ts                 <span class="cm"># USR-/CRT-/BOX-/INV- generatie</span>
+│  ├─ audit.ts               <span class="cm"># writeAudit(actor,action,target,meta)</span>
+│  ├─ events.ts              <span class="cm"># emit(type,payload) → events-tabel</span>
+│  ├─ crypto.ts              <span class="cm"># phone encrypt/decrypt · token hash</span>
+│  └─ config.ts              <span class="cm"># leest app_config defaults</span>
+├─ supabase/migrations/
+│  ├─ 0001_accounts_roles.sql
+│  ├─ 0002_boxes_memberships.sql
+│  ├─ 0003_invitations.sql
+│  ├─ 0004_audit_events_config.sql
+│  └─ 0005_rls_policies.sql
+├─ middleware.ts             <span class="cm"># sessie + rate-limit hook</span>
+└─ tests/                    <span class="cm"># unit · integration · security</span></code></pre>
+  </section>
+
+  <section id="schema">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Databaseschema</h2></div>
+    <p class="prose">Zeven tabellen. Publieke identifiers zijn codes; het GSM-nummer staat versleuteld en is nooit een sleutel. Rollen zijn aparte, scoped rijen — één persoon kan verschillende rollen in verschillende boxen hebben.</p>
+<pre><code><span class="kw">create table</span> account (
+  id            uuid primary key default gen_random_uuid(),
+  public_id     text unique not null,          <span class="cm">-- USR-/CRT-…</span>
+  phone_enc     bytea not null,                <span class="cm">-- versleuteld, nooit plaintext</span>
+  phone_hash    text unique not null,          <span class="cm">-- HMAC, voor lookup zonder ontsleutelen</span>
+  status        text not null default <span class="st">'active'</span>,  <span class="cm">-- active/suspended/restricted</span>
+  phone_verified_at timestamptz,
+  created_at    timestamptz not null default now()
+);
+
+<span class="kw">create table</span> account_role (
+  id         uuid primary key default gen_random_uuid(),
+  account_id uuid not null references account(id) on delete cascade,
+  role       text not null,                    <span class="cm">-- platform_operator/moderator/box_admin/creator/user</span>
+  box_id     uuid references box(id) on delete cascade,  <span class="cm">-- null = platform-breed</span>
+  unique (account_id, role, box_id)
+);
+
+<span class="kw">create table</span> box (
+  id          uuid primary key default gen_random_uuid(),
+  public_id   text unique not null,            <span class="cm">-- BOX-…</span>
+  name        text not null,
+  description text,
+  created_by  uuid not null references account(id),
+  status      text not null default <span class="st">'active'</span>,
+  created_at  timestamptz not null default now()
+);
+
+<span class="kw">create table</span> box_membership (
+  id         uuid primary key default gen_random_uuid(),
+  box_id     uuid not null references box(id) on delete cascade,
+  account_id uuid not null references account(id) on delete cascade,
+  role       text not null,                    <span class="cm">-- box_admin/creator/user</span>
+  status     text not null default <span class="st">'active'</span>,
+  invited_by uuid references account(id),
+  joined_at  timestamptz not null default now(),
+  unique (box_id, account_id)
+);
+
+<span class="kw">create table</span> invitation (
+  id            uuid primary key default gen_random_uuid(),
+  public_id     text unique not null,          <span class="cm">-- INV-…</span>
+  box_id        uuid not null references box(id) on delete cascade,
+  target_role   text not null,                 <span class="cm">-- creator/user</span>
+  target_phone_enc bytea not null,
+  target_phone_hash text not null,
+  token_hash    text unique not null,          <span class="cm">-- alleen de HASH; token zit in de link</span>
+  invited_by    uuid not null references account(id),
+  expires_at    timestamptz not null,
+  used_at       timestamptz,
+  revoked_at    timestamptz,
+  created_at    timestamptz not null default now()
+);
+
+<span class="kw">create table</span> audit_log (            <span class="cm">-- append-only</span>
+  id         bigserial primary key,
+  actor_id   uuid,
+  action     text not null,
+  target_type text, target_id text,
+  metadata   jsonb, reason text,
+  created_at timestamptz not null default now()
+);
+
+<span class="kw">create table</span> events (               <span class="cm">-- event-backbone (staat in voor Kafka)</span>
+  id         bigserial primary key,
+  type       text not null,                    <span class="cm">-- INVITATION_SENT, MEMBERSHIP_CREATED…</span>
+  payload    jsonb not null,
+  created_at timestamptz not null default now(),
+  processed_at timestamptz
+);
+
+<span class="kw">create table</span> app_config (           <span class="cm">-- configureerbare defaults</span>
+  key text primary key, value jsonb not null
+);
+<span class="cm">-- seed (Fase 3 gebruikt deze; nu alvast vastgelegd):</span>
+<span class="cm">--  tokens_per_euro=100 · creator_split=0.80 · payout_threshold_eur=50 · rental_hours=24</span></code></pre>
+    <div class="why"><b>Waarom phone_hash naast phone_enc</b><p>Je moet een nummer kunnen opzoeken (bestaat dit account al? matcht de uitnodiging?) zónder het te ontsleutelen. Een HMAC-hash maakt gelijkheids-lookups mogelijk terwijl het echte nummer versleuteld blijft.</p></div>
+  </section>
+
+  <section id="rls">
+    <div class="sec-head"><span class="sec-num">04</span><h2>Row-Level Security</h2></div>
+    <p class="prose">Elke tabel krijgt RLS <em>aan</em>. De browserclient kan bijna niets direct; gevoelige schrijfacties lopen via server-routes met de service-role. Twee voorbeelden van het patroon:</p>
+<pre><code><span class="cm">-- box_membership: je ziet alleen boxen waar je zelf lid van bent</span>
+<span class="kw">alter table</span> box_membership <span class="kw">enable row level security</span>;
+
+<span class="kw">create policy</span> "leden zien hun eigen memberships"
+  <span class="kw">on</span> box_membership <span class="kw">for select to</span> authenticated
+  <span class="kw">using</span> (account_id = auth_account_id());
+
+<span class="cm">-- invitations: NIEMAND leest ze via de client; alleen server (service-role).</span>
+<span class="kw">alter table</span> invitation <span class="kw">enable row level security</span>;
+<span class="cm">-- (geen select/insert policy voor 'authenticated' → default deny)</span>
+
+<span class="cm">-- box: alleen platform-operator of box-admin kan een box updaten</span>
+<span class="kw">create policy</span> "box-admin beheert eigen box"
+  <span class="kw">on</span> box <span class="kw">for update to</span> authenticated
+  <span class="kw">using</span> (exists (
+    select 1 from account_role r
+    where r.account_id = auth_account_id()
+      and (r.role = <span class="st">'platform_operator'</span>
+        or (r.role = <span class="st">'box_admin'</span> and r.box_id = box.id))));</code></pre>
+    <div class="note"><strong>Twee sloten.</strong> De server-route controleert de rol (applicatielaag) én de RLS-policy controleert de rij (databaselaag). Eén bug in de app lekt dan nog geen data, want de database weigert de rij alsnog. Uitnodigingen hebben bewust géén client-leespolicy — ze zijn alleen server-side benaderbaar.</div>
+  </section>
+
+  <section id="otp">
+    <div class="sec-head"><span class="sec-num">05</span><h2>OTP-adapter (provider-agnostisch)</h2></div>
+    <p class="prose">De hele auth-flow praat met één interface. In Fase 1 draait de stub die de code naar de serverconsole logt; de echte provider implementeert later dezelfde interface — zonder dat de app-code verandert.</p>
+<pre><code><span class="cm">// lib/auth/otp-adapter.ts</span>
+<span class="kw">export interface</span> <span class="ty">OtpSender</span> {
+  send(phoneE164: <span class="ty">string</span>, code: <span class="ty">string</span>): <span class="ty">Promise</span>&lt;<span class="ty">void</span>&gt;;
+}
+
+<span class="cm">// lib/auth/otp-stub.ts  — Fase 1</span>
+<span class="kw">export const</span> stubSender: <span class="ty">OtpSender</span> = {
+  <span class="kw">async</span> send(phone, code) { console.log(<span class="st">`[OTP] ${phone} → ${code}`</span>); }
+};
+
+<span class="cm">// later: twilioSender / messageBirdSender implement OtpSender — één regel omzetten.</span></code></pre>
+    <h4>OTP-flow</h4>
+    <ol>
+      <li><code>POST /auth/otp/start</code> → normaliseer naar E.164, rate-limit per nummer + per IP, genereer 6-cijferige code, sla <em>hash</em> + expiry op (5&nbsp;min), roep <code>OtpSender.send</code> aan.</li>
+      <li><code>POST /auth/otp/verify</code> → vergelijk hash, check niet-verlopen &amp; pogingslimiet, maak/vind <code>account</code>, zet <code>phone_verified_at</code>, open sessie.</li>
+    </ol>
+  </section>
+
+  <section id="api">
+    <div class="sec-head"><span class="sec-num">06</span><h2>API-endpoints</h2></div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Endpoint</th><th>Body / params</th><th>Autz</th><th>Side effects</th></tr></thead>
+      <tbody>
+        <tr><td><span class="method m-post">POST</span> <span class="mono">/auth/otp/start</span></td><td>phone</td><td>public · rate-limited</td><td>OTP verzonden</td></tr>
+        <tr><td><span class="method m-post">POST</span> <span class="mono">/auth/otp/verify</span></td><td>phone, code</td><td>public · rate-limited</td><td>account + sessie · <span class="mono">audit</span></td></tr>
+        <tr><td><span class="method m-post">POST</span> <span class="mono">/boxes</span></td><td>name, description</td><td>platform_operator</td><td>box + box_admin membership · <span class="mono">audit</span></td></tr>
+        <tr><td><span class="method m-get">GET</span> <span class="mono">/boxes/:id</span></td><td>—</td><td>lid van box</td><td>—</td></tr>
+        <tr><td><span class="method m-post">POST</span> <span class="mono">/boxes/:id/invitations</span></td><td>phone, role</td><td>box_admin / operator</td><td>invitation · OTP-link · <span class="mono">INVITATION_SENT</span> · audit</td></tr>
+        <tr><td><span class="method m-post">POST</span> <span class="mono">/invitations/:token/accept</span></td><td>token (+ geverifieerde sessie)</td><td>OTP-geverifieerd = doelnummer</td><td>membership · rol · <span class="mono">MEMBERSHIP_CREATED</span> · audit</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="why"><b>Regel voor elk endpoint</b><p>Autorisatie is server-side en wordt per verzoek herbepaald — nooit een clientclaim over rol of eigenaarschap vertrouwen. Elke schrijfactie die een mens of rol raakt, schrijft een audit-regel.</p></div>
+  </section>
+
+  <section id="invite">
+    <div class="sec-head"><span class="sec-num">07</span><h2>Uitnodiging-token · veiligheid</h2></div>
+    <div class="grid g2">
+      <div class="card"><span class="k">Opslag</span><h4>Alleen de hash</h4><p>De rauwe token zit alleen in de SMS-link. In de database staat <code>token_hash</code> — zoals een wachtwoord. Lekt de DB, dan zijn de links onbruikbaar.</p></div>
+      <div class="card"><span class="k">Eenmalig</span><h4>Used &amp; revoked</h4><p><code>used_at</code> maakt hem na één keer ongeldig; <code>revoked_at</code> laat het platform of de box-admin hem intrekken vóór gebruik.</p></div>
+      <div class="card"><span class="k">Tijdgebonden</span><h4>Expiry</h4><p><code>expires_at</code> (bv. 72&nbsp;uur). Verlopen tokens worden geweigerd, ook al zijn ze nooit gebruikt.</p></div>
+      <div class="card"><span class="k">Gebonden</span><h4>Aan het doelnummer</h4><p>Accepteren kan alleen als het OTP-geverifieerde nummer gelijk is aan <code>target_phone_hash</code>. Een doorgestuurde link werkt niet voor iemand anders.</p></div>
+    </div>
+    <div class="note"><strong>Accept-flow in het kort:</strong> open link → OTP op jouw nummer → server checkt: token bestaat, niet verlopen, niet gebruikt, niet ingetrokken, én jouw geverifieerde nummer matcht het doel → membership aangemaakt met de bedoelde rol → token op <code>used_at</code> → audit + event.</p></div>
+  </section>
+
+  <section id="audit">
+    <div class="sec-head"><span class="sec-num">08</span><h2>Audit &amp; events</h2></div>
+    <p class="prose">Twee lichte helpers die vanaf Fase 1 overal meelopen, zodat latere fasen er alleen op hoeven aan te haken.</p>
+    <div class="grid g2">
+      <div class="card"><span class="k">audit.ts</span><h4>Onveranderlijke trail</h4><p><code>writeAudit(actor, action, target, meta)</code> — schrijft naar <code>audit_log</code> bij elke gevoelige actie (account aangemaakt, box aangemaakt, invite verstuurd, membership gemaakt). Nooit ge-update of verwijderd.</p></div>
+      <div class="card"><span class="k">events.ts</span><h4>Backbone-skelet</h4><p><code>emit(type, payload)</code> — append naar <code>events</code>. In Fase 1 nog zonder consumers; het legt de rails zodat Fase 2–4 (notificaties, moderatie) er reactief op inhaken.</p></div>
+    </div>
+  </section>
+
+  <section id="tests">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Testlijst</h2></div>
+    <div class="grid g3">
+      <div class="card"><span class="k">Unit</span><h4>Logica</h4><ul style="margin-bottom:0;font-size:14px"><li>E.164-normalisatie</li><li>token hash + verify</li><li>phone encrypt/decrypt roundtrip</li><li>public-id generatie</li><li>expiry-berekening</li></ul></div>
+      <div class="card"><span class="k">Integration</span><h4>Flows</h4><ul style="margin-bottom:0;font-size:14px"><li>OTP start→verify→sessie</li><li>box aanmaken door operator</li><li>invite → accept → membership</li><li>verlopen / gebruikte / ingetrokken token geweigerd</li><li>verkeerd nummer accepteert niet</li></ul></div>
+      <div class="card"><span class="k">Security</span><h4>Grenzen</h4><ul style="margin-bottom:0;font-size:14px"><li>RLS: user leest andermans membership niet</li><li>invitations niet client-leesbaar</li><li>OTP rate-limit grijpt</li><li>non-operator kan geen box maken</li><li>audit-regel bij elke gevoelige actie</li></ul></div>
+    </div>
+  </section>
+
+  <section id="sec">
+    <div class="sec-head"><span class="sec-num">10</span><h2>Security-checklist Fase 1</h2></div>
+    <ul class="checklist">
+      <li><span class="bx">✓</span> GSM versleuteld at-rest (<code>phone_enc</code>), HMAC voor lookup — geen plaintext-nummers.</li>
+      <li><span class="bx">✓</span> OTP: 6 cijfers, 5&nbsp;min geldig, pogingslimiet, rate-limit per nummer én per IP.</li>
+      <li><span class="bx">✓</span> Uitnodiging-tokens gehasht opgeslagen, eenmalig, tijdgebonden, intrekbaar, aan doelnummer gebonden.</li>
+      <li><span class="bx">✓</span> RLS aan op elke tabel; service-role alleen server-side (<code>persistSession:false</code>).</li>
+      <li><span class="bx">✓</span> Autorisatie per verzoek server-side herbepaald; geen clientclaims vertrouwd.</li>
+      <li><span class="bx">✓</span> Audit-regel bij account-creatie, box-creatie, invite, accept.</li>
+      <li><span class="bx">✓</span> TLS in transit; secrets alleen server-side; geen PII in logs.</li>
+    </ul>
+  </section>
+
+  <section id="done">
+    <div class="sec-head"><span class="sec-num">11</span><h2>Klaar wanneer…</h2></div>
+    <p class="prose">Fase 1 is af — en klaar voor Fase 2 — wanneer dit end-to-end werkt en getest is:</p>
+    <ol class="prose">
+      <li>Een <strong>platform-operator</strong> kan inloggen via OTP en een <strong>box</strong> aanmaken.</li>
+      <li>De operator/box-admin kan een <strong>creator uitnodigen</strong> op een GSM-nummer; die ontvangt een link (stub → console), verifieert via OTP, en wordt <strong>lid van de box als creator</strong>.</li>
+      <li>Dezelfde flow werkt voor een <strong>user</strong>-uitnodiging.</li>
+      <li>Verlopen / gebruikte / ingetrokken / verkeerd-nummer-tokens worden correct <strong>geweigerd</strong>.</li>
+      <li>Elke stap staat in de <strong>audit-log</strong>; <code>events</code> bevat de bijbehorende event-regels.</li>
+      <li>De <strong>testsuite</strong> (unit + integration + security) draait groen; RLS-grenzen zijn bewezen.</li>
+    </ol>
+    <div class="chip ok" style="margin-top:8px">Geen content · geen geld · geen moderatie — dat is Fase 2–4</div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div class="cta prose">
+    <h3>Zo starten we Fase 1</h3>
+    <p>Dit plan bevat nog geen applicatiecode. Zodra je het goedkeurt:</p>
+    <ol>
+      <li>Jij maakt de lege <strong>GitHub-repo</strong> + <strong>Supabase-project</strong> aan (of geeft me toegang zodat ik ze kan scaffolden).</li>
+      <li>Ik lever Fase 1 in behapbare stukken: eerst schema + RLS (migrations 0001–0005), dan de OTP-auth, dan boxen, dan uitnodigingen — telkens met tests en een security-check vóór ik doorga.</li>
+      <li>Parallel start het <strong>compliance-spoor</strong>: adult-vriendelijke PSP + de juridische token-analyse (Stripe valt af voor deze vertical).</li>
+    </ol>
+    <p style="margin-bottom:0">Akkoord met dit Fase&nbsp;1-plan? Zeg het, of geef je aanpassingen — dan begin ik met migration <code>0001</code> zodra de repo klaarstaat.</p>
+  </div>
+</footer>

@@ -1,0 +1,715 @@
+<title>Content Box Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+:root{
+  --bg:#f3f4f7; --surface:#ffffff; --surface-2:#eceef3; --surface-3:#e3e6ee;
+  --ink:#171a21; --ink-2:#404757; --ink-3:#6b7280; --line:#dde1e9; --line-2:#cfd4de;
+  --ember:#d94e2f; --ember-soft:rgba(217,78,47,.10);
+  --teal:#0f867a; --gold:#a9762a;
+  --ok:#2c8a57; --warn:#b8811c; --bad:#c23a2b;
+  --ok-soft:rgba(44,138,87,.12); --warn-soft:rgba(184,129,28,.13); --bad-soft:rgba(194,58,43,.11);
+  --shadow:0 1px 2px rgba(20,24,34,.04),0 8px 30px -14px rgba(20,24,34,.18);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c0e13; --surface:#14171e; --surface-2:#1a1e27; --surface-3:#222732;
+  --ink:#ecedf2; --ink-2:#abb3c1; --ink-3:#7b8494; --line:#242a34; --line-2:#2e3542;
+  --ember:#f0764f; --ember-soft:rgba(240,118,79,.14);
+  --teal:#3cb6a7; --gold:#d3a24e;
+  --ok:#54b581; --warn:#d6a53f; --bad:#e46a58;
+  --ok-soft:rgba(84,181,129,.14); --warn-soft:rgba(214,165,63,.14); --bad-soft:rgba(228,106,88,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 40px -18px rgba(0,0,0,.7);
+}}
+:root[data-theme="dark"]{
+  --bg:#0c0e13; --surface:#14171e; --surface-2:#1a1e27; --surface-3:#222732;
+  --ink:#ecedf2; --ink-2:#abb3c1; --ink-3:#7b8494; --line:#242a34; --line-2:#2e3542;
+  --ember:#f0764f; --ember-soft:rgba(240,118,79,.14);
+  --teal:#3cb6a7; --gold:#d3a24e;
+  --ok:#54b581; --warn:#d6a53f; --bad:#e46a58;
+  --ok-soft:rgba(84,181,129,.14); --warn-soft:rgba(214,165,63,.14); --bad-soft:rgba(228,106,88,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 40px -18px rgba(0,0,0,.7);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:16px; line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px; margin:0 auto; padding:0 24px}
+.prose{max-width:70ch}
+
+/* ---- type ---- */
+h1,h2,h3,h4{font-family:'Fraunces',Georgia,serif; font-weight:500; text-wrap:balance; line-height:1.12; color:var(--ink)}
+h2{font-size:clamp(26px,3.4vw,36px); margin:0 0 .3em; letter-spacing:-.01em}
+h3{font-size:20px; margin:2.4em 0 .5em; font-weight:600}
+h4{font-size:16.5px; font-family:'IBM Plex Sans',sans-serif; font-weight:600; margin:1.8em 0 .4em; letter-spacing:.01em}
+p{margin:0 0 1.05em}
+a{color:var(--ember); text-decoration-thickness:1px; text-underline-offset:2px}
+strong{font-weight:600; color:var(--ink)}
+code,.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+:not(pre)>code{font-size:.86em; background:var(--surface-2); border:1px solid var(--line); padding:.08em .38em; border-radius:5px; color:var(--ink-2)}
+.lead{font-size:19px; line-height:1.55; color:var(--ink-2)}
+.eyebrow{font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--ember); font-weight:500}
+ul,ol{margin:0 0 1.1em; padding-left:1.25em}
+li{margin:.28em 0}
+li::marker{color:var(--ink-3)}
+
+/* ---- header ---- */
+header.hero{
+  padding:64px 0 34px; border-bottom:1px solid var(--line);
+  background:
+    radial-gradient(120% 140% at 88% -10%, var(--ember-soft), transparent 46%),
+    linear-gradient(180deg, var(--surface), var(--bg));
+}
+.hero .badge{display:inline-flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);padding:6px 12px;border-radius:999px;margin-bottom:22px}
+.hero .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 3px var(--warn-soft)}
+h1{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(40px,6.6vw,72px);line-height:1.02;letter-spacing:-.02em;margin:0 0 .28em}
+h1 .sub{display:block;font-size:clamp(17px,2.4vw,23px);font-weight:400;color:var(--ink-3);letter-spacing:0;margin-top:.5em;font-family:'IBM Plex Sans',sans-serif}
+.hero .lead{max-width:60ch;margin-top:20px}
+.pillrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.pill{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.04em;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+
+/* ---- section scaffold ---- */
+main section{padding:52px 0;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:18px;align-items:baseline;margin-bottom:22px}
+.sec-num{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ember);font-weight:500;letter-spacing:.05em;flex:none;padding-top:.5em}
+.sec-head h2{margin:0}
+.why{border-left:2.5px solid var(--ember);background:var(--ember-soft);padding:12px 18px;border-radius:0 10px 10px 0;margin:1.3em 0;max-width:72ch}
+.why b{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ember);display:block;margin-bottom:2px}
+.why p{margin:0;color:var(--ink-2);font-size:15px}
+
+/* ---- cards ---- */
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card p:last-child{margin-bottom:0}
+.card .k{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---- tables ---- */
+.tbl-wrap{overflow-x:auto;margin:1.2em 0;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--surface);min-width:520px}
+th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{background:var(--surface-2);font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);position:sticky;top:0}
+tbody tr:last-child td{border-bottom:none}
+td .mono,th .mono{font-size:12.5px;color:var(--ember)}
+.tc{text-align:center;font-family:'IBM Plex Mono',monospace}
+.yes{color:var(--ok);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+.ltd{color:var(--warn);font-weight:600}
+tbody td.mono{color:var(--ink-2)}
+
+/* ---- status chips ---- */
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:500;letter-spacing:.03em;padding:3px 9px;border-radius:6px;border:1px solid;white-space:nowrap}
+.chip.ok{color:var(--ok);background:var(--ok-soft);border-color:transparent}
+.chip.warn{color:var(--warn);background:var(--warn-soft);border-color:transparent}
+.chip.bad{color:var(--bad);background:var(--bad-soft);border-color:transparent}
+.chip.n{color:var(--ink-2);background:var(--surface-2);border-color:var(--line)}
+
+/* ---- diagram panels (fixed light for mermaid legibility in both themes) ---- */
+figure{margin:1.6em 0}
+.diagram{background:#eef1f6;border:1px solid #d7dce6;border-radius:14px;padding:22px 18px;overflow-x:auto;box-shadow:var(--shadow)}
+.diagram .mermaid{display:flex;justify-content:center;min-width:min-content}
+figcaption{font-size:13px;color:var(--ink-3);margin-top:10px;text-align:center;font-style:italic}
+svg.hand{display:block;width:100%;height:auto;color:var(--ink)}
+
+/* lifecycle svg colors */
+.lc-node{fill:var(--surface);stroke:var(--line-2)}
+.lc-txt{fill:var(--ink);font-family:'IBM Plex Sans',sans-serif}
+.lc-sub{fill:var(--ink-3);font-family:'IBM Plex Mono',monospace}
+.lc-flow{stroke:var(--ink-3)}
+.lc-burn .lc-node{stroke:var(--ember)}
+.lc-burn .lc-lab{fill:var(--ember)}
+
+/* ---- roadmap ---- */
+.phase{display:grid;grid-template-columns:auto 1fr;gap:20px;padding:20px 0;border-bottom:1px solid var(--line)}
+.phase:last-child{border-bottom:none}
+.phase .tag{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:#fff;background:var(--ink);padding:6px 10px;border-radius:8px;height:max-content;letter-spacing:.04em;white-space:nowrap}
+:root[data-theme="dark"] .phase .tag,@media(prefers-color-scheme:dark){}
+.phase.p0 .tag{background:var(--ember)} .phase.p1 .tag{background:var(--teal)} .phase.p2 .tag{background:var(--gold)}
+.phase h4{margin:0 0 .3em}
+.phase ul{margin:.4em 0 0}
+
+/* ---- toc ---- */
+nav.toc{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+nav.toc .inner{display:flex;gap:4px;overflow-x:auto;padding:10px 24px;max-width:1080px;margin:0 auto;scrollbar-width:none}
+nav.toc .inner::-webkit-scrollbar{display:none}
+nav.toc a{flex:none;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-3);text-decoration:none;padding:5px 10px;border-radius:7px;white-space:nowrap}
+nav.toc a:hover{color:var(--ink);background:var(--surface-2)}
+
+.stack-note{font-size:14px;color:var(--ink-3);margin-top:.4em}
+.note{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:1.4em 0;font-size:14.5px;color:var(--ink-2)}
+.note strong{color:var(--ink)}
+footer{padding:48px 0 72px}
+.cta{background:var(--surface);border:1px solid var(--line-2);border-radius:16px;padding:26px 28px;box-shadow:var(--shadow)}
+.cta h3{margin-top:0}
+hr.soft{border:none;border-top:1px solid var(--line);margin:2em 0}
+@media(max-width:760px){
+  .g2,.g3{grid-template-columns:1fr}
+  .sec-head{flex-direction:column;gap:4px}
+  .sec-num{padding-top:0}
+  body{font-size:15.5px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<nav class="toc" aria-label="Sections">
+  <div class="inner">
+    <a href="#overview">Overzicht</a>
+    <a href="#decisions">Beslissingen</a>
+    <a href="#s1">1 · Systeem</a>
+    <a href="#s2">2 · Database</a>
+    <a href="#s3">3 · Rollen</a>
+    <a href="#s4">4 · Schermen</a>
+    <a href="#s5">5 · API</a>
+    <a href="#s6">6 · Wallet</a>
+    <a href="#s7">7 · Rental Engine</a>
+    <a href="#s8">8 · Media</a>
+    <a href="#s9">9 · Trust &amp; Safety</a>
+    <a href="#s10">10 · Security</a>
+    <a href="#s11">11 · MVP</a>
+    <a href="#s12">12 · Stack</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="badge"><span class="dot" style="background:var(--teal);box-shadow:0 0 0 3px rgba(15,134,122,.18)"></span> Beslissingen vastgelegd · volgende stap: Fase&nbsp;1-bouwplan</span>
+    <h1>Content Box
+      <span class="sub">Een tijdelijke multi-creator content-marktplaats — géén cloud storage, géén klassiek abonnement.</span>
+    </h1>
+    <p class="lead">Creators <b>droppen</b> content in een besloten Box. Users zien één centrale feed van meerdere creators, betalen met tokens en <b>huren</b> een item voor 24&nbsp;uur. Daarna vervalt de toegang automatisch. Pseudoniem tussen deelnemers, volledige controle voor het platform.</p>
+    <div class="pillrow">
+      <span class="pill">DROP → DISCOVER → RENT → EXPIRE</span>
+      <span class="pill">GSM/OTP-identiteit</span>
+      <span class="pill">Dubbele-invoer token-ledger</span>
+      <span class="pill">Private media + signed URLs</span>
+      <span class="pill">Trust &amp; Safety-first</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- LOCKED DECISIONS -->
+  <section id="decisions">
+    <div class="sec-head"><span class="sec-num">✓</span><h2>Vastgelegde beslissingen</h2></div>
+    <p class="prose">Bevestigd op 2026-08. Deze keuzes sturen het Fase&nbsp;1-bouwplan.</p>
+    <div class="grid g2">
+      <div class="card"><span class="k">Codebase</span><h4>Zelfstandig project</h4><p>Eigen repo + eigen Supabase-project. Volledig los van Secret&nbsp;Xperience; de SX-koppeling komt pas later als optionele laag. Aparte data, auth en deploy.</p></div>
+      <div class="card"><span class="k">Auth</span><h4>Provider-agnostische SMS-adapter</h4><p>De OTP-flow wordt achter één adapter-interface gebouwd; in Fase&nbsp;1 met een stub. De echte provider (Twilio / MessageBird / Vonage) pluggen we later in zónder appcode te wijzigen.</p></div>
+      <div class="card"><span class="k">Tokens</span><h4>Configureerbare defaults</h4><p><span class="mono">€10 = 1000 tokens</span> (100 tok = €1), <span class="mono">80/20</span> creator/platform-split, <span class="mono">€50</span> payout-drempel. Alles in de database instelbaar — waarden wijzigen vereist geen code.</p></div>
+      <div class="card"><span class="k">Volgorde</span><h4>Modules nu, services later</h4><p>De 11 diensten worden eerst als nette modules in één app gebouwd met een <span class="mono">events</span>-tabel in Postgres. Een module wordt pas een echte microservice zodra schaal dat afdwingt.</p></div>
+    </div>
+  </section>
+
+  <!-- OVERVIEW / LIFECYCLE -->
+  <section id="overview">
+    <div class="sec-head"><span class="sec-num">00</span><h2>De kernlus in één beeld</h2></div>
+    <p class="prose">Alles in dit ontwerp dient vier acties. Het is bewust een gesloten kringloop: content wordt niet gekocht om te bezitten, maar gehuurd om tijdelijk te bekijken. Die vergankelijkheid is het product — en bepaalt hoe opslag, wallet, rechten en moderatie zijn gebouwd.</p>
+
+    <figure>
+      <svg class="hand" viewBox="0 0 920 190" role="img" aria-label="De levenscyclus: Creator dropt content, User ontdekt in de feed, User huurt met tokens voor 24 uur, na 24 uur vervalt de toegang.">
+        <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="currentColor"/></marker></defs>
+        <!-- nodes -->
+        <g>
+          <rect class="lc-node" x="20" y="52" width="190" height="86" rx="14" stroke-width="1.5"/>
+          <text class="lc-sub" x="40" y="80" font-size="11" letter-spacing="1.5">01 · CREATOR</text>
+          <text class="lc-txt" x="40" y="106" font-size="21" font-weight="600">Drop</text>
+          <text class="lc-sub" x="40" y="126" font-size="11.5">foto's · video's · prijs</text>
+        </g>
+        <g>
+          <rect class="lc-node" x="255" y="52" width="190" height="86" rx="14" stroke-width="1.5"/>
+          <text class="lc-sub" x="275" y="80" font-size="11" letter-spacing="1.5">02 · USER</text>
+          <text class="lc-txt" x="275" y="106" font-size="21" font-weight="600">Discover</text>
+          <text class="lc-sub" x="275" y="126" font-size="11.5">één feed · blurred</text>
+        </g>
+        <g>
+          <rect class="lc-node" x="490" y="52" width="190" height="86" rx="14" stroke-width="1.5"/>
+          <text class="lc-sub" x="510" y="80" font-size="11" letter-spacing="1.5">03 · USER</text>
+          <text class="lc-txt" x="510" y="106" font-size="21" font-weight="600">Rent</text>
+          <text class="lc-sub" x="510" y="126" font-size="11.5">tokens · 24u toegang</text>
+        </g>
+        <g class="lc-burn">
+          <rect class="lc-node" x="725" y="52" width="190" height="86" rx="14" stroke-width="1.8"/>
+          <text class="lc-sub" x="745" y="80" font-size="11" letter-spacing="1.5">04 · SYSTEEM</text>
+          <text class="lc-txt lc-lab" x="745" y="106" font-size="21" font-weight="600">Expire</text>
+          <text class="lc-sub" x="745" y="126" font-size="11.5">toegang ingetrokken</text>
+        </g>
+        <!-- arrows -->
+        <line class="lc-flow" x1="212" y1="95" x2="251" y2="95" stroke-width="1.6" marker-end="url(#ar)"/>
+        <line class="lc-flow" x1="447" y1="95" x2="486" y2="95" stroke-width="1.6" marker-end="url(#ar)"/>
+        <line class="lc-flow" x1="682" y1="95" x2="721" y2="95" stroke-width="1.6" marker-end="url(#ar)"/>
+        <!-- loop back -->
+        <path class="lc-flow" d="M820,140 C820,178 115,178 115,142" fill="none" stroke-width="1.4" stroke-dasharray="5 5" marker-end="url(#ar)"/>
+        <text class="lc-sub" x="467" y="176" font-size="11" text-anchor="middle">nieuwe drop verschijnt weer in de feed</text>
+      </svg>
+      <figcaption>Elke huur heeft een eigen 24-uurstimer; de master blijft bij het platform, alleen de toegang vervalt.</figcaption>
+    </figure>
+
+    <div class="grid g3">
+      <div class="card"><span class="k">Voor de user</span><h4>Één marktplaats</h4><p>Geen profiel-per-creator, geen los abonnement per creator. Open de Box, zie alle creators, huur wat je wilt.</p></div>
+      <div class="card"><span class="k">Voor de creator</span><h4>Persoonlijke ruimte in een groep</h4><p>Eigen content, eigen prijs, eigen wallet — binnen een gedeelde Box die het publiek voor haar samenbrengt.</p></div>
+      <div class="card"><span class="k">Voor het platform</span><h4>Pseudoniem, niet anoniem</h4><p>Deelnemers zien elkaars GSM nooit. Het platform ziet, logt en modereert alles wat nodig is.</p></div>
+    </div>
+  </section>
+
+  <!-- 1 SYSTEM -->
+  <section id="s1">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Systeemarchitectuur</h2></div>
+    <p class="prose">Een mobile-first client praat met één applicatielaag (Next.js App Router: server components + API-routes). Alle gevoelige beslissingen — rentalgeldigheid, walletmutaties, signed-URL-uitgifte, moderatie — gebeuren <strong>server-side</strong>. De client toont alleen wat de server autoriseert. Externe diensten (SMS, betaling, AI-screening) hangen als aparte adapters aan de rand, zodat ze vervangbaar en apart te compliance-toetsen zijn.</p>
+
+    <figure class="diagram">
+      <pre class="mermaid">
+%%{init:{'theme':'neutral','flowchart':{'curve':'basis'}}}%%
+flowchart TB
+  subgraph CLIENT["Clients — mobile-first"]
+    M["Creator app / Web"]:::c
+    U["User app / Web"]:::c
+    A["Moderation Console"]:::c
+  end
+  subgraph APP["Application layer — Next.js (RSC + API + server actions)"]
+    AUTH["Auth &amp; OTP"]:::a
+    BOX["Box &amp; Invitations"]:::a
+    CNT["Content &amp; Feed"]:::a
+    RENT["Rental Engine"]:::a
+    WAL["Wallet &amp; Ledger"]:::a
+    MOD["Moderation &amp; Audit"]:::a
+    MED["Media Gatekeeper<br/>(signed URLs)"]:::a
+  end
+  subgraph DATA["State"]
+    PG[("Postgres + RLS")]:::d
+    STG[["Private object storage"]]:::d
+    JOB{{"Scheduled jobs<br/>expiry · payouts"}}:::d
+  end
+  subgraph EXT["External adapters"]
+    SMS(["SMS / OTP provider"]):::e
+    PAY(["Payment provider → tokens"]):::e
+    AI(["AI safety screening"]):::e
+  end
+  M &amp; U &amp; A --> AUTH
+  AUTH --> PG
+  BOX --> PG
+  CNT --> PG
+  RENT --> PG
+  WAL --> PG
+  MOD --> PG
+  AUTH -.OTP.-> SMS
+  WAL -.buy tokens.-> PAY
+  CNT -.on upload.-> AI --> MOD
+  U -->|request view| MED
+  MED -->|checks active rental| RENT
+  MED -->|short-lived signed URL| STG
+  JOB -->|expire rentals · release earnings| PG
+  classDef c fill:#dbe4f0,stroke:#8aa0be,color:#16202e;
+  classDef a fill:#fff,stroke:#c69,color:#2a2a2a,stroke-width:1px;
+  classDef d fill:#e7efe6,stroke:#8fb389,color:#1d2a1c;
+  classDef e fill:#f6e9df,stroke:#cba07d,color:#3a2a1c;
+      </pre>
+      <figcaption>Fig. 1 — Systeemcontext. De Media Gatekeeper geeft nooit een permanente URL af: hij verifieert eerst een actieve rental en tekent daarna een kortstondige URL.</figcaption>
+    </figure>
+
+    <div class="why"><b>Waarom deze vorm</b><p>Eén server-geautoriseerde applicatielaag boven Postgres+RLS geeft twee onafhankelijke sloten op elke rij (applicatiecheck én database-policy). Externe diensten als losse adapters houden de juridisch gevoelige onderdelen (betaling, tokens, SMS) geïsoleerd en vervangbaar — precies wat je master prompt vraagt om apart te onderzoeken.</p></div>
+
+    <h3>Event-backbone &amp; bouwvolgorde</h3>
+    <p class="prose">Belangrijke acties roepen elkaar niet direct aan — ze <strong>zenden een event uit</strong> en wie er belang bij heeft reageert. Zo hoeft de Rental-module niets te weten van de Notification-module; hij kondigt alleen <code>RENTAL_CREATED</code> aan.</p>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Event</th><th>Reageert</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">CONTENT_UPLOADED</td><td>Moderatie screent · Media maakt thumbnail + blur</td></tr>
+        <tr><td class="mono">CONTENT_APPROVED</td><td>Item wordt zichtbaar in de feed · creator genotificeerd</td></tr>
+        <tr><td class="mono">RENTAL_CREATED</td><td>Audit logt · creator genotificeerd · tellers bijgewerkt</td></tr>
+        <tr><td class="mono">RENTAL_EXPIRED</td><td>Toegang ingetrokken · item uit library</td></tr>
+        <tr><td class="mono">WALLET_DEBITED / _CREDITED</td><td>Ledger schrijft · creator-earnings herberekend</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="note"><strong>Modules nu, microservices later.</strong> De 11 diensten uit Fig. 1 zijn het <em>logische</em> ontwerp. Voor de MVP bouwen we ze als nette, gescheiden <strong>modules in één Next.js-app</strong>, met een append-only <code>events</code>-tabel in Postgres als backbone. Dat geeft exact dezelfde ontkoppeling zonder een aparte Kafka/RabbitMQ-cluster te beheren. Een module wordt pas een los te deployen service — en de events-tabel pas Kafka — wanneer echte belasting dat afdwingt. Te vroeg microservices + Kafka opzetten is voor een klein team de klassieke manier om maanden te verliezen.</div>
+  </section>
+
+  <!-- 2 DATABASE -->
+  <section id="s2">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Datamodel &amp; ERD</h2></div>
+    <p class="prose">Kern-entiteiten en hun relaties. Alle publieke identifiers zijn interne codes (<code>USR-</code>, <code>CRT-</code>, <code>BOX-</code>, <code>CNT-</code>); het GSM-nummer leeft versleuteld op <code>account</code> en is nooit een publieke sleutel. De wallet is géén losse balanskolom maar een <strong>onveranderlijke ledger</strong> — de balans is de som van de regels.</p>
+
+    <figure class="diagram">
+      <pre class="mermaid">
+%%{init:{'theme':'neutral'}}%%
+erDiagram
+  ACCOUNT ||--o{ ACCOUNT_ROLE : has
+  ACCOUNT ||--o| WALLET : owns
+  ACCOUNT ||--o{ BOX_MEMBERSHIP : joins
+  BOX ||--o{ BOX_MEMBERSHIP : contains
+  BOX ||--o{ INVITATION : issues
+  ACCOUNT ||--o{ INVITATION : "invited by"
+  BOX ||--o{ CONTENT_ITEM : holds
+  ACCOUNT ||--o{ CONTENT_ITEM : "creates (creator)"
+  CONTENT_ITEM ||--|{ CONTENT_ASSET : "has files"
+  CONTENT_ITEM ||--o| MODERATION_CASE : "screened by"
+  CONTENT_ITEM ||--o{ RENTAL : "rented as"
+  ACCOUNT ||--o{ RENTAL : "rents (user)"
+  RENTAL ||--|| EARNING : "splits into"
+  WALLET ||--o{ LEDGER_ENTRY : records
+  RENTAL ||--o{ LEDGER_ENTRY : "debits/credits"
+  ACCOUNT ||--o{ PAYOUT_REQUEST : requests
+  ACCOUNT ||--o{ REPORT : files
+  ACCOUNT ||--o{ AUDIT_LOG : "acts"
+  ACCOUNT {
+    uuid id PK
+    text public_id "CRT-/USR-…"
+    bytea phone_enc "encrypted"
+    text status
+    timestamptz phone_verified_at
+  }
+  BOX {
+    uuid id PK
+    text public_id "BOX-…"
+    text name
+    jsonb commission "creator/platform %"
+    text status
+  }
+  CONTENT_ITEM {
+    uuid id PK
+    text public_id "CNT-…"
+    uuid box_id FK
+    uuid creator_id FK
+    int price_tokens
+    int duration_hours
+    text mod_status
+  }
+  RENTAL {
+    uuid id PK
+    uuid content_id FK
+    uuid user_id FK
+    timestamptz purchased_at
+    timestamptz expires_at
+    text status
+  }
+  LEDGER_ENTRY {
+    uuid id PK
+    uuid wallet_id FK
+    text type
+    int amount_tokens "signed"
+    text idempotency_key UK
+    timestamptz created_at
+  }
+  EARNING {
+    uuid id PK
+    uuid rental_id FK
+    int creator_tokens
+    int platform_tokens
+    text state "pending/available/withdrawn"
+    timestamptz available_at
+  }
+      </pre>
+      <figcaption>Fig. 2 — Kern-ERD (afgekort). Aanvullende tabellen: <code>commission_config</code>, <code>token_purchase</code>, <code>rental_cart</code>, <code>notification</code>.</figcaption>
+    </figure>
+
+    <h3>Tabellen in het kort</h3>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Tabel</th><th>Doel</th><th>Belangrijke kolommen / regels</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">account</td><td>Eén persoon = één account, ongeacht rol.</td><td>versleuteld <span class="mono">phone_enc</span>, <span class="mono">public_id</span>, status, verified.</td></tr>
+        <tr><td class="mono">account_role</td><td>Rollen met scope.</td><td>(account, role, box_id?) — <span class="mono">platform_operator</span> heeft geen box-scope.</td></tr>
+        <tr><td class="mono">box</td><td>Gedeelde contentruimte.</td><td>commissie-config, status, <span class="mono">created_by</span>.</td></tr>
+        <tr><td class="mono">box_membership</td><td>Wie zit in welke box en als wat.</td><td>role (admin/creator/user), status, <span class="mono">invited_by</span>.</td></tr>
+        <tr><td class="mono">invitation</td><td>Eenmalige SMS-uitnodiging.</td><td>token-<em>hash</em>, target_phone_enc, <span class="mono">expires_at</span>, <span class="mono">used_at</span>, <span class="mono">revoked_at</span>.</td></tr>
+        <tr><td class="mono">content_item</td><td>Één aanbod in de feed.</td><td>prijs, duur, moderatiestatus, published_at.</td></tr>
+        <tr><td class="mono">content_asset</td><td>Fysieke bestanden per item.</td><td>private <span class="mono">storage_key</span>, thumb_key, blur_key, checksum, mime.</td></tr>
+        <tr><td class="mono">rental</td><td>Tijdelijke toegang van één user.</td><td>eigen <span class="mono">purchased_at</span> / <span class="mono">expires_at</span> / status.</td></tr>
+        <tr><td class="mono">wallet + ledger_entry</td><td>Saldo als som van onveranderlijke regels.</td><td>signed amount, <span class="mono">idempotency_key</span>, type.</td></tr>
+        <tr><td class="mono">earning</td><td>Splitsing per verhuur.</td><td>creator_tokens, platform_tokens, state, available_at.</td></tr>
+        <tr><td class="mono">payout_request</td><td>Uitbetaling ≥ €50 drempel.</td><td>bedrag, status, gecontroleerd tegen <em>available</em> saldo.</td></tr>
+        <tr><td class="mono">moderation_case · report · audit_log</td><td>Trust &amp; Safety-kern.</td><td>risk_level, decision, actor/action/target/timestamp.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="why"><b>Waarom onveranderlijke ledger</b><p>Een enkele <code>balance</code>-kolom die je optelt/aftrekt is de klassieke bron van dubbele afschrijvingen, race conditions en onverklaarbare saldi. Een append-only ledger met idempotency-keys maakt elke euro herleidbaar, refunds/chargebacks veilig en fraude auditeerbaar.</p></div>
+  </section>
+
+  <!-- 3 ROLES -->
+  <section id="s3">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Rollen &amp; privacymatrix</h2></div>
+    <p class="prose">Vijf rollen. Cruciaal: <strong>privacy tussen deelnemers, transparantie voor het platform</strong>. Onder de rollen staat de matrix die je master prompt letterlijk voorschrijft — wie mag wiens GSM-nummer zien.</p>
+
+    <div class="grid g2">
+      <div class="card"><span class="k">Volledige controle</span><h4>Platform Operator / Moderator</h4><p>Beheert accounts, GSM, identiteiten, content, transacties, wallets, boxen, meldingen. Elke gevoelige actie wordt gelogd. Aparte <span class="mono">moderator</span>-subrol met alleen moderatiescope.</p></div>
+      <div class="card"><span class="k">Box-scope</span><h4>Box Admin</h4><p>Nodigt creators uit, beheert de box, ziet operationele cijfers. Krijgt géén privé-persoonsgegevens van users/creators.</p></div>
+      <div class="card"><span class="k">Content-scope</span><h4>Creator</h4><p>Upload, prijs, publiceren, verkopen, eigen wallet en payout. Ziet geen GSM van wie dan ook.</p></div>
+      <div class="card"><span class="k">Consument</span><h4>User / Buyer</h4><p>Feed bekijken, tokens kopen, huren, persoonlijke rental library. Ziet geen GSM van wie dan ook.</p></div>
+    </div>
+
+    <h3>Wie ziet wiens GSM-nummer</h3>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Kijkt →</th><th class="tc">Platform</th><th class="tc">Box Admin</th><th class="tc">Creator</th><th class="tc">User</th></tr></thead>
+      <tbody>
+        <tr><td>GSM van <strong>Creator</strong></td><td class="tc yes">✓ volledig</td><td class="tc no">✕</td><td class="tc no">✕</td><td class="tc no">✕</td></tr>
+        <tr><td>GSM van <strong>User</strong></td><td class="tc yes">✓ volledig</td><td class="tc no">✕</td><td class="tc no">✕</td><td class="tc no">✕</td></tr>
+        <tr><td>GSM van <strong>Box Admin</strong></td><td class="tc yes">✓ volledig</td><td class="tc ltd">eigen</td><td class="tc no">✕</td><td class="tc no">✕</td></tr>
+        <tr><td>Deelnemer-data in box</td><td class="tc yes">✓</td><td class="tc ltd">alleen operationeel</td><td class="tc no">✕</td><td class="tc no">✕</td></tr>
+        <tr><td>Origineel bestand (master)</td><td class="tc yes">✓ met audit</td><td class="tc no">✕</td><td class="tc ltd">eigen content</td><td class="tc ltd">alleen tijdens rental</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="why"><b>Waarom rollen los van accounts</b><p>Een creator kan later ook user zijn, of een box admin worden. Rollen als aparte, scoped rijen (niet een enum-kolom op het account) maken dat mogelijk zonder dubbele accounts en zonder de privacygrenzen te breken.</p></div>
+  </section>
+
+  <!-- 4 SCREENS -->
+  <section id="s4">
+    <div class="sec-head"><span class="sec-num">04</span><h2>Schermen</h2></div>
+    <p class="prose">Mobile-first. De twee hoofdflows zijn extreem kort gehouden — precies de UX-principes uit je prompt.</p>
+    <div class="grid g3">
+      <div class="card"><span class="k">Onboarding</span><h4>Auth</h4><ul><li>Uitnodiging openen (link)</li><li>GSM invoeren</li><li>SMS-OTP</li><li>Account activeren</li><li>Box join-bevestiging</li></ul></div>
+      <div class="card"><span class="k">Creator · 4 stappen</span><h4>Drop</h4><ul><li>Box-home + “+ Drop content”</li><li>Galerij / drag&amp;drop select</li><li>Titel · beschrijving · prijs</li><li>Post → processing</li><li>Verkopen · wallet · payout</li></ul></div>
+      <div class="card"><span class="k">User · 3 stappen</span><h4>Discover &amp; Rent</h4><ul><li>Box-feed (blurred previews)</li><li>Item / rental cart</li><li>Rent → wallet-check</li><li>My Rentals + timers</li><li>Tokens kopen</li></ul></div>
+      <div class="card"><span class="k">Box-scope</span><h4>Box Admin dashboard</h4><ul><li>Creators / users / content-tellers</li><li>Rentals &amp; revenue vandaag</li><li>Creators uitnodigen / schorsen</li><li>Box-instellingen</li></ul></div>
+      <div class="card"><span class="k">Platform-scope</span><h4>Moderation Console</h4><ul><li>Review-wachtrij (risk-gesorteerd)</li><li>Origineel bekijken (geautoriseerd)</li><li>Approve/Reject/Suspend/Delete</li><li>Account restricties</li><li>Audit-log viewer</li></ul></div>
+      <div class="card"><span class="k">Financieel</span><h4>Wallets</h4><ul><li>User: saldo + ledger</li><li>Creator: pending/available/lifetime</li><li>Payout-aanvraag (≥ €50)</li><li>Token-pakketten kopen</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 5 API -->
+  <section id="s5">
+    <div class="sec-head"><span class="sec-num">05</span><h2>API-architectuur</h2></div>
+    <p class="prose">Resource-georiënteerde, server-side geautoriseerde endpoints. Financiële en toegang-verlenende calls zijn <strong>idempotent</strong> (client stuurt een key) en draaien in één database-transactie. De frontend krijgt nooit rauwe storage-URLs.</p>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Domein</th><th>Endpoint (indicatief)</th><th>Bewaakt</th></tr></thead>
+      <tbody>
+        <tr><td>Auth</td><td class="mono">POST /auth/otp/start · /auth/otp/verify</td><td>rate-limit, GSM-verificatie</td></tr>
+        <tr><td>Invitation</td><td class="mono">POST /invitations · /invitations/:t/accept</td><td>eenmalig token, expiry, revoke</td></tr>
+        <tr><td>Box</td><td class="mono">POST /boxes · GET /boxes/:id/feed</td><td>membership + rol</td></tr>
+        <tr><td>Content</td><td class="mono">POST /content · POST /content/:id/publish</td><td>creator-eigenaarschap, moderatiestatus</td></tr>
+        <tr><td>Media</td><td class="mono">GET /content/:id/view</td><td><strong>actieve rental</strong> → signed URL (kort geldig)</td></tr>
+        <tr><td>Rental</td><td class="mono">POST /rentals · POST /rentals/checkout</td><td>idempotent, wallet-transactie</td></tr>
+        <tr><td>Wallet</td><td class="mono">GET /wallet · POST /wallet/purchase</td><td>ledger-lees, provider-callback</td></tr>
+        <tr><td>Payout</td><td class="mono">POST /payouts</td><td>drempel ≥ €50, available-saldo</td></tr>
+        <tr><td>Moderation</td><td class="mono">POST /moderation/:case/decision</td><td>operator-rol, audit-log verplicht</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="why"><b>Waarom idempotent + één transactie</b><p>“User huurt” raakt drie plekken tegelijk: user-wallet af, creator-earning aan, rental-record aan. Als dat niet in één transactie met idempotency-key gebeurt, ontstaan bij een dubbele tik of netwerk-retry óf dubbele afschrijvingen óf toegang zonder betaling.</p></div>
+  </section>
+
+  <!-- 6 WALLET -->
+  <section id="s6">
+    <div class="sec-head"><span class="sec-num">06</span><h2>Wallet-architectuur</h2></div>
+    <p class="prose">Twee wallets, één ledger-principe. Tokens zijn de interne rekeneenheid (bv. €10 → 1000 tokens). Elke verhuur splitst volgens configureerbare commissie.</p>
+
+    <figure class="diagram">
+      <pre class="mermaid">
+%%{init:{'theme':'neutral'}}%%
+flowchart LR
+  BUY["Token purchase<br/>€10"]:::in -->|+1000| UW["User wallet<br/>(ledger)"]:::w
+  UW -->|"-250 rental CNT-001"| RENT{{"Rental split<br/>commissie-config"}}:::s
+  RENT -->|"+200 pending"| CW["Creator wallet<br/>pending → available"]:::w
+  RENT -->|"+50"| PLT["Platform revenue"]:::p
+  CW -->|"na hold / ≥ €50"| PO["Payout request"]:::out
+  classDef in fill:#f6e9df,stroke:#cba07d,color:#3a2a1c;
+  classDef w fill:#fff,stroke:#c69,color:#2a2a2a;
+  classDef s fill:#dbe4f0,stroke:#8aa0be,color:#16202e;
+  classDef p fill:#e7efe6,stroke:#8fb389,color:#1d2a1c;
+  classDef out fill:#f0dede,stroke:#c58b84,color:#3a1c1c;
+      </pre>
+      <figcaption>Fig. 3 — Geldstroom. Elke pijl = één onveranderlijke ledger-regel. Creator-inkomsten rijpen van <em>pending</em> naar <em>available</em> voordat uitbetaling kan.</figcaption>
+    </figure>
+
+    <div class="grid g3">
+      <div class="card"><span class="k">Saldo-typen</span><h4>Creator-drieluik</h4><p><strong>Pending</strong> (net verdiend, in hold), <strong>Available</strong> (uitbetaalbaar), <strong>Lifetime</strong> (totaal ooit). Refund/chargeback raakt pending eerst.</p></div>
+      <div class="card"><span class="k">Drempel</span><h4>€50 payout-minimum</h4><p>Payout kan pas bij available ≥ €50. €43 → geblokkeerd, €72 → toegestaan. Server valideert, nooit de client.</p></div>
+      <div class="card"><span class="k">Commissie</span><h4>Configureerbaar</h4><p>Per box of globaal, bv. 80/20. Vastgelegd <em>op het moment van verhuur</em> in de earning-regel, zodat latere wijzigingen oude transacties niet herschrijven.</p></div>
+    </div>
+    <div class="note"><strong>Compliance-vlag:</strong> tokens mogen niet zonder juridische analyse als echt geld worden behandeld. Payment-provider, crypto-optie en het walletmodel worden <em>apart</em> getoetst vóór livegang — zoals je prompt vereist. Het ontwerp houdt de fiat-grens (token purchase / payout) daarom bewust aan de randadapters.</div>
+  </section>
+
+  <!-- 7 RENTAL ENGINE -->
+  <section id="s7">
+    <div class="sec-head"><span class="sec-num">07</span><h2>Rental Engine</h2></div>
+    <p class="prose">Het hart. Elke verhuur is een zelfstandige klok met eigen <code>purchased_at</code> en <code>expires_at</code> — <strong>geen gedeelde box-timer</strong>. De backend is de enige waarheid over geldigheid; de countdown in de UI is puur visueel.</p>
+
+    <figure class="diagram">
+      <pre class="mermaid">
+%%{init:{'theme':'neutral'}}%%
+stateDiagram-v2
+  [*] --> ACTIVE: rent (wallet debet + expires_at = now+24u)
+  ACTIVE --> EXPIRED: expiry-job / on-access check
+  ACTIVE --> REVOKED: moderatie of refund
+  EXPIRED --> [*]
+  REVOKED --> [*]
+  note right of ACTIVE
+    Toegangscheck bij ELKE view:
+    status=ACTIVE én now &lt; expires_at
+  end note
+      </pre>
+      <figcaption>Fig. 4 — Rental-toestandsmachine. Een achtergrond-job markeert verlopen rentals, maar de view-check op verzoek is het echte slot (defensief, ook als de job vertraagt).</figcaption>
+    </figure>
+
+    <h4>Twee lagen die de toegang bepalen</h4>
+    <ol>
+      <li><strong>On-access (autoritatief):</strong> elke <code>/view</code> herberekent <code>ACTIVE ∧ now&lt;expires_at</code> voordat een signed URL wordt uitgegeven. Zonder geldige rental → geen URL.</li>
+      <li><strong>Achtergrond-job (opruimend):</strong> een periodieke sweep zet verlopen rentals op <code>EXPIRED</code>, trekt tijdelijke toegang in en houdt de library schoon.</li>
+    </ol>
+    <div class="note"><strong>De klok start op het koopmoment.</strong> In dezelfde transactie als de wallet-afschrijving legt de server <code>purchased_at = now()</code> vast (serverklok) en zet <code>expires_at = purchased_at + interval '24 hours'</code>. Precies 24 uur, per rental, vanaf het moment dat de client toegang koopt. De countdown in de app rekent alleen tegen deze server-<code>expires_at</code> — de klok op het toestel kan de toegang niet verlengen.</div>
+    <div class="why"><b>Waarom eigen timer per rental</b><p>Users kopen items op verschillende momenten (18:30, 20:15, 22:45). Eén box-brede timer zou toegang te vroeg of te laat afsnijden. Per-rental <code>expires_at</code> is de enige eerlijke en juridisch verdedigbare vorm.</p></div>
+  </section>
+
+  <!-- 8 MEDIA -->
+  <section id="s8">
+    <div class="sec-head"><span class="sec-num">08</span><h2>Media-opslag</h2></div>
+    <p class="prose">Het onderscheid dat je prompt benadrukt: <strong>Creator Master Content</strong> (permanent privé, onder platform/creator-controle) versus <strong>User Rental Access</strong> (tijdelijk, vervalt na 24u). Het master-bestand wordt niet verwijderd als een rental verloopt — alleen de toegang.</p>
+
+    <figure class="diagram">
+      <pre class="mermaid">
+%%{init:{'theme':'neutral','flowchart':{'curve':'basis'}}}%%
+flowchart TB
+  UP["Creator upload"] --> V["Valideer · checksum · type"]
+  V --> STG[["Private storage<br/>MASTER — nooit publiek"]]
+  STG --> DER["Derivaten:<br/>thumbnail + blurred preview"]
+  DER --> FEED["Feed toont blurred + metadata"]
+  FEED --> REQ["User vraagt view"]
+  REQ --> CHK{"Actieve rental?"}
+  CHK -- nee --> DENY["Blurred / geweigerd"]
+  CHK -- ja --> SIGN["Kortstondige signed URL<br/>of beveiligde stream"]
+  SIGN --> STG
+  classDef d fill:#fff,stroke:#c69,color:#2a2a2a;
+      </pre>
+      <figcaption>Fig. 5 — Master blijft privé; de user krijgt alleen een korte, per-verzoek getekende URL na een geldige rental-check. Blurred preview en thumbnail zijn aparte, veilige derivaten.</figcaption>
+    </figure>
+
+    <div class="grid g2">
+      <div class="card"><span class="k">Blijft bestaan</span><h4>Master content</h4><p>Privé-origineel voor creator-hergebruik en platformmoderatie, volgens bewaarbeleid. Nooit een permanente publieke URL.</p></div>
+      <div class="card"><span class="k">Vervalt</span><h4>Rental access</h4><p>Alleen een tijdelijke autorisatie. Na 24u: geen signed URL meer, item verdwijnt uit de library.</p></div>
+    </div>
+  </section>
+
+  <!-- 9 TRUST -->
+  <section id="s9">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Trust &amp; Safety</h2></div>
+    <p class="prose">Fundamenteel, niet optioneel. Nieuwe content is standaard <strong>blurred én niet-gepubliceerd</strong> tot screening klaar is. AI screent automatisch, maar is <strong>nooit de enige eindbeslisser</strong> — bij twijfel gaat het naar menselijke moderatie.</p>
+
+    <figure class="diagram">
+      <pre class="mermaid">
+%%{init:{'theme':'neutral'}}%%
+flowchart LR
+  UP["Upload"] --> PR["PROCESSING"]
+  PR --> SCAN["AI safety-screening"]
+  SCAN -->|low risk| PRV["PENDING_REVIEW<br/>(licht / steekproef)"]
+  SCAN -->|uncertain| HUM["HUMAN REVIEW"]
+  SCAN -->|high risk| BLK["BLOCK + review"]
+  PRV --> AP["APPROVED"]
+  HUM --> AP
+  HUM --> RJ["REJECTED"]
+  BLK --> RJ
+  AP --> SUS["SUSPENDED?"]
+  SUS --> DEL["DELETED"]
+  classDef d fill:#fff,stroke:#c69,color:#2a2a2a;
+      </pre>
+      <figcaption>Fig. 6 — Moderatie-workflow. Statussen: DRAFT · PROCESSING · PENDING_REVIEW · APPROVED · REJECTED · SUSPENDED · DELETED.</figcaption>
+    </figure>
+
+    <div class="note"><strong>Harde grens — nultolerantie.</strong> Het systeem moet met de hoogste prioriteit blokkeren: content met minderjarigen (CSAM), niet-consensuele content, gestolen content, impersonatie, fraude, malware en andere illegale/verboden bestanden. Verdachte gevallen worden altijd naar menselijke review geëscaleerd, met verplichte melding volgens toepasselijke wetgeving. Dit is een ontwerp-eis, geen feature-toggle.</div>
+
+    <div class="grid g3">
+      <div class="card"><span class="k">Identiteit</span><h4>Wie is de creator</h4><p>GSM-koppeling + verificatiestatus per creator; account-links zichtbaar voor fraudedetectie.</p></div>
+      <div class="card"><span class="k">Signalen</span><h4>Wat wordt geüpload</h4><p>AI-flags, checksums (bekend materiaal), rapportages van users, transactiepatronen.</p></div>
+      <div class="card"><span class="k">Actie</span><h4>Console + audit</h4><p>Approve/Reject/Suspend/Delete, account-restricties, extra verificatie — elk gelogd.</p></div>
+    </div>
+  </section>
+
+  <!-- 10 SECURITY -->
+  <section id="s10">
+    <div class="sec-head"><span class="sec-num">10</span><h2>Security-architectuur</h2></div>
+    <div class="grid g2">
+      <div class="card"><h4>Authenticatie &amp; rollen</h4><p>GSM + SMS-OTP, sessies met korte levensduur, role-based authorization server-side + row-level security in de database als tweede slot.</p></div>
+      <div class="card"><h4>Uitnodiging-tokens</h4><p>Alleen de <em>hash</em> opgeslagen, eenmalig, tijdgebonden, aan beoogde ontvanger gekoppeld, intrekbaar. Na gebruik ongeldig.</p></div>
+      <div class="card"><h4>Media</h4><p>Private storage, kortstondige signed URLs, server-side rental-validatie, evt. beveiligde streaming. Geen directe object-URLs naar de client.</p></div>
+      <div class="card"><h4>Financieel</h4><p>Onveranderlijke ledger, idempotente transacties, database-transacties, provider-callbacks geverifieerd via signature.</p></div>
+      <div class="card"><h4>Randbescherming</h4><p>Rate limiting (OTP, huur, upload), upload-validatie (type/grootte/checksum), input-sanitisatie, secure API-headers.</p></div>
+      <div class="card"><h4>Gegevensbescherming</h4><p>GSM versleuteld at-rest, toegang tot gevoelige data en originelen altijd via audit-log. Backups + disaster recovery.</p></div>
+    </div>
+    <div class="why"><b>Twee sloten op alles</b><p>Applicatie-autorisatie én database-RLS controleren onafhankelijk dezelfde regel. Eén bug in de app-laag lekt dan nog geen data, want de database weigert de rij alsnog.</p></div>
+  </section>
+
+  <!-- 11 MVP -->
+  <section id="s11">
+    <div class="sec-head"><span class="sec-num">11</span><h2>MVP-roadmap</h2></div>
+    <p class="prose">Gefaseerd, precies zoals je vraagt. Elke fase: analyse → bestaande code checken → architectuur tonen → bouwen → tests → security-check → regressie-check → rapporteren → pas dan door. Fase&nbsp;0 is deze architectuur.</p>
+
+    <div class="phase p0">
+      <span class="tag">FASE 0</span>
+      <div><h4>Architectuur &amp; goedkeuring — <span class="chip warn">nu</span></h4>
+      <p>Dit document. Datamodel, flows en beslissingen vastleggen. Wacht op jouw akkoord.</p></div>
+    </div>
+    <div class="phase p1">
+      <span class="tag">FASE 1</span>
+      <div><h4>Identiteit &amp; Box-fundament</h4>
+      <ul><li>GSM + SMS-OTP, login/logout, rollen</li><li>Box aanmaken, box admin</li><li>Uitnodiging-tokens (creator + user), accept-flow</li><li>Schema + RLS + audit-log-skelet</li></ul></div>
+    </div>
+    <div class="phase p2">
+      <span class="tag">FASE 2</span>
+      <div><h4>Drop &amp; Discover</h4>
+      <ul><li>Creator-upload (mobiel + drag&amp;drop), titel/prijs/duur</li><li>Content-processing: thumbnail + blurred preview, private storage</li><li>Centrale box-feed met blurred previews</li></ul></div>
+    </div>
+    <div class="phase p1">
+      <span class="tag">FASE 3</span>
+      <div><h4>Wallet &amp; Rent</h4>
+      <ul><li>User-wallet + token-aankoop (provider-adapter)</li><li>Rental-engine: 24u, per-rental timer, on-access check</li><li>Rental cart, My Rentals, creator-wallet + commissie-split</li><li>Expiry-job + €50 payout-drempel</li></ul></div>
+    </div>
+    <div class="phase p2">
+      <span class="tag">FASE 4</span>
+      <div><h4>Trust &amp; Safety hardening</h4>
+      <ul><li>AI-screening in de upload-pipeline</li><li>Moderation Console + statusmachine</li><li>Reports, account-restricties, volledige audit-logging</li></ul></div>
+    </div>
+    <div class="phase p0">
+      <span class="tag">LATER</span>
+      <div><h4>Optionele SX-koppeling &amp; groei</h4>
+      <p>“Connect Content Box” vanuit het SX Creator-dashboard, plus alles uit §30 dat bewust buiten de MVP blijft (chat, likes, livestream, aanbevelings-AI).</p></div>
+    </div>
+  </section>
+
+  <!-- 12 STACK -->
+  <section id="s12">
+    <div class="sec-head"><span class="sec-num">12</span><h2>Technische stack</h2></div>
+    <p class="prose"><strong>Vastgelegd:</strong> een <strong>zelfstandig project</strong> — eigen repo + eigen Supabase — dat dezelfde stack als SecretXperience gebruikt (Next.js + Supabase + Vercel) zodat het team er meteen mee overweg kan en de latere optionele koppeling haalbaar blijft, maar met volledig gescheiden data, auth en deploy.</p>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Laag</th><th>Keuze</th><th>Waarom</th></tr></thead>
+      <tbody>
+        <tr><td>Client / app</td><td class="mono">Next.js App Router (TS)</td><td>Mobile-first, server components voor server-side autorisatie, één codebase web+mobiel-web. Team kent het.</td></tr>
+        <tr><td>Database</td><td class="mono">Postgres + Row-Level Security</td><td>Relationeel model + tweede autorisatieslot; transacties voor de wallet.</td></tr>
+        <tr><td>Backend-platform</td><td class="mono">Supabase (Auth, DB, Storage, cron, Edge Fn)</td><td>Private storage + signed URLs, pg_cron voor expiry/payout-jobs, RLS ingebouwd.</td></tr>
+        <tr><td>Media</td><td class="mono">Private buckets + signed URLs (+ stream later)</td><td>Master privé, tijdelijke toegang per verzoek.</td></tr>
+        <tr><td>SMS/OTP</td><td class="mono">Provider-agnostische adapter (stub in Fase 1)</td><td>Één interface; Twilio / MessageBird / Vonage later inpluggen zonder appcode te wijzigen.</td></tr>
+        <tr><td>Betaling → tokens</td><td class="mono">Adapter, apart compliance-onderzoek</td><td>Fiat-grens geïsoleerd; token ≠ valuta zonder juridische analyse.</td></tr>
+        <tr><td>AI-screening</td><td class="mono">Adapter in upload-pipeline</td><td>Automatisch screenen; mens beslist bij twijfel.</td></tr>
+        <tr><td>Deploy / jobs</td><td class="mono">Vercel + pg_cron / Edge Functions</td><td>Auto-deploy, achtergrond-jobs voor expiry &amp; earning-release.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="stack-note">Alternatief indien je Content Box volledig los van het SX-ecosysteem wilt: dezelfde vorm op een dedicated Postgres + een aparte object-store + een eigen job-runner. Het datamodel en de flows hierboven veranderen daar niet door — alleen de hosting.</p>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div class="cta prose">
+    <h3>Volgende stap: het Fase&nbsp;1-bouwplan</h3>
+    <p>De richtingbepalende keuzes zijn gemaakt (zie <a href="#decisions">Vastgelegde beslissingen</a>): zelfstandig project, provider-agnostische SMS-adapter, configureerbare token-defaults, modules-vóór-services.</p>
+    <p>Ik lever nu eerst het gedetailleerde plan voor <strong>Fase&nbsp;1 — Identiteit &amp; Box-fundament</strong> vóórdat er één regel code wordt geschreven:</p>
+    <ol>
+      <li>Exacte <strong>bestandenlijst</strong> en projectstructuur van het nieuwe project.</li>
+      <li><strong>Databasetabellen + RLS-policies</strong> (account, account_role, box, box_membership, invitation, audit_log, events).</li>
+      <li><strong>API-endpoints</strong> voor OTP-auth, box-beheer en uitnodigingen.</li>
+      <li>De <strong>testlijst</strong> en security-checks per onderdeel.</li>
+    </ol>
+    <p style="margin-bottom:0">Je keurt dat plan goed, en pas dán begint Fase&nbsp;1 met code. Parallel start het compliance-spoor (payment/token juridische analyse), want dat kan niet op het laatst worden gehaast.</p>
+  </div>
+</footer>

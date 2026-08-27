@@ -1,0 +1,435 @@
+<title>Content Box Admin Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#eceef3; --panel:#ffffff; --surf:#f5f6f9; --surf2:#eceef3; --surf3:#e3e6ee;
+  --ink:#161a21; --ink2:#4c5462; --ink3:#828b9a; --line:#e2e5ec; --line2:#d2d7e1;
+  --ember:#d94e2f; --ember-soft:rgba(217,78,47,.10);
+  --teal:#0f867a; --gold:#a9762a;
+  --hi:#c23a2b; --hi-soft:rgba(194,58,43,.12);   /* high risk */
+  --md:#b8811c; --md-soft:rgba(184,129,28,.14);  /* uncertain */
+  --lo:#2c8a57; --lo-soft:rgba(44,138,87,.13);   /* low / ok */
+  --shadow:0 1px 2px rgba(20,24,34,.05),0 10px 30px -16px rgba(20,24,34,.24);
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#080910; --panel:#12141b; --surf:#171a22; --surf2:#1d222c; --surf3:#252b37;
+  --ink:#eceef3; --ink2:#a6aebc; --ink3:#6f7889; --line:#232936; --line2:#2f3644;
+  --ember:#f0764f; --ember-soft:rgba(240,118,79,.14);
+  --teal:#3cb6a7; --gold:#d3a24e;
+  --hi:#e46a58; --hi-soft:rgba(228,106,88,.16);
+  --md:#d6a53f; --md-soft:rgba(214,165,63,.16);
+  --lo:#54b581; --lo-soft:rgba(84,181,129,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 46px -22px rgba(0,0,0,.85);
+}}
+:root[data-theme="dark"]{
+  --bg:#080910; --panel:#12141b; --surf:#171a22; --surf2:#1d222c; --surf3:#252b37;
+  --ink:#eceef3; --ink2:#a6aebc; --ink3:#6f7889; --line:#232936; --line2:#2f3644;
+  --ember:#f0764f; --ember-soft:rgba(240,118,79,.14);
+  --teal:#3cb6a7; --gold:#d3a24e;
+  --hi:#e46a58; --hi-soft:rgba(228,106,88,.16);
+  --md:#d6a53f; --md-soft:rgba(214,165,63,.16);
+  --lo:#54b581; --lo-soft:rgba(84,181,129,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 46px -22px rgba(0,0,0,.85);
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mono{font-family:'IBM Plex Mono',monospace}
+.shell{display:grid;grid-template-columns:224px 1fr;min-height:100vh}
+
+/* sidebar */
+.side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;gap:2px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+.brand .m{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--ember),#8f2f1c);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;flex:none}
+.brand .t{font-family:'Fraunces',serif;font-weight:600;font-size:16px;line-height:1.05}
+.brand .t small{display:block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.14em;color:var(--ink3);text-transform:uppercase;font-weight:400}
+.nav{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.nav button{display:flex;align-items:center;gap:10px;background:none;border:none;cursor:pointer;text-align:left;
+  padding:9px 10px;border-radius:9px;color:var(--ink2);font:500 13.5px 'IBM Plex Sans';width:100%;position:relative}
+.nav button:hover{background:var(--surf2);color:var(--ink)}
+.nav button.on{background:var(--ember-soft);color:var(--ember)}
+.nav svg{width:18px;height:18px;flex:none}
+.nav .badge{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10.5px;background:var(--hi);color:#fff;border-radius:9px;padding:1px 6px;min-width:18px;text-align:center}
+.who{margin-top:auto;padding:10px 8px 4px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink3)}
+.who b{color:var(--ink2);font-weight:600;display:block;font-size:12.5px}
+.who .mono{font-size:10.5px}
+
+/* main */
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{height:58px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 26px;background:var(--panel);position:sticky;top:0;z-index:5}
+.topbar h1{font-family:'Fraunces',serif;font-weight:600;font-size:19px;margin:0}
+.topbar .env{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:var(--md);background:var(--md-soft);padding:3px 8px;border-radius:6px}
+.topbar .search{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--surf);border:1px solid var(--line2);border-radius:9px;padding:7px 12px;color:var(--ink3);font-size:12.5px;min-width:220px}
+.topbar .search input{border:none;background:none;outline:none;color:var(--ink);font-size:12.5px;width:100%;font-family:inherit}
+.content{padding:22px 26px 60px;max-width:1220px;width:100%}
+
+/* kpi */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:22px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 15px;box-shadow:var(--shadow)}
+.kpi .l{font-size:11px;color:var(--ink3);letter-spacing:.02em;display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.kpi .v{font-family:'Fraunces',serif;font-weight:600;font-size:27px;line-height:1}
+.kpi .d{font-size:11px;margin-top:6px;font-family:'IBM Plex Mono',monospace}
+.up{color:var(--lo)} .down{color:var(--hi)} .flat{color:var(--ink3)}
+.kpi.alert{border-color:var(--hi);background:var(--hi-soft)}
+.kpi.alert .v{color:var(--hi)}
+
+.section-t{font-family:'Fraunces',serif;font-weight:600;font-size:16px;margin:26px 2px 12px;display:flex;align-items:center;gap:9px}
+.section-t .n{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);background:var(--surf2);padding:2px 7px;border-radius:6px;font-weight:400}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:.02em;padding:3px 8px;border-radius:6px;white-space:nowrap}
+.chip.hi{color:var(--hi);background:var(--hi-soft)} .chip.md{color:var(--md);background:var(--md-soft)}
+.chip.lo{color:var(--lo);background:var(--lo-soft)} .chip.n{color:var(--ink2);background:var(--surf2)}
+.chip.tl{color:var(--teal);background:rgba(15,134,122,.12)}
+.chip .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* panel + table */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);font-weight:600;padding:11px 15px;background:var(--surf);border-bottom:1px solid var(--line)}
+.tbl td{padding:12px 15px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr{cursor:pointer;transition:background .1s}
+.tbl tbody tr:hover{background:var(--surf)}
+.tbl tr.sel{background:var(--ember-soft)}
+.idlink{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ember)}
+.sub{font-size:11px;color:var(--ink3)}
+.wrap-x{overflow-x:auto}
+
+/* moderation split */
+.mod{display:grid;grid-template-columns:1fr 372px;gap:16px;align-items:start}
+@media(max-width:1080px){.mod{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+.case{padding:16px;position:sticky;top:74px}
+.case .m{position:relative;height:200px;border-radius:12px;overflow:hidden;margin-bottom:14px;background:#222}
+.case .m .ph{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(28px) brightness(.8);transform:scale(1.2);transition:filter .5s,transform .5s}
+.case .m.revealed .ph{filter:none;transform:none}
+.case .m .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#fff;text-align:center;padding:14px}
+.case .m.revealed .ov .lockcopy{display:none}
+.case .m .ov .lockcopy{font-size:12px;max-width:200px;opacity:.9}
+.reveal-b{background:rgba(8,9,14,.55);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:9px;padding:8px 12px;font:600 12px 'IBM Plex Sans';cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.case h3{font-family:'Fraunces',serif;font-size:17px;margin:0 0 3px}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:7px 0;border-bottom:1px solid var(--line)}
+.kv .k{color:var(--ink3)} .kv .v{text-align:right}
+.aiflags{margin:14px 0;padding:12px;background:var(--surf);border-radius:10px}
+.aiflags .h{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:9px}
+.bar{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+.bar .lab{width:104px;color:var(--ink2)}
+.bar .track{flex:1;height:6px;border-radius:3px;background:var(--surf3);overflow:hidden}
+.bar .fill{height:100%;border-radius:3px}
+.bar .pct{width:34px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink2)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.act{border:1px solid var(--line2);background:var(--surf);color:var(--ink);border-radius:10px;padding:11px;font:600 12.5px 'IBM Plex Sans';cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:filter .12s}
+.act:active{transform:scale(.98)}
+.act.approve{background:var(--lo);border-color:transparent;color:#fff}
+.act.reject{background:var(--hi);border-color:transparent;color:#fff}
+.act.suspend{color:var(--md);border-color:var(--md)}
+.act.wide{grid-column:1/-1}
+.hintbar{font-size:11px;color:var(--ink3);margin-top:10px;display:flex;gap:6px;align-items:flex-start;line-height:1.45}
+
+/* phone reveal */
+.phone-cell{display:flex;align-items:center;gap:8px}
+.reveal-x{font-family:'IBM Plex Sans';font-size:10.5px;font-weight:600;color:var(--md);background:var(--md-soft);border:none;border-radius:6px;padding:3px 7px;cursor:pointer}
+.revealed-ph{font-family:'IBM Plex Mono',monospace;color:var(--ink)}
+
+/* audit */
+.audit .r{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:12.5px}
+.audit .r:last-child{border-bottom:none}
+.audit .ts{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3)}
+.audit .ev b{font-family:'IBM Plex Mono',monospace;font-weight:500;color:var(--ember);font-size:12px}
+.audit .ev .act-txt{color:var(--ink)}
+.audit .meta{color:var(--ink3);font-size:11px;margin-top:2px}
+
+/* finance */
+.fin-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start}
+@media(max-width:1080px){.fin-grid{grid-template-columns:1fr}}
+.flow{padding:18px}
+.flow .row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}
+.flow .row:last-child{border-bottom:none}
+.flow .amt{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-weight:500}
+.spark{width:100%;height:44px;display:block;margin-top:8px}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--ink);color:var(--panel);
+  font-size:13px;font-weight:500;padding:11px 20px;border-radius:11px;box-shadow:var(--shadow);transition:.25s;z-index:50;max-width:90vw}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.hide{display:none!important}
+.btn-sm{font:600 12px 'IBM Plex Sans';border:1px solid var(--line2);background:var(--surf);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer}
+.btn-sm.p{background:var(--ember);border-color:transparent;color:#fff}
+.empty2{padding:40px;text-align:center;color:var(--ink3);font-size:13px}
+@media(max-width:720px){.shell{grid-template-columns:1fr}.side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;overflow-x:auto}.side .nav{flex-direction:row;flex-wrap:wrap}.who{display:none}.kpis{grid-template-columns:repeat(2,1fr)}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><div class="m">◈</div><div class="t">Content Box<small>Admin Console</small></div></div>
+    <nav class="nav" id="nav">
+      <button data-tab="overview" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg> Overview</button>
+      <button data-tab="moderation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg> Moderation <span class="badge" id="modBadge">4</span></button>
+      <button data-tab="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c.5-3.2 3-5 5.5-5s5 1.8 5.5 5"/><path d="M16 5.5a3 3 0 0 1 0 5.8M18 20c-.2-2.2-1-3.8-2.4-4.7"/></svg> Users &amp; Creators</button>
+      <button data-tab="boxes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8"/><path d="M12 12v8"/></svg> Boxes</button>
+      <button data-tab="finance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6 9v6M18 9v6"/></svg> Finance &amp; Payouts</button>
+      <button data-tab="audit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l3 3v15H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg> Audit Log</button>
+    </nav>
+    <div class="who"><b>Operator</b><span class="mono">MOD-004 · full access</span></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h1 id="ttl">Platform Overview</h1>
+      <span class="env">PROD · restricted network</span>
+      <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Search USR- / CRT- / CNT- / BOX-…"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var grads=['linear-gradient(135deg,#e85d78,#7b2ff7)','linear-gradient(135deg,#f7971e,#d92662)','linear-gradient(135deg,#11998e,#38ef7d)','linear-gradient(135deg,#8e2de2,#f9508b)','linear-gradient(135deg,#c94b4b,#4b134f)','linear-gradient(135deg,#0083b0,#ff5f6d)'];
+  var content=document.getElementById('content'), ttl=document.getElementById('ttl');
+  var toastEl=document.getElementById('toast'), toastT;
+  function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){toastEl.classList.remove('show')},2400)}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function now(){var d=new Date();function p(n){return(n<10?'0':'')+n}return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds())}
+
+  var state={
+    tab:'overview',
+    selCase:null,
+    cases:[
+      {id:'CNT-20913',creator:'CRT-B92',box:'African Girls',title:'Friday Collection',status:'PENDING',risk:'hi',grad:grads[4],ai:{csam:2,nonconsent:8,stolen:71,malware:0},reason:'Reverse-image match on 3 assets'},
+      {id:'CNT-20918',creator:'CRT-D14',box:'African Girls',title:'Private Collection',status:'PENDING',risk:'md',grad:grads[3],ai:{csam:1,nonconsent:34,stolen:12,malware:0},reason:'Face-age estimate uncertain'},
+      {id:'CNT-20921',creator:'CRT-A07',box:'Amsterdam Nights',title:'Rooftop Series',status:'PENDING',risk:'lo',grad:grads[2],ai:{csam:0,nonconsent:3,stolen:2,malware:0},reason:'Routine sample review'},
+      {id:'CNT-20925',creator:'CRT-C31',box:'African Girls',title:'Studio Night',status:'PENDING',risk:'md',grad:grads[1],ai:{csam:0,nonconsent:22,stolen:9,malware:1},reason:'Metadata anomaly in 1 file'}
+    ],
+    users:[
+      {id:'CRT-B92',kind:'Creator',box:'African Girls',status:'Active',verif:'Verified',phone:'+32 4•• ••• •47',links:2},
+      {id:'CRT-D14',kind:'Creator',box:'African Girls',status:'Restricted',verif:'Pending',phone:'+31 6•• ••• •12',links:0},
+      {id:'USR-4471',kind:'User',box:'African Girls',status:'Active',verif:'—',phone:'+32 4•• ••• •88',links:1},
+      {id:'CRT-A07',kind:'Creator',box:'Amsterdam Nights',status:'Active',verif:'Verified',phone:'+49 1•• ••• •05',links:0},
+      {id:'USR-4490',kind:'User',box:'Amsterdam Nights',status:'Suspended',verif:'—',phone:'+33 6•• ••• •61',links:3}
+    ],
+    boxes:[
+      {id:'BOX-0007',name:'African Girls',admin:'BAD-11',creators:12,users:2481,content:8921,rev:'€1,274'},
+      {id:'BOX-0012',name:'Amsterdam Nights',admin:'BAD-19',creators:7,users:930,content:2140,rev:'€418'}
+    ],
+    payouts:[
+      {id:'PO-3391',creator:'CRT-B92',avail:'€72.40',status:'REQUESTED'},
+      {id:'PO-3392',creator:'CRT-A07',avail:'€126.00',status:'REQUESTED'},
+      {id:'PO-3390',creator:'CRT-C31',avail:'€43.10',status:'BELOW_THRESHOLD'}
+    ],
+    audit:[
+      {ts:'09:38:02',actor:'CRT-B92',action:'uploaded',target:'CNT-20913',meta:'4 assets · box African Girls'},
+      {ts:'09:38:05',actor:'AI-SCREEN',action:'flagged',target:'CNT-20913',meta:'stolen-match 71% → routed to human review'},
+      {ts:'09:12:44',actor:'USR-4471',action:'rented',target:'CNT-20905',meta:'250 tokens · 24h access'},
+      {ts:'08:55:19',actor:'MOD-004',action:'approved',target:'CNT-20899',meta:'low risk · sampled'}
+    ]
+  };
+
+  function riskLabel(r){return r==='hi'?'HIGH RISK':r==='md'?'UNCERTAIN':'LOW RISK'}
+  function logAudit(action,target,meta){state.audit.unshift({ts:now(),actor:'MOD-004',action:action,target:target,meta:meta});}
+
+  /* ---------- OVERVIEW ---------- */
+  function overview(){
+    ttl.textContent='Platform Overview';
+    var pending=state.cases.filter(function(c){return c.status==='PENDING'}).length;
+    var high=state.cases.filter(function(c){return c.status==='PENDING'&&c.risk==='hi'}).length;
+    var spark=sparkSvg([9,11,10,14,13,17,15,19,22,20,24,27]);
+    content.innerHTML=
+      '<div class="kpis">'+
+        '<div class="kpi'+(high?' alert':'')+'"><div class="l">◆ Pending review</div><div class="v">'+pending+'</div><div class="d down">'+high+' high-risk</div></div>'+
+        '<div class="kpi"><div class="l">◷ Active rentals</div><div class="v">438</div><div class="d up">▲ 6% today</div></div>'+
+        '<div class="kpi"><div class="l">◈ Revenue today</div><div class="v">€1,692</div><div class="d up">▲ 12%</div></div>'+
+        '<div class="kpi"><div class="l">⚑ Open reports</div><div class="v">3</div><div class="d flat">2 triaged</div></div>'+
+        '<div class="kpi"><div class="l">＋ New signups</div><div class="v">57</div><div class="d up">▲ 9</div></div>'+
+      '</div>'+
+      '<div class="section-t">Attention now <span class="n">risk-sorted</span></div>'+
+      '<div class="panel wrap-x"><table class="tbl"><thead><tr><th>Content</th><th>Creator</th><th>Box</th><th>Risk</th><th>Reason</th></tr></thead><tbody>'+
+        state.cases.filter(function(c){return c.status==='PENDING'}).sort(rankRisk).map(function(c){
+          return '<tr data-goto="'+c.id+'"><td><span class="idlink">'+c.id+'</span><div class="sub">'+esc(c.title)+'</div></td>'+
+            '<td class="mono">'+c.creator+'</td><td>'+esc(c.box)+'</td>'+
+            '<td><span class="chip '+c.risk+'"><span class="dot"></span>'+riskLabel(c.risk)+'</span></td>'+
+            '<td class="sub">'+esc(c.reason)+'</td></tr>';
+        }).join('')+
+      '</tbody></table></div>'+
+      '<div class="section-t">Platform revenue · 12h</div>'+
+      '<div class="panel" style="padding:16px 18px">'+spark+'<div class="sub" style="margin-top:6px">Token purchases minus payouts · platform commission trend</div></div>';
+    content.querySelectorAll('[data-goto]').forEach(function(tr){tr.addEventListener('click',function(){state.selCase=tr.getAttribute('data-goto');go('moderation')})});
+  }
+  function rankRisk(a,b){var o={hi:0,md:1,lo:2};return o[a.risk]-o[b.risk]}
+  function sparkSvg(pts){
+    var w=680,h=44,max=Math.max.apply(null,pts),min=Math.min.apply(null,pts);
+    var step=w/(pts.length-1);
+    var d=pts.map(function(v,i){var x=i*step,y=h-2-((v-min)/(max-min||1))*(h-8);return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)}).join(' ');
+    var area=d+' L'+w+' '+h+' L0 '+h+' Z';
+    var lx=(pts.length-1)*step, ly=h-2-((pts[pts.length-1]-min)/(max-min||1))*(h-8);
+    return '<svg class="spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" role="img" aria-label="Revenue trend, rising">'+
+      '<path d="'+area+'" fill="var(--ember-soft)"/>'+
+      '<path d="'+d+'" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round"/>'+
+      '<circle cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="3" fill="var(--ember)"/></svg>';
+  }
+
+  /* ---------- MODERATION ---------- */
+  function moderation(){
+    ttl.textContent='Content Moderation';
+    var queue=state.cases.filter(function(c){return c.status==='PENDING'}).sort(rankRisk);
+    if(!state.selCase || !queue.some(function(c){return c.id===state.selCase})) state.selCase=queue.length?queue[0].id:null;
+    var listHtml='<div class="panel wrap-x" style="align-self:start"><table class="tbl"><thead><tr><th>Content</th><th>Risk</th><th>Creator</th><th>Status</th></tr></thead><tbody>'+
+      (queue.length?queue.map(function(c){
+        return '<tr class="'+(c.id===state.selCase?'sel':'')+'" data-case="'+c.id+'">'+
+          '<td><span class="idlink">'+c.id+'</span><div class="sub">'+esc(c.title)+' · '+esc(c.box)+'</div></td>'+
+          '<td><span class="chip '+c.risk+'"><span class="dot"></span>'+riskLabel(c.risk)+'</span></td>'+
+          '<td class="mono">'+c.creator+'</td>'+
+          '<td><span class="chip n">'+c.status+'</span></td></tr>';
+      }).join(''):'<tr><td colspan="4"><div class="empty2">Queue clear — no content pending review. ✓</div></td></tr>')+
+      '</tbody></table></div>';
+    var c=queue.find(function(x){return x.id===state.selCase});
+    var detail = c ? caseDetail(c) : '<div class="panel"><div class="empty2">Select a case</div></div>';
+    content.innerHTML='<div class="mod">'+listHtml+detail+'</div>';
+    content.querySelectorAll('[data-case]').forEach(function(tr){tr.addEventListener('click',function(){state.selCase=tr.getAttribute('data-case');moderation()})});
+    wireCase();
+  }
+  function bar(lab,pct){var col=pct>=60?'var(--hi)':pct>=25?'var(--md)':'var(--lo)';
+    return '<div class="bar"><span class="lab">'+lab+'</span><span class="track"><span class="fill" style="width:'+pct+'%;background:'+col+'"></span></span><span class="pct">'+pct+'%</span></div>';}
+  function caseDetail(c){
+    return '<div class="panel case">'+
+      '<div class="m" id="master"><div class="ph" style="background-image:'+c.grad+'"></div>'+
+        '<div class="ov"><div class="lockcopy">Original master file — private. Viewing is authorized &amp; audit-logged.</div>'+
+        '<button class="reveal-b" id="revealMaster">👁 Reveal original (logged)</button></div></div>'+
+      '<h3>'+esc(c.title)+'</h3>'+
+      '<div class="kv"><span class="k">Content</span><span class="v idlink">'+c.id+'</span></div>'+
+      '<div class="kv"><span class="k">Creator</span><span class="v mono">'+c.creator+' · Verified</span></div>'+
+      '<div class="kv"><span class="k">Box</span><span class="v">'+esc(c.box)+'</span></div>'+
+      '<div class="kv"><span class="k">Overall risk</span><span class="v"><span class="chip '+c.risk+'"><span class="dot"></span>'+riskLabel(c.risk)+'</span></span></div>'+
+      '<div class="aiflags"><div class="h">AI safety screening — assistive, not final</div>'+
+        bar('CSAM signal',c.ai.csam)+bar('Non-consent',c.ai.nonconsent)+bar('Stolen / match',c.ai.stolen)+bar('Malware',c.ai.malware)+
+        '<div class="sub" style="margin-top:8px">'+esc(c.reason)+'</div></div>'+
+      '<div class="actions">'+
+        '<button class="act approve" data-act="APPROVED">✓ Approve</button>'+
+        '<button class="act reject" data-act="REJECTED">✕ Reject</button>'+
+        '<button class="act suspend" data-act="SUSPENDED">⏸ Suspend</button>'+
+        '<button class="act" data-act="VERIFY">＋ Request verification</button>'+
+        '<button class="act wide" data-act="ESCALATE">⚑ Escalate + report to authorities</button>'+
+      '</div>'+
+      '<div class="hintbar">ⓘ Every decision writes an immutable audit entry (actor MOD-004, action, target, timestamp) and notifies the creator.</div>'+
+    '</div>';
+  }
+  function wireCase(){
+    var rev=document.getElementById('revealMaster');
+    if(rev)rev.addEventListener('click',function(){
+      var m=document.getElementById('master'); m.classList.add('revealed');
+      var c=state.cases.find(function(x){return x.id===state.selCase});
+      logAudit('viewed original',state.selCase,'master file decrypted for review');
+      toast('Original revealed — access logged to audit');
+    });
+    content.querySelectorAll('[data-act]').forEach(function(b){b.addEventListener('click',function(){
+      var act=b.getAttribute('data-act'); var c=state.cases.find(function(x){return x.id===state.selCase}); if(!c)return;
+      var map={APPROVED:'approved',REJECTED:'rejected',SUSPENDED:'suspended',VERIFY:'requested verification for',ESCALATE:'escalated'};
+      if(act==='VERIFY'){logAudit('requested verification',c.id,'creator '+c.creator);toast('Verification requested from '+c.creator);return;}
+      if(act==='ESCALATE'){c.status='SUSPENDED';logAudit('escalated + reported',c.id,'flagged to authorities · creator '+c.creator+' restricted');toast('Escalated, content suspended, report filed');state.selCase=null;moderation();return;}
+      c.status=act; logAudit(map[act],c.id,'risk '+riskLabel(c.risk)+' · creator '+c.creator);
+      toast('Content '+c.id+' → '+act);
+      state.selCase=null; moderation(); updateBadge();
+    })});
+  }
+  function updateBadge(){var n=state.cases.filter(function(c){return c.status==='PENDING'}).length;
+    var b=document.getElementById('modBadge'); if(n){b.textContent=n;b.classList.remove('hide')}else b.classList.add('hide');}
+
+  /* ---------- USERS ---------- */
+  function users(){
+    ttl.textContent='Users & Creators';
+    content.innerHTML='<div class="section-t">Directory <span class="n">phone numbers masked · reveal is logged</span></div>'+
+    '<div class="panel wrap-x"><table class="tbl"><thead><tr><th>ID</th><th>Type</th><th>Box</th><th>Status</th><th>Verification</th><th>Phone (GSM)</th><th>Linked</th></tr></thead><tbody>'+
+      state.users.map(function(u,i){
+        var sc=u.status==='Active'?'lo':u.status==='Suspended'?'hi':'md';
+        return '<tr><td class="idlink">'+u.id+'</td><td>'+u.kind+'</td><td>'+esc(u.box)+'</td>'+
+          '<td><span class="chip '+sc+'"><span class="dot"></span>'+u.status+'</span></td>'+
+          '<td>'+(u.verif==='Verified'?'<span class="chip tl">✓ Verified</span>':'<span class="sub">'+u.verif+'</span>')+'</td>'+
+          '<td><div class="phone-cell" data-phone="'+i+'"><span class="masked mono">'+esc(u.phone)+'</span><button class="reveal-x">Reveal (logged)</button></div></td>'+
+          '<td>'+(u.links?'<span class="chip '+(u.links>1?'md':'n')+'">'+u.links+' account'+(u.links>1?'s':'')+'</span>':'<span class="sub">—</span>')+'</td></tr>';
+      }).join('')+
+    '</tbody></table></div>'+
+    '<div class="hintbar" style="margin-top:12px">ⓘ Box Admins never see this screen. Only platform operators can decrypt a phone number, and each reveal is written to the audit log with operator ID and timestamp.</div>';
+    content.querySelectorAll('[data-phone]').forEach(function(cell){
+      var i=+cell.getAttribute('data-phone');
+      cell.querySelector('.reveal-x').addEventListener('click',function(e){
+        e.stopPropagation();
+        var real=state.users[i].phone.replace(/•/g,function(){return String(Math.floor(Math.random()*10))});
+        cell.innerHTML='<span class="revealed-ph">'+esc(real)+'</span><span class="chip md" style="margin-left:8px">access logged</span>';
+        logAudit('revealed phone',state.users[i].id,'GSM decrypted');
+        toast('Phone revealed for '+state.users[i].id+' — logged');
+      });
+    });
+  }
+
+  /* ---------- BOXES ---------- */
+  function boxes(){
+    ttl.textContent='Boxes';
+    content.innerHTML='<div class="section-t">Content Boxes</div><div class="panel wrap-x"><table class="tbl"><thead><tr><th>Box</th><th>Admin</th><th>Creators</th><th>Users</th><th>Content</th><th>Revenue today</th></tr></thead><tbody>'+
+      state.boxes.map(function(b){return '<tr><td><span class="idlink">'+b.id+'</span><div class="sub">'+esc(b.name)+'</div></td><td class="mono">'+b.admin+'</td><td>'+b.creators+'</td><td>'+b.users.toLocaleString()+'</td><td>'+b.content.toLocaleString()+'</td><td class="mono">'+b.rev+'</td></tr>'}).join('')+
+      '</tbody></table></div>'+
+      '<div class="hintbar" style="margin-top:12px">ⓘ Box Admins manage their own box (invite/suspend creators, view analytics) but cannot access participant PII — that stays under platform control.</div>';
+  }
+
+  /* ---------- FINANCE ---------- */
+  function finance(){
+    ttl.textContent='Finance & Payouts';
+    content.innerHTML=
+      '<div class="kpis" style="grid-template-columns:repeat(4,1fr)">'+
+        '<div class="kpi"><div class="l">◈ Tokens sold today</div><div class="v">41,200</div><div class="d up">≈ €412</div></div>'+
+        '<div class="kpi"><div class="l">Platform commission</div><div class="v">€338</div><div class="d flat">20% avg</div></div>'+
+        '<div class="kpi"><div class="l">Creator earnings held</div><div class="v">€1,354</div><div class="d flat">pending → available</div></div>'+
+        '<div class="kpi"><div class="l">Payouts queued</div><div class="v">2</div><div class="d up">€198.40</div></div>'+
+      '</div>'+
+      '<div class="fin-grid">'+
+        '<div class="panel"><div class="section-t" style="margin:14px 16px 4px">Payout requests <span class="n">threshold €50</span></div>'+
+        '<div class="wrap-x"><table class="tbl"><thead><tr><th>Payout</th><th>Creator</th><th>Available</th><th>Status</th><th></th></tr></thead><tbody id="poRows">'+payoutRows()+'</tbody></table></div></div>'+
+        '<div class="panel flow"><div class="section-t" style="margin:2px 0 6px">Commission split</div>'+
+          '<div class="row">User pays<span class="amt">250 tokens</span></div>'+
+          '<div class="row" style="color:var(--teal)">→ Creator (80%)<span class="amt">+200</span></div>'+
+          '<div class="row" style="color:var(--ember)">→ Platform (20%)<span class="amt">+50</span></div>'+
+          '<div class="hintbar" style="margin-top:12px">Split is captured on the earning row at rental time, so later config changes never rewrite past transactions.</div>'+
+        '</div>'+
+      '</div>';
+    wirePayouts();
+  }
+  function payoutRows(){
+    return state.payouts.map(function(p,i){
+      var below=p.status==='BELOW_THRESHOLD';
+      return '<tr><td class="idlink">'+p.id+'</td><td class="mono">'+p.creator+'</td><td class="mono">'+p.avail+'</td>'+
+        '<td>'+(below?'<span class="chip n">below €50</span>':p.status==='PAID'?'<span class="chip lo">✓ paid</span>':'<span class="chip md">requested</span>')+'</td>'+
+        '<td>'+(below?'<span class="sub">—</span>':p.status==='PAID'?'':'<button class="btn-sm p" data-pay="'+i+'">Approve payout</button>')+'</td></tr>';
+    }).join('');
+  }
+  function wirePayouts(){
+    content.querySelectorAll('[data-pay]').forEach(function(b){b.addEventListener('click',function(){
+      var i=+b.getAttribute('data-pay'); state.payouts[i].status='PAID';
+      logAudit('approved payout',state.payouts[i].id,'creator '+state.payouts[i].creator+' · '+state.payouts[i].avail);
+      toast('Payout '+state.payouts[i].id+' approved');
+      document.getElementById('poRows').innerHTML=payoutRows(); wirePayouts();
+    })});
+  }
+
+  /* ---------- AUDIT ---------- */
+  function audit(){
+    ttl.textContent='Audit Log';
+    content.innerHTML='<div class="section-t">Immutable event trail <span class="n">append-only</span></div>'+
+    '<div class="panel audit">'+state.audit.map(function(e){
+      return '<div class="r"><div class="ts">'+e.ts+'</div><div class="ev"><b>'+esc(e.actor)+'</b> <span class="act-txt">'+esc(e.action)+'</span> <b>'+esc(e.target)+'</b><div class="meta">'+esc(e.meta)+'</div></div></div>';
+    }).join('')+'</div>'+
+    '<div class="hintbar" style="margin-top:12px">ⓘ Entries are never edited or deleted. Every sensitive action — viewing an original, revealing a phone, approving a payout, moderating content — lands here automatically.</div>';
+  }
+
+  /* ---------- ROUTER ---------- */
+  document.getElementById('nav').addEventListener('click',function(e){var b=e.target.closest('button');if(b)go(b.getAttribute('data-tab'))});
+  function go(tab){
+    state.tab=tab;
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===tab)});
+    ({overview:overview,moderation:moderation,users:users,boxes:boxes,finance:finance,audit:audit}[tab])();
+    content.scrollIntoView({block:'start'});
+  }
+  updateBadge(); go('overview');
+})();
+</script>
