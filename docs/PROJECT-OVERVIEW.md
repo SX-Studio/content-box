@@ -2,31 +2,30 @@
 
 > **Dit document is de belangrijkste naslag- en back-upgids van het hele project.**
 > De volledige, actuele back-up is deze Git-repository zelf (code + migraties +
-> ontwerpen + docs). Zie **§15 Back-up maken** onderaan om alles als één map op je
-> computer te zetten.
+> ontwerpen + docs). Zie **§16 Back-up maken** om alles als één map op je computer
+> te zetten.
 >
-> Laatst bijgewerkt: 2026-08 · Status: Fases 1–4 live in productie.
+> Laatst bijgewerkt: 2026-08. Status: kern-app + productie-hardening live
+> (auth, boxen, content, wallet/rentals, moderatie, payouts, identiteitsverificatie,
+> betalingen, admin-backend, juridische pagina's).
 
 ---
 
 ## 1. Wat is dit?
 
-**Content Box** (werknaam project: **SX-CONTENT24-BOX**) is een **tijdelijke
-multi-creator content-marktplaats**. Geen klassieke cloudopslag, geen klassiek
-abonnement.
+**Content Box** (project: **SX-CONTENT24-BOX**) is een **tijdelijke multi-creator
+content-marktplaats**. Geen klassieke cloudopslag, geen klassiek abonnement.
 
-**De kernlus — DROP → DISCOVER → RENT → EXPIRE:**
+**Kernlus — DROP → DISCOVER → RENT → EXPIRE:**
 1. **DROP** — een creator plaatst content in een gedeelde **Box**.
-2. **DISCOVER** — users zien één centrale feed met content van meerdere creators
-   (blurred previews).
+2. **DISCOVER** — users zien één centrale feed met content van meerdere creators (blurred).
 3. **RENT** — een user betaalt **tokens** om één item **24 uur** te huren.
 4. **EXPIRE** — na 24 uur vervalt de toegang automatisch.
 
 **Privacymodel:** pseudoniem tussen deelnemers, volledige controle voor het platform.
 Deelnemers zien elkaars telefoonnummer nooit; alleen platform-operators kunnen (met
-audit-logging) een nummer ontsleutelen.
-
-Zelfstandig product; een optionele koppeling met Secret Xperience kan later.
+audit-logging) een nummer ontsleutelen. 18+ / adults-only; creators worden
+identiteits-geverifieerd vóór publicatie.
 
 ---
 
@@ -34,122 +33,118 @@ Zelfstandig product; een optionele koppeling met Secret Xperience kan later.
 
 | Onderdeel | Waarde |
 |-----------|--------|
-| **GitHub-repo** | `SX-Studio/Secret-xperience-Chat-Box` |
+| **GitHub-repo** | `SX-Studio/content-box` (hernoemd; oude naam `Secret-xperience-Chat-Box` redirect) |
 | **Supabase-project** | `jpnnzxnvubrosjjcbkmn` (`https://jpnnzxnvubrosjjcbkmn.supabase.co`) |
 | **Vercel-project** | `sx-content-box` (team: sx-studio) |
 | **Live URL (Vercel)** | `https://secret-xperience-chat-box.vercel.app` |
 | **Eigen domein** | `content24market.space` (registrar: Hostinger) |
 | **Deploy** | Auto-deploy bij elke push naar `main` |
 
-**Domein-status:** zet de nameservers bij Hostinger op `ns1.vercel-dns.com` en
-`ns2.vercel-dns.com` (Vercel DNS-methode). Zie §12.
+**Domein:** Vercel DNS-methode — zet bij Hostinger de nameservers op
+`ns1.vercel-dns.com` + `ns2.vercel-dns.com` (zie §13).
 
 ---
 
 ## 3. Technische stack
 
 - **Frontend + backend:** Next.js 14 (App Router, TypeScript) — één app.
-- **Database + opslag:** Supabase (Postgres + Row-Level Security, Storage, functies).
-- **Hosting:** Vercel (auto-deploy op push).
-- **Beeldverwerking:** `sharp` (thumbnail + blurred preview).
+- **Database + opslag:** Supabase (Postgres + RLS, Storage, pg_cron, functies).
+- **Hosting:** Vercel (auto-deploy op push; Vercel Cron voor de expiry-sweep).
+- **Beeld/video:** `sharp` (thumbnail + blurred preview); video via directe upload-URL.
+- **SMS/OTP:** provider-agnostische adapter — **stub** (log) of **Twilio** (echte SMS).
+- **Betaling (tokens):** **Verotel FlexPay** (adult-vriendelijke PSP). Dev-top-up als
+  fallback zolang Verotel niet geconfigureerd is. **Geen Stripe** (verbiedt adult).
+- **Admin-beveiliging:** WebAuthn (passkey/vingerafdruk) step-up voor het admin-backend.
+- **E-mail:** Resend (optioneel, o.a. payout-beslissingen).
+- **Operator-assistent:** read-only, PII-vrije "Chat met Claude" (ANTHROPIC_API_KEY).
 - **Tests:** Vitest.
 - **Fonts:** Fraunces (display), IBM Plex Sans (body), IBM Plex Mono (data).
-- **SMS/OTP:** provider-agnostische adapter (nu een **stub** die codes naar de
-  serverlog schrijft; echte provider zoals Twilio/MessageBird plugt later in).
-- **Betaling:** ⚠️ **NIET Stripe** (verbiedt adult content). Token-aankoop wacht op
-  een adult-vriendelijke PSP + juridische token-analyse. Nu een **dev top-up**.
 
-**Architectuurprincipe:** de 11 logische "services" (auth, box, content, rental,
-wallet, moderatie, …) zijn **modules in één app** met een `events`-tabel als
-event-backbone (staat in voor Kafka). Pas echte microservices bij bewezen schaal.
+**Architectuurprincipe:** de logische "services" zijn **modules in één app**
+(`lib/*`) met een `events`-tabel als event-backbone. Alle DB-toegang via server-routes
+met de **service-role** client; RLS staat op elke tabel **deny-by-default** (tweede slot).
 
 ---
 
-## 4. Projectstructuur
+## 4. Projectstructuur (hoofdlijnen)
 
 ```
-secret-xperience-chat-box/
+content-box/
 ├─ app/
-│  ├─ layout.tsx                 # root layout + fonts
-│  ├─ globals.css                # design-systeem (ember/velvet, licht+donker)
-│  ├─ page.tsx                   # landingspagina
-│  ├─ login/page.tsx             # telefoon → OTP verificatie
-│  ├─ app/page.tsx               # dashboard: account, wallet, boxen, invites
-│  ├─ box/[id]/page.tsx          # box-feed: upload + blurred feed + rent/view
-│  ├─ rentals/page.tsx           # "My Rentals" met 24u-countdown
-│  ├─ moderation/page.tsx        # moderation console (operator/moderator)
-│  ├─ invite/[token]/page.tsx    # uitnodiging accepteren
-│  └─ api/                       # alle server-endpoints (zie §8)
+│  ├─ page.tsx  layout.tsx  globals.css      # landing, layout+fonts, design-systeem
+│  ├─ login/  app/  box/[id]/  rentals/  invite/[token]/  discover/
+│  ├─ moderation/                            # moderation console
+│  ├─ admin/  admin/unlock/                  # admin-backend (WebAuthn-vergrendeld)
+│  ├─ legal/{terms,privacy,2257,dmca,refunds}/   # juridische pagina's
+│  └─ api/                                   # alle server-endpoints (zie §8)
 ├─ lib/
-│  ├─ supabase/{admin,server,client}.ts  # service-role / SSR / browser clients
-│  ├─ env.ts                     # gevalideerde env-variabelen
-│  ├─ crypto.ts                  # telefoon versleutelen + HMAC + E.164
-│  ├─ ids.ts                     # publieke IDs (USR-/CRT-/BOX-/CNT-/INV-/RPT-)
-│  ├─ session.ts / session-cookie.ts   # getekende sessie-cookie
-│  ├─ authz.ts                   # currentAccount / rollen / hasRole
-│  ├─ accounts.ts                # account zoeken/aanmaken (1e = operator)
-│  ├─ auth/{otp,otp-adapter,otp-stub,sender}.ts  # OTP + SMS-adapter
-│  ├─ boxes.ts                   # box aanmaken/lijst
-│  ├─ invitations.ts             # uitnodiging aanmaken/accepteren
-│  ├─ content.ts / media.ts / storage.ts  # upload-validatie, sharp, opslag
-│  ├─ rentals.ts                 # rent, view (signed URL), my rentals
-│  ├─ wallet.ts                  # saldo, ledger, wallet_apply
-│  ├─ moderation.ts / reports.ts # moderatie + meldingen
-│  ├─ audit.ts / events.ts       # audit-log + event-backbone
-│  ├─ ratelimit.ts / config.ts   # OTP rate-limit + app_config
-├─ supabase/migrations/          # 0001–0010 (volledig schema, zie §5)
-├─ tests/                        # Vitest (28 tests)
+│  ├─ supabase/{admin,server,client}.ts      # service-role / SSR / browser
+│  ├─ env  crypto  ids  session(+cookie)  authz  accounts  ratelimit  config
+│  ├─ auth/{otp,otp-adapter,otp-stub,otp-twilio,sender}  sms   # OTP + SMS
+│  ├─ boxes  invitations  content  media  storage             # boxen + content
+│  ├─ rentals  wallet  payouts  packages  verotel             # geld + huur + betaling
+│  ├─ moderation  reports  identity                           # trust & safety
+│  ├─ webauthn  stepup  admin-stepup  admin-assistant         # admin-backend
+│  └─ audit  events  email                                    # logging + notificaties
+├─ supabase/migrations/                       # 0001–0016 (zie §5)
+├─ tests/                                      # Vitest
 ├─ docs/
-│  ├─ PROJECT-OVERVIEW.md        # dit bestand
-│  └─ design/                    # de ontwerp-prototypes als HTML (zie §13)
-├─ CLAUDE.md                     # project-geheugen (fase-status, beslissingen)
-├─ README.md
-├─ .env.example                  # sjabloon van env-variabelen (§10)
-├─ package.json / tsconfig.json / next.config.mjs / vitest.config.ts
+│  ├─ PROJECT-OVERVIEW.md                      # dit bestand
+│  └─ design/                                  # ontwerp-prototypes als HTML (§14)
+├─ CLAUDE.md  README.md  .env.example
+└─ package.json  tsconfig.json  next.config.mjs  vitest.config.ts
 ```
+
+*(165+ bestanden; bovenstaande toont de mappen, niet elk bestand.)*
 
 ---
 
-## 5. Databaseschema (migraties `0001`–`0010`)
+## 5. Databaseschema (migraties `0001`–`0016`)
 
-Alle tabellen hebben **RLS aan met deny-by-default**: de browsersleutel kan niets;
-alle toegang loopt via server-routes met de **service-role**-sleutel.
+Elke tabel: **RLS aan, deny-by-default**. Kritieke geldbewerkingen zijn
+`SECURITY DEFINER`-functies die **alleen door service_role** uitvoerbaar zijn.
 
-| Migratie | Tabellen / functies |
-|----------|---------------------|
-| `0001_accounts_roles` | `account` (versleuteld telefoon + HMAC), `account_role` (scoped rollen) |
-| `0002_boxes_memberships` | `box`, `box_membership` |
-| `0003_invitations` | `invitation` (token gehasht, eenmalig, tijdgebonden, telefoon-gebonden) |
-| `0004_audit_events_config` | `audit_log`, `events`, `app_config` (token-defaults) |
-| `0005_rls_policies` | RLS aan op alles + `current_account_id()` helper |
-| `0006_otp_challenge` | `otp_challenge` (gehashte code, pogingslimiet, expiry) |
-| `0007_content` | `content`, `content_asset` + storage buckets `master` (privé) / `preview` (publiek) |
-| `0008_wallet_ledger` | `wallet`, `ledger_entry` (onveranderlijk), `earning`, `wallet_apply()` |
-| `0009_rentals` | `rental` + `rent_content()` (atomische huur-transactie) |
-| `0010_moderation` | `moderation_case`, `report` |
+| Migratie | Inhoud |
+|----------|--------|
+| `0001` accounts_roles | `account` (versleuteld telefoon + HMAC), `account_role` |
+| `0002` boxes_memberships | `box`, `box_membership` |
+| `0003` invitations | `invitation` (token gehasht, eenmalig, tijdgebonden, telefoon-gebonden) |
+| `0004` audit_events_config | `audit_log`, `events`, `app_config` (token-defaults) |
+| `0005` rls_policies | RLS aan op alles + `current_account_id()` |
+| `0006` otp_challenge | `otp_challenge` (gehashte code, pogingslimiet, expiry) |
+| `0007` content | `content`, `content_asset` + buckets `master` (privé) / `preview` (publiek) |
+| `0008` wallet_ledger | `wallet`, `ledger_entry` (onveranderlijk), `earning`, `wallet_apply()` |
+| `0009` rentals | `rental` + `rent_content()` (atomische huur) |
+| `0010` moderation | `moderation_case`, `report` |
+| `0011` admin_webauthn | `admin_phone_allowlist`, `webauthn_credential` (passkey step-up) |
+| `0012` admin_stats | read-only stats-views voor het admin-dashboard |
+| `0013` cron_verotel | `expire_rentals()` (sweep) + `token_order` (Verotel-aankoop) |
+| `0014` payouts | `payout` + request/decide RPC's (reserveert `earning`, €50-drempel) |
+| `0015` account_email | optioneel `email` op `account` (voor notificaties) |
+| `0016` identity_verification | `identity_verification` (ID+selfie in privé `identity`-bucket, 18+ gate) |
 
-**Kritieke functies (SECURITY DEFINER, alleen door service_role uitvoerbaar):**
-- `wallet_apply(...)` — atomisch, rij-vergrendeld, idempotent, weigert negatief saldo.
-- `rent_content(...)` — debiteert user + boekt creator-split + maakt rental met
-  `expires_at = now() + rental_hours`, alles in één transactie.
+**Token-defaults (in `app_config`, operator-bewerkbaar):** `tokens_per_euro=100`,
+`creator_split=0.80`, `payout_threshold_eur=50`, `rental_hours=24`,
+`invitation_ttl_hours=72`.
 
-**Token-defaults (in `app_config`, wijzigbaar zonder code):** `tokens_per_euro=100`
-(100 tokens = €1), `creator_split=0.80` (80/20), `payout_threshold_eur=50`,
-`rental_hours=24`, `invitation_ttl_hours=72`.
+**Storage buckets:** `master` (privé origineel), `preview` (publiek blurred/thumb),
+`identity` (privé — ID-documenten, alleen service-role + korte signed URLs).
 
 ---
 
 ## 6. Rollen & rechten
 
-- **platform_operator** — volledige controle; moderatie; kan GSM ontsleutelen (gelogd).
-  Het **eerste account dat inlogt** wordt automatisch operator.
+- **platform_operator** — volledige controle; moderatie; kan GSM ontsleutelen (gelogd);
+  admin-backend achter WebAuthn. Eerste account = operator; nummers op de
+  `admin_phone_allowlist` worden altijd operator.
 - **moderator** — moderatie-console, geen financiële controle.
 - **box_admin** — beheert één box (creators uitnodigen, analytics); geen PII.
-- **creator** — upload, prijs, eigen content bekijken, verkopen/earnings.
-- **user** — feed bekijken, tokens, huren, eigen library.
+- **creator** — upload, prijs, eigen content, verkopen/earnings, payout-aanvraag.
+- **user** — feed, tokens (kopen via Verotel of dev-top-up), huren, eigen library.
 
-Privacymatrix: **geen enkele deelnemer ziet andermans telefoonnummer.** Alleen het
-platform, met audit-logging.
+**Privacymatrix:** geen deelnemer ziet andermans telefoonnummer — alleen het platform,
+met audit-logging. Identiteits-PII (ID/selfie) alleen zichtbaar voor geautoriseerde
+reviewers via korte signed URLs.
 
 ---
 
@@ -157,65 +152,73 @@ platform, met audit-logging.
 
 | Route | Voor wie | Doel |
 |-------|----------|------|
-| `/` | iedereen | landing → inloggen |
+| `/` | iedereen | landing + juridische links |
 | `/login` | iedereen | telefoon + OTP |
-| `/app` | ingelogd | dashboard: account, **wallet + top-up**, boxen, invites |
-| `/box/[id]` | box-leden | feed (blurred), upload (creators), rent/view |
+| `/app` | ingelogd | dashboard: account, wallet, boxen, invites, payout |
+| `/box/[id]` | box-leden | feed (blurred), upload, rent/view; eigen content = "View" |
+| `/discover` | ingelogd | ontdek-feed over boxen heen |
 | `/rentals` | ingelogd | "My Rentals" met live 24u-timers |
-| `/moderation` | operator/moderator | queue, view-original, approve/suspend/reject, meldingen |
+| `/moderation` | operator/moderator | queue, view-original, decisions, meldingen |
+| `/admin` (+ `/admin/unlock`) | operator | admin-backend (WebAuthn step-up): stats, operators, payouts, verificaties, assistent, economics |
+| `/legal/*` | iedereen | terms, privacy, 2257 (age records), dmca, refunds |
 | `/invite/[token]` | uitgenodigd | verifiëren → box joinen |
 
 ---
 
-## 8. API-endpoints
+## 8. API-endpoints (overzicht)
 
-**Auth:** `POST /api/auth/otp/start` · `POST /api/auth/otp/verify` ·
-`POST /api/auth/logout` · `GET /api/me`
-**Boxen:** `POST /api/boxes` · `GET /api/boxes/[id]` ·
-`POST /api/boxes/[id]/invitations` · `POST /api/invitations/[token]/accept`
-**Content & feed:** `POST /api/content` (upload+screen) ·
-`GET /api/boxes/[id]/feed`
-**Rentals:** `POST /api/content/[id]/rent` · `GET /api/content/[id]/view`
-(signed URL) · `GET /api/rentals/my`
-**Wallet:** `GET /api/wallet` · `POST /api/wallet/topup` (dev)
-**Moderatie:** `GET /api/moderation/queue` · `POST /api/moderation/[id]/decision` ·
-`GET /api/moderation/original/[id]` · `GET /api/moderation/reports` ·
-`POST /api/moderation/reports/[id]/resolve` · `POST /api/reports`
-
-**Regel:** autorisatie wordt per verzoek server-side herbepaald; elke gevoelige actie
-schrijft een audit-regel.
+**Auth:** `/api/auth/otp/start` · `/api/auth/otp/verify` · `/api/auth/logout` · `/api/me`
+**Account:** `/api/account/email`
+**Boxen/invites:** `/api/boxes` · `/api/boxes/[id]` · `/api/boxes/[id]/invitations` ·
+`/api/invitations/[token]/accept`
+**Content/feed/discover:** `/api/content` · `/api/content/video-upload-url` ·
+`/api/boxes/[id]/feed` · `/api/discover`
+**Rentals:** `/api/content/[id]/rent` · `/api/content/[id]/view` · `/api/rentals/my`
+**Wallet/betaling:** `/api/wallet` · `/api/wallet/topup` (dev) · `/api/wallet/purchase`
+(Verotel) · `/api/verotel/webhook` · `/api/cron/expire`
+**Payouts:** `/api/payouts/request` · `/api/payouts/me`
+**Moderatie/meldingen:** `/api/moderation/{queue,[id]/decision,original/[id],reports,reports/[id]/resolve}` ·
+`/api/reports`
+**Verificatie:** `/api/verification`
+**Admin (WebAuthn-gated):** `/api/admin/{search,operators,config,assistant}` ·
+`/api/admin/payouts(+/decide)` · `/api/admin/verifications(+/decide)` ·
+`/api/admin/webauthn/{register,authenticate}/{options,verify}`
 
 ---
 
-## 9. De vier fases (wat is gebouwd)
+## 9. Wat is gebouwd
 
-- **Fase 1 — Identiteit & Box-fundament** ✅ live
-  GSM/SMS-OTP, rollen, boxen, uitnodigingen, audit + events.
-- **Fase 2 — Content & blurred feed** ✅ live
-  Upload → privé master + blurred preview (sharp), member-gated feed.
-- **Fase 3 — Wallet & rentals** ✅ kern live
-  Onveranderlijke token-ledger, atomische huur, 24u-timer, 80/20 split.
-  *Resterend:* creator earnings-dashboard, €50 payouts, pg_cron expiry-sweep.
-- **Fase 4 — Moderatie** ✅ live
-  AI-screening (stub) op upload, console, meldingen, suspend blokkeert view.
-
-10 migraties, 28 tests, Supabase security-advisor schoon (alleen bedoelde
-deny-by-default meldingen).
+- **Fase 1 — Identiteit & Boxen** ✅ — GSM/SMS-OTP, rollen, boxen, uitnodigingen, audit+events.
+- **Fase 2 — Content & feed** ✅ — upload (foto + video), privé master + blurred preview, member-gated feed, discover.
+- **Fase 3 — Wallet & rentals** ✅ — onveranderlijke token-ledger, atomische huur, 24u-timer, 80/20 split, **payouts** (€50, reserveer→betaal/afwijs), expiry-sweep (cron).
+- **Fase 4 — Moderatie** ✅ — AI-screening (stub), console, meldingen, suspend blokkeert view.
+- **Productie-hardening** ✅ — **Twilio** echte SMS, **Verotel** token-aankoop,
+  **identiteits/leeftijdsverificatie**, **WebAuthn** admin step-up, **admin-backend**
+  (stats, operators, config/economics, assistent), **juridische pagina's**,
+  **e-mailnotificaties** (Resend).
 
 ---
 
 ## 10. Environment-variabelen
 
-Zie `.env.example` voor het sjabloon. De **echte waarden** staan in **Vercel →
-Settings → Environment Variables** (en lokaal in een `.env.local`, nooit committen):
+Volledig sjabloon staat in **`.env.example`**. Echte waarden staan in **Vercel →
+Settings → Environment Variables** (en lokaal in `.env.local`, nooit committen).
 
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` (geheim, alleen server)
-- `PHONE_ENCRYPTION_KEY`, `PHONE_HASH_KEY`, `SESSION_SECRET` (elk 32 bytes hex)
-- `OTP_SENDER=stub`, `OTP_TTL_SECONDS=300`
+- **Supabase:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`
+- **Crypto (32-byte hex):** `PHONE_ENCRYPTION_KEY`, `PHONE_HASH_KEY`, `SESSION_SECRET`
+- **OTP/SMS:** `OTP_SENDER` (`stub`|`twilio`), `OTP_TTL_SECONDS`, `OTP_MAX_ATTEMPTS`,
+  en (bij twilio) `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY_SID`, `TWILIO_API_KEY_SECRET`,
+  `TWILIO_MESSAGING_SERVICE_SID` of `TWILIO_FROM_NUMBER`
+- **WebAuthn:** `RP_ID`, `APP_ORIGIN` (prod: `content24market.space` /
+  `https://content24market.space`)
+- **Cron:** `CRON_SECRET` (Vercel Cron → `/api/cron/expire`)
+- **Verotel:** `VEROTEL_SHOP_ID`, `VEROTEL_SIGNATURE_KEY`
+- **Assistent:** `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` (optioneel)
+- **E-mail:** `RESEND_API_KEY`, `EMAIL_FROM`
 
-> ⚠️ **Bewaar de 3 crypto-sleutels veilig apart.** Als `PHONE_HASH_KEY` wijzigt,
-> werken bestaande telefoon-lookups niet meer.
+> ⚠️ Bewaar de 3 crypto-sleutels veilig apart. Wijzigt `PHONE_HASH_KEY`, dan werken
+> bestaande telefoon-lookups niet meer.
 
 ---
 
@@ -223,101 +226,98 @@ Settings → Environment Variables** (en lokaal in een `.env.local`, nooit commi
 
 ```bash
 npm install
-cp .env.example .env.local        # vul Supabase-sleutels + crypto-sleutels in
-npm run test                      # 28 tests
+cp .env.example .env.local        # vul sleutels in
+npm run test
 npm run dev                       # http://localhost:3000
 ```
-Migraties toepassen: draai de bestanden in `supabase/migrations/` in de Supabase
-SQL-editor (in volgorde 0001→0010), of via de Supabase CLI/MCP.
+Migraties: draai `supabase/migrations/0001..0016` in volgorde (Supabase SQL-editor of
+CLI). **Deployen:** push naar `main` → Vercel bouwt + publiceert automatisch.
 
-**Deployen:** push naar `main` → Vercel bouwt en publiceert automatisch.
-
-**Inloggen in stub-modus:** de OTP-code wordt naar de Vercel-logs geschreven
-(`[OTP:stub] +32… -> code`). Lees hem daar. Het eerste account wordt operator.
-
----
-
-## 12. Domein-setup (content24market.space)
-
-Gekozen methode: **Vercel DNS (nameservers)**. Bij **Hostinger** de nameservers
-zetten op:
-- `ns1.vercel-dns.com`
-- `ns2.vercel-dns.com`
-
-Daarna wacht je op propagatie; Vercel valideert en geeft automatisch SSL. Alternatief
-(nameservers behouden): gebruik in Vercel het tabblad **DNS Records** en voeg de
-getoonde **A-record** (`76.76.21.21`) toe bij Hostinger. **Kies één methode.**
-
-Geen codewijziging nodig — de app werkt op elk domein.
+**Inloggen (stub-modus):** OTP-code staat in de Vercel-logs (`[OTP:stub] … -> code`).
+Met `OTP_SENDER=twilio` + Twilio-vars komt de code als echte SMS. Eerste account =
+operator; ook nummers op de admin-allowlist worden operator.
 
 ---
 
-## 13. Ontwerp-artefacten (in `docs/design/`)
+## 12. Beveiliging & compliance
 
-Open deze HTML-bestanden lokaal in een browser (dubbelklik):
+- **Twee sloten:** applicatie-autorisatie + RLS deny-by-default op elke tabel.
+- **Telefoon** AES-256-GCM versleuteld + HMAC voor lookup; nooit plaintext.
+- **Geld** op onveranderlijke ledger; `wallet_apply`/`rent_content`/payout-RPC's zijn
+  atomisch, idempotent, en alleen door service_role uitvoerbaar.
+- **Admin-backend** achter WebAuthn (passkey/vingerafdruk) step-up.
+- **Identiteits/leeftijdsverificatie** (18+): ID+selfie in privé-bucket, korte signed
+  URLs, alleen voor reviewers.
+- **Moderatie:** AI screent, mens beslist; suspend/reject blokkeert lopende views.
+- **Juridisch:** Terms, Privacy, 18 U.S.C. **2257** (age records), **DMCA**, Refunds.
+- **Betaling:** Verotel (adult-vriendelijk); **nooit Stripe** voor deze vertical.
+
+---
+
+## 13. Domein-setup (content24market.space)
+
+Bij **Hostinger** de nameservers zetten op `ns1.vercel-dns.com` + `ns2.vercel-dns.com`
+(Vercel DNS-methode). Daarna propagatie afwachten; Vercel valideert + geeft SSL.
+Alternatief: nameservers behouden en het door Vercel getoonde **A-record**
+(`76.76.21.21`) bij Hostinger toevoegen. **Kies één methode.** Geen codewijziging nodig.
+
+Voor WebAuthn/betaling zet je in Vercel: `RP_ID=content24market.space`,
+`APP_ORIGIN=https://content24market.space`, en de Verotel-postback op
+`https://content24market.space/api/verotel/webhook`.
+
+---
+
+## 14. Ontwerp-artefacten (in `docs/design/`)
+
+Dubbelklik om lokaal in een browser te openen:
 
 | Bestand | Wat |
 |---------|-----|
-| `docs/design/content-box-architecture.html` | Volledige systeemarchitectuur + ERD + beslissingen |
-| `docs/design/content-box-prototype.html` | Klikbaar mobiel prototype (feed, rent, 24u-timer, wallet) |
+| `docs/design/content-box-architecture.html` | Systeemarchitectuur + ERD + beslissingen |
+| `docs/design/content-box-prototype.html` | Klikbaar mobiel prototype (feed, rent, 24u, wallet) |
 | `docs/design/content-box-admin.html` | Admin/Moderation-console layout |
-| `docs/design/content-box-phase1.html` | Fase 1 bouwplan (bestanden/tabellen/endpoints) |
+| `docs/design/content-box-phase1.html` | Fase 1 bouwplan |
 
-Online versies (claude.ai artifacts):
-- Architectuur: https://claude.ai/code/artifact/45c1283e-50a5-48e9-aa82-1a4cdf505ef7
-- Prototype: https://claude.ai/code/artifact/1b69c5da-0515-40b6-b5d2-6b45739cf8ee
-- Admin console: https://claude.ai/code/artifact/e26a6239-5a7b-471c-a7fa-d5dcf9af382e
-- Fase 1-plan: https://claude.ai/code/artifact/48f5b9a3-65be-4fb0-9ea6-ba305fae2ed4
+Online (claude.ai): architectuur `45c1283e…` · prototype `1b69c5da…` ·
+admin `e26a6239…` · fase 1 `48f5b9a3…` (volledige URLs onder claude.ai/code/artifact/).
 
 ---
 
-## 14. Beveiliging & compliance (kort)
+## 15. Nuttige documenten in de repo
 
-- **Twee sloten:** applicatie-autorisatie + RLS deny-by-default op elke tabel.
-- **Telefoon** versleuteld (AES-256-GCM) + HMAC voor lookup; nooit plaintext.
-- **Uitnodiging-tokens** gehasht, eenmalig, tijdgebonden, telefoon-gebonden.
-- **Geld** op een **onveranderlijke ledger** met idempotente, atomische mutaties.
-- **wallet_apply / rent_content** zijn SECURITY DEFINER en **alleen door service_role
-  uitvoerbaar** (advisor-lek gedicht).
-- **Moderatie:** AI screent, mens beslist; suspend/reject blokkeert ook lopende views.
-- **Geen Stripe** voor deze vertical (adult) — aparte PSP + juridische analyse nodig.
+- `CLAUDE.md` — project-geheugen (fase-status van de kern-build; kan achterlopen op de
+  nieuwste productie-features — dít document is het actuele totaaloverzicht).
+- `README.md` — korte start.
+- `.env.example` — volledige env-sjabloon met uitleg per variabele.
 
 ---
 
-## 15. Back-up maken (de hele map op je computer)
+## 16. Back-up maken (de hele map op je computer)
 
 **Deze repository IS de volledige back-up** (code + migraties + ontwerpen + docs).
-Twee manieren om alles als map op je computer te krijgen:
 
 **A) ZIP downloaden (geen tools nodig):**
-1. Ga naar `https://github.com/SX-Studio/Secret-xperience-Chat-Box`
-2. Groene knop **Code → Download ZIP**
-3. Pak uit → je hebt de volledige projectmap lokaal.
+1. Ga naar `https://github.com/SX-Studio/content-box`
+2. Groene knop **Code → Download ZIP** → uitpakken = volledige projectmap.
 
 **B) Klonen met Git (blijft bijwerkbaar):**
 ```bash
-git clone https://github.com/SX-Studio/Secret-xperience-Chat-Box.git
+git clone https://github.com/SX-Studio/content-box.git
 ```
 
-**Wat NIET in de repo zit (bewaar apart, veilig):**
-- De **geheime env-waarden** (service-role key, 3 crypto-sleutels) — staan in Vercel.
-- De **Supabase-database-inhoud** zelf — maak periodiek een Supabase-back-up/export
-  (Supabase dashboard → Database → Backups).
-
-> Tip: bewaar naast de code-ZIP een klein tekstbestand met de coördinaten uit §2 en
-> een veilige kopie van de env-sleutels (bv. in een wachtwoordmanager).
-
----
-
-## 16. Wat nog te doen (optioneel)
-
-- Fase 3-restant: creator **earnings-dashboard**, **payout-aanvragen** (€50),
-  **pg_cron expiry-sweep**.
-- **Echte SMS-provider** inpluggen (Twilio/MessageBird) i.p.v. de stub.
-- **Adult-vriendelijke PSP** + juridische token-analyse voor echte token-aankoop.
-- Verdere **design-polish** (dashboard hero-saldo, feed-chips, rental-cart).
-- Account **restrict/suspend** in de moderatie-console.
+**Bewaar apart, veilig (zit NIET in de repo):**
+- Geheime env-waarden (service-role key, 3 crypto-sleutels, Twilio/Verotel/Resend/
+  Anthropic keys) — staan in Vercel; bewaar een kopie in een wachtwoordmanager.
+- Supabase database-inhoud — maak periodiek een export/back-up (Supabase dashboard →
+  Database → Backups).
+- Bewaar §2 (coördinaten) apart als snel-referentie.
 
 ---
 
-*Voor de actuele fase-status en projectbeslissingen: zie `CLAUDE.md` in de hoofdmap.*
+## 17. Wat nog te doen (optioneel)
+
+- Verdere design-polish (dashboard hero-saldo, feed-chips, rental-cart).
+- Account restrict/suspend uitbreiden in de moderatie-console.
+- Volledige libphonenumber-normalisatie i.p.v. de minimale E.164-parser.
+- Verotel test → live compliance review afronden.
+```
