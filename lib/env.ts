@@ -38,4 +38,12 @@ export const env = {
   rpId: () => process.env.RP_ID ?? 'localhost',
   appOrigin: () => process.env.APP_ORIGIN ?? 'http://localhost:3000',
   cronSecret: () => process.env.CRON_SECRET ?? '',
+  // Paystack — M-Pesa (Kenya) token purchase. Returns null until the secret key is
+  // set, so the route can respond { configured:false } (dev top-up stays the fallback).
+  paystack: () => {
+    const secret = process.env.PAYSTACK_SECRET_KEY ?? '';
+    return secret ? { secret } : null;
+  },
+  // EUR→KES rate used to price a package for the M-Pesa charge. Review before go-live.
+  kesPerEur: () => { const n = Number(process.env.KES_PER_EUR); return Number.isFinite(n) && n > 0 ? n : 145; },
 };
