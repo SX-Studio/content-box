@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
 // Start phone verification: generate a code, store its hash, send via the OTP sender.
 // The response never reveals whether an account already exists for the number.
 export async function POST(req: NextRequest) {
+ try {
   let body: unknown;
   try {
     body = await req.json();
@@ -46,4 +47,11 @@ export async function POST(req: NextRequest) {
   await getSender().send(e164, code);
   await writeAudit({ action: 'otp.started', targetType: 'phone_hash', targetId: hash });
   return NextResponse.json({ ok: true, ttlSeconds: env.otpTtlSeconds() });
+ } catch (e) {
+  // A thrown error here (e.g. a missing server env var like PHONE_HASH_KEY or the
+  // Supabase service-role key) would otherwise return a bodyless 500, which the
+  // client can't parse. Log the real cause; return parseable JSON.
+  console.error('[otp/start] unexpected error:', e);
+  return NextResponse.json({ ok: false, error: 'Server not configured to send codes. Please try again later.' }, { status: 500 });
+ }
 }

@@ -2,6 +2,18 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+// Tolerate empty/non-JSON responses: a bodyless 500 (e.g. a server route that threw
+// before returning) must surface a real message, not "Unexpected end of JSON input".
+async function readJson(r: Response): Promise<{ error?: string; [k: string]: unknown }> {
+  const text = await r.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text) as { error?: string };
+  } catch {
+    return { error: text.slice(0, 200) };
+  }
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [next, setNext] = useState('/app');
@@ -26,8 +38,8 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone }),
       });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'Could not send code');
+      const j = await readJson(r);
+      if (!r.ok) throw new Error(j.error || `Could not send code (HTTP ${r.status})`);
       setStep('code');
       setMsg({ kind: 'ok', text: 'Code sent. In this preview it is printed in the server console.' });
     } catch (err) {
@@ -47,8 +59,8 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, code }),
       });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'Verification failed');
+      const j = await readJson(r);
+      if (!r.ok) throw new Error(j.error || `Verification failed (HTTP ${r.status})`);
       router.push(next);
     } catch (err) {
       setMsg({ kind: 'err', text: (err as Error).message });
