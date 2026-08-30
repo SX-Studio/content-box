@@ -111,6 +111,45 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-08-30 (login fix · payout security · Twilio docs)
+Three PRs merged to `main`; two DB migrations applied live to `jpnnzxnvubrosjjcbkmn`.
+
+- **Login "Unexpected end of JSON input" fixed (PR #2).** The login page did
+  `await r.json()` unconditionally, so a bodyless 500 from an OTP route surfaced as that
+  cryptic message. Root cause: the `otp_challenge` row inserts fine, then
+  `getSender().send()` **throws** (Twilio rejects the send) → uncaught → empty 500.
+  Fix: a `readJson()` helper in `app/login/page.tsx` (tolerates empty/non-JSON bodies),
+  and a top-level try/catch in `app/api/auth/otp/{start,verify}/route.ts` that logs the
+  real cause (`[otp/start] unexpected error: …`) and returns parseable JSON.
+  ⚠️ Resilience only — real login still needs OTP delivery configured (see Outstanding).
+
+- **Payout RPC security hardening (PR #3) — applied live.** The Supabase security advisor
+  flagged `request_payout` / `decide_payout` as callable by `anon`/`authenticated`.
+  Confirmed real: migration `0014` did `revoke … from anon, authenticated` but NOT from
+  `PUBLIC`, so both roles still inherited EXECUTE and could hit `/rest/v1/rpc/decide_payout`
+  with the public key (no internal authz — a money endpoint). Fixed in two layers:
+  - `0017_lock_payout_execute.sql` — `revoke execute … from public, anon, authenticated`.
+  - `0018_payout_internal_authz.sql` — internal guards: `request_payout` requires an ACTIVE
+    account; `decide_payout` requires an ACTIVE `platform_operator` (both raise `P0004`
+    before doing any work). Verified live; both advisor WARNs cleared.
+  Lesson: locking a SECURITY DEFINER money function needs `revoke execute … from PUBLIC`,
+  not just anon/authenticated (that's how `wallet_apply`/`rent_content` were done right).
+
+- **Twilio setup documented (PR #4).** `docs/twilio-setup.md` — stub→Twilio switch,
+  Standard API Key, Messaging Service + alphanumeric sender ID vs a bought number, EU
+  geo-permissions, trial limits, env vars, and a Twilio error-code → fix table matching
+  the new `[otp/start]` log line. Pointer added to Useful files.
+
+### ⚠️ Outstanding (config, not code): OTP delivery on Vercel
+Login won't complete for real users until OTP delivery is set in the `sx-content-box`
+Vercel project (then redeploy — env changes don't touch existing deployments):
+- **Unblock testing now:** `OTP_SENDER=stub` (or unset) — the code prints in the Vercel
+  log as `[OTP:stub] … -> ######`. ⚠️ stub mode also OPENS `/api/wallet/topup` (free
+  tokens for any signed-in user) — never leave a public production site in stub mode.
+- **Real SMS:** `OTP_SENDER=twilio` + the `TWILIO_*` vars — see `docs/twilio-setup.md`.
+- Live Supabase state (verified this session): migrations `0001`–`0018` all applied,
+  `otp_challenge` writing normally — the DB is healthy; the blocker is Twilio config.
+
 ## Architecture quirks / patterns
 - **All Phase 1 DB access via server routes using the service-role client** (`lib/supabase/admin.ts`).
   RLS is enabled + deny-by-default for anon/authenticated as the second lock.
@@ -127,7 +166,7 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
 - Don't break existing functionality without explicit permission.
 
 ## Useful files
-- `supabase/migrations/` — schema + RLS (`0001`–`0005`)
+- `supabase/migrations/` — schema + RLS (`0001`–`0018`)
 - `lib/supabase/{admin,server,client}.ts` — service-role / SSR / browser clients
 - `lib/crypto.ts` — phone encrypt/decrypt + HMAC + E.164 normalise
 - `lib/ids.ts` — public ID generation
