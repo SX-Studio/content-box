@@ -133,6 +133,7 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
 - `lib/ids.ts` — public ID generation
 - `lib/config.ts` — reads `app_config` (token defaults)
 - `tests/` — vitest (unit +, later, integration/security)
+- `docs/twilio-setup.md` — switch OTP delivery from stub to real Twilio SMS + error-code fixes
 
 ## How to run
 ```bash
