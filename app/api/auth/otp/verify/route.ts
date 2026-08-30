@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
 // Verify a code: find the latest active challenge, enforce the attempt cap, match the
 // hash in constant time, then create/find the account and open a session.
 export async function POST(req: NextRequest) {
+ try {
   let body: unknown;
   try {
     body = await req.json();
@@ -69,4 +70,10 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ ok: true, account: { public_id: account.public_id }, isNew });
+ } catch (e) {
+  // Never let an unexpected throw (missing env var, DB/session failure) return a
+  // bodyless 500 the client can't parse. Log the real cause; return JSON.
+  console.error('[otp/verify] unexpected error:', e);
+  return NextResponse.json({ ok: false, error: 'Server error verifying code. Please try again later.' }, { status: 500 });
+ }
 }
