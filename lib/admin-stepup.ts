@@ -38,3 +38,13 @@ export async function requireAdminStepUp(): Promise<Account> {
   if (!(await hasValidStepUp(account.id))) redirect('/admin/unlock');
   return account;
 }
+
+// Role-only gate (no fingerprint step-up): signed in + operator/moderator. Used for the
+// moderation console so operators can enter directly — including on a desktop with no
+// biometric authenticator. The sensitive admin backend still uses requireAdminStepUp.
+export async function requireAdminRole(): Promise<Account> {
+  const account = await currentAccount();
+  if (!account) redirect('/login?next=/moderation');
+  if (!(await isAdminAccount(account))) redirect('/app');
+  return account;
+}
