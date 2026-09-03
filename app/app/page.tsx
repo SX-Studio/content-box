@@ -132,6 +132,22 @@ function Wallet() {
     } finally { setBuyingId(null); }
   }
 
+  async function buyCrypto(packageId: string) {
+    setBuyingId(packageId); setNotice(null); setPspOff(false);
+    try {
+      const r = await fetch('/api/wallet/purchase-crypto', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageId }),
+      });
+      const j = await r.json();
+      if (j?.configured === false) { setPspOff(true); return; } // crypto env not set → dev top-up fallback
+      if (r.ok && j?.url) { window.location.href = j.url; return; } // → NOWPayments hosted checkout
+      setNotice({ kind: 'err', text: j?.error || 'Could not start crypto checkout' });
+    } catch {
+      setNotice({ kind: 'err', text: 'Network error — please try again' });
+    } finally { setBuyingId(null); }
+  }
+
   async function topup() {
     setBusy(true); setNotice(null);
     try {
@@ -167,6 +183,9 @@ function Wallet() {
                 <div className="dim" style={{ marginBottom: 10 }}>€{(p.eurCents / 100).toFixed(2)}</div>
                 <button className="sm" style={{ width: '100%' }} disabled={buyingId !== null} onClick={() => buy(p.id)}>
                   {buyingId === p.id ? 'Starting…' : 'Buy'}
+                </button>
+                <button className="ghost sm" style={{ width: '100%', marginTop: 6 }} disabled={buyingId !== null} onClick={() => buyCrypto(p.id)}>
+                  ◎ Pay with crypto
                 </button>
               </div>
             ))}
