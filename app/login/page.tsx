@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { boxCss, BottomNav } from '@/app/box-ui';
 
 // Tolerate empty/non-JSON responses: a bodyless 500 (e.g. a server route that threw
 // before returning) must surface a real message, not "Unexpected end of JSON input".
@@ -70,7 +71,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="center">
+    <div className="center" style={{ paddingBottom: 120 }}>
+      <style>{boxCss}</style>
       <p className="eyebrow">Content Box</p>
       <h1>Sign in</h1>
       <p className="muted">We&apos;ll text you a 6-digit code to verify your number.</p>
@@ -95,6 +97,7 @@ export default function LoginPage() {
       )}
 
       {msg && <div className={`msg ${msg.kind}`}>{msg.text}</div>}
+      <BottomNav />
     </div>
   );
 }
