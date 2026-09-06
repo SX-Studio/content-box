@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { boxCss, fmtCountdown, gradOf, ClockIcon, LockIcon } from '@/app/box-ui';
 
 type Rental = {
   public_id: string;
@@ -10,14 +11,6 @@ type Rental = {
   expires_at: string;
   preview_url: string | null;
 };
-
-function fmt(iso: string): string {
-  let s = Math.floor((new Date(iso).getTime() - Date.now()) / 1000);
-  if (s < 0) s = 0;
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-  const p = (n: number) => (n < 10 ? '0' : '') + n;
-  return `${p(h)}:${p(m)}:${p(sec)}`;
-}
 
 export default function MyRentalsPage() {
   const router = useRouter();
@@ -41,42 +34,64 @@ export default function MyRentalsPage() {
     if (r.ok) { const j = await r.json(); setUrls((u) => ({ ...u, [contentId]: j.url })); }
   }
 
-  if (loading) return <div className="container"><p className="dim">Loading…</p></div>;
+  if (loading) return <div className="boxui"><style>{boxCss}</style><p className="bx-loading">Loading…</p></div>;
+
+  const active = rentals.filter((r) => new Date(r.expires_at).getTime() > Date.now()).length;
 
   return (
-    <div className="container">
-      <div className="between">
-        <div>
-          <p className="eyebrow">Library</p>
-          <h1>My rentals</h1>
+    <div className="boxui">
+      <style>{boxCss}</style>
+
+      <header className="bx-top">
+        <div className="bx-badge"><ClockIcon /></div>
+        <div className="bx-titles">
+          <div className="bx-name">My rentals</div>
+          <div className="bx-sub">{active || '—'} actief · jouw tijdelijke library</div>
         </div>
-        <a href="/app"><button className="ghost sm">← Dashboard</button></a>
-      </div>
+        <a href="/discover" className="bx-chip" title="Discover">◧ Discover</a>
+        <a href="/app" className="bx-chip" title="Dashboard">↩ Dashboard</a>
+      </header>
 
       {rentals.length === 0 ? (
-        <div className="card"><p className="dim" style={{ margin: 0 }}>Nothing rented right now. Open a box feed and rent something — it appears here with a 24h timer.</p></div>
-      ) : (
-        <div className="feed-grid">
-          {rentals.map((r) => (
-            <div className="feed-card" key={r.public_id}>
-              <div className="feed-media">
-                {urls[r.content_public_id]
-                  ? <img src={urls[r.content_public_id]} alt={r.title} />
-                  : r.preview_url ? <img src={r.preview_url} alt="" /> : <div className="feed-noimg" />}
-                <div className="feed-lock">🔓 expires in <span className="cd">{fmt(r.expires_at)}</span></div>
-              </div>
-              <div className="feed-body">
-                <strong>{r.title}</strong>
-                <div className="dim">{r.creator}</div>
-                <div className="row" style={{ marginTop: 8 }}>
-                  <button className="sm" onClick={() => view(r.content_public_id)}>{urls[r.content_public_id] ? 'Refresh' : 'View'}</button>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="bx-empty">
+          <ClockIcon />
+          <div className="h">Nog niets gehuurd</div>
+          <p>Open een box of Discover en huur iets — het verschijnt hier met een 24u-timer.</p>
         </div>
+      ) : (
+        <div className="bx-vhead"><h2>Library</h2><span className="bx-cnt">{active} actief</span></div>
       )}
 
+      <div style={{ display: 'grid', gap: 12 }}>
+        {rentals.map((r) => {
+          const left = Math.floor((new Date(r.expires_at).getTime() - Date.now()) / 1000);
+          const expired = left <= 0;
+          const url = urls[r.content_public_id];
+          return (
+            <div className={`bx-rcard ${expired ? 'expired' : ''}`} key={r.public_id}>
+              <div className="bx-rthumb">
+                {url
+                  ? <img src={url} alt={r.title} className="bx-real" />
+                  : r.preview_url
+                  ? <div className="bx-ph" style={{ backgroundImage: `url(${r.preview_url})` }} />
+                  : <div className="bx-ph" style={{ backgroundImage: gradOf(r.content_public_id) }} />}
+              </div>
+              <div className="bx-rmeta">
+                <div className="t">{r.title}</div>
+                <div className="c">Creator {r.creator} · {r.content_public_id}</div>
+                {expired
+                  ? <div className="bx-timer exp"><LockIcon /> Toegang verlopen</div>
+                  : <div className={`bx-timer ${left < 3600 ? 'warn' : ''}`}>◷ {fmtCountdown(r.expires_at)} resterend</div>}
+              </div>
+              {!expired && (
+                <div className="bx-ract">
+                  <button className="bx-btn ember" onClick={() => view(r.content_public_id)}>{url ? 'Refresh' : 'Bekijk'}</button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
