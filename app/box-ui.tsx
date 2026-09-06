@@ -277,6 +277,31 @@ video.bx-real{object-fit:contain;background:#000}
 .bx-progress{font-size:13px;color:var(--ink-3)}
 .bx-dropnote{font-size:12px;color:var(--ink-3);text-align:center;margin-top:10px}
 
+/* wallet */
+.bx-balcard{background:linear-gradient(150deg,var(--ember),#7e2a19);border-radius:20px;padding:24px;color:#fff;box-shadow:var(--shadow);margin:18px 0 20px}
+.bx-balcard .lab{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.82}
+.bx-balcard .big{font-family:var(--serif);font-weight:600;font-size:clamp(40px,8vw,52px);line-height:1;margin:8px 0 4px;display:flex;align-items:baseline;gap:9px}
+.bx-balcard .big span{font-family:var(--mono);font-size:15px;font-weight:400;opacity:.85}
+.bx-balcard .eur{font-size:12.5px;opacity:.85}
+.bx-ledlab{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 2px 9px}
+.bx-pkgs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
+.bx-pkg{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 8px;text-align:center;cursor:pointer;transition:border-color .15s,transform .05s;box-shadow:var(--shadow)}
+.bx-pkg:hover{border-color:var(--gold)}
+.bx-pkg:active{transform:scale(.98)}
+.bx-pkg:disabled{opacity:.5;cursor:not-allowed}
+.bx-pkg .tk{font-family:var(--mono);font-weight:500;font-size:17px;color:var(--gold)}
+.bx-pkg .pr{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+.bx-pkg .lb{font-size:10px;color:var(--ink-3);margin-top:5px;text-transform:uppercase;letter-spacing:.08em}
+.bx-led{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.bx-led .r{display:flex;align-items:center;gap:10px;padding:12px 15px;border-bottom:1px solid var(--line);font-size:13px}
+.bx-led .r:last-child{border-bottom:none}
+.bx-led .r .d{color:var(--ink-2);flex:1;min-width:0}
+.bx-led .r .d small{display:block;color:var(--ink-3);font-size:11px;font-family:var(--mono);margin-top:1px}
+.bx-led .r .a{font-family:var(--mono);font-weight:500;flex:none}
+.bx-led .r .a.pos{color:var(--ok)}
+.bx-led .r .a.neg{color:var(--ink-2)}
+.bx-led .r .bal{font-family:var(--mono);font-size:11px;color:var(--ink-3);flex:none;width:64px;text-align:right}
+
 /* cart */
 .bx-cart{position:fixed;left:50%;bottom:22px;transform:translate(-50%,160%);width:min(560px,calc(100% - 36px));
   background:var(--ink);color:var(--surface);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:14px;
