@@ -166,7 +166,7 @@ export function FeedCard({ item, expiry, rentedNow, selected, onToggle, onRent, 
 
 // Bottom tab bar shared across the member surfaces. Highlights the active tab from
 // the current route (a /box/* page counts as Discover). Mount once per page.
-export function BottomNav() {
+export function BottomNav({ disabled }: { disabled?: boolean } = {}) {
   const path = usePathname() || '';
   const tabs = [
     { href: '/discover', label: 'Discover', active: path === '/discover' || path.startsWith('/box'),
@@ -179,13 +179,12 @@ export function BottomNav() {
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 11l9-7 9 7" /><path d="M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9" /></svg> },
   ];
   return (
-    <nav className="bx-nav">
+    <nav className={`bx-nav ${disabled ? 'off' : ''}`} aria-disabled={disabled || undefined}>
       <div className="bx-nav-inner">
         {tabs.map((t) => (
-          <a key={t.href} href={t.href} className={`bx-nav-btn ${t.active ? 'on' : ''}`}>
-            {t.icon}
-            <span>{t.label}</span>
-          </a>
+          disabled
+            ? <span key={t.href} className="bx-nav-btn" aria-disabled>{t.icon}<span>{t.label}</span></span>
+            : <a key={t.href} href={t.href} className={`bx-nav-btn ${t.active ? 'on' : ''}`}>{t.icon}<span>{t.label}</span></a>
         ))}
       </div>
     </nav>
@@ -341,6 +340,7 @@ video.bx-real{object-fit:contain;background:#000}
 .bx-nav-btn svg{width:22px;height:22px}
 .bx-nav-btn:hover{color:var(--ink-2)}
 .bx-nav-btn.on{color:var(--ember)}
+.bx-nav.off .bx-nav-btn{color:var(--ink-3);opacity:.5;cursor:default;pointer-events:none}
 
 /* cart */
 .bx-cart{position:fixed;left:50%;bottom:80px;transform:translate(-50%,220%);width:min(560px,calc(100% - 36px));

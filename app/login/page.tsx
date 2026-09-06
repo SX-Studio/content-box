@@ -97,7 +97,7 @@ export default function LoginPage() {
       )}
 
       {msg && <div className={`msg ${msg.kind}`}>{msg.text}</div>}
-      <BottomNav />
+      <BottomNav disabled />
     </div>
   );
 }
