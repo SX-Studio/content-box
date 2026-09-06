@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 // Shared UI for the Content Box surfaces (group box, discover, rentals): one card
 // language + design tokens so /box/[id], /discover and /rentals read as one product.
@@ -163,8 +164,36 @@ export function FeedCard({ item, expiry, rentedNow, selected, onToggle, onRent, 
   );
 }
 
+// Bottom tab bar shared across the member surfaces. Highlights the active tab from
+// the current route (a /box/* page counts as Discover). Mount once per page.
+export function BottomNav() {
+  const path = usePathname() || '';
+  const tabs = [
+    { href: '/discover', label: 'Discover', active: path === '/discover' || path.startsWith('/box'),
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg> },
+    { href: '/rentals', label: 'Rentals', active: path === '/rentals',
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></svg> },
+    { href: '/wallet', label: 'Wallet', active: path === '/wallet',
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="6" width="18" height="13" rx="2.5" /><path d="M3 10h18" /><circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" stroke="none" /></svg> },
+    { href: '/app', label: 'Dashboard', active: path === '/app',
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 11l9-7 9 7" /><path d="M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9" /></svg> },
+  ];
+  return (
+    <nav className="bx-nav">
+      <div className="bx-nav-inner">
+        {tabs.map((t) => (
+          <a key={t.href} href={t.href} className={`bx-nav-btn ${t.active ? 'on' : ''}`}>
+            {t.icon}
+            <span>{t.label}</span>
+          </a>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
 export const boxCss = `
-.boxui{max-width:940px;margin:0 auto;padding:22px 18px 120px;position:relative}
+.boxui{max-width:940px;margin:0 auto;padding:22px 18px 140px;position:relative}
 .boxui .bx-loading{color:var(--ink-3);padding:40px 4px}
 
 /* top bar */
@@ -302,8 +331,19 @@ video.bx-real{object-fit:contain;background:#000}
 .bx-led .r .a.neg{color:var(--ink-2)}
 .bx-led .r .bal{font-family:var(--mono);font-size:11px;color:var(--ink-3);flex:none;width:64px;text-align:right}
 
+/* bottom tab nav */
+.bx-nav{position:fixed;left:0;right:0;bottom:0;z-index:45;background:color-mix(in srgb,var(--surface) 90%,transparent);
+  backdrop-filter:blur(16px);border-top:1px solid var(--line)}
+.bx-nav-inner{max-width:520px;margin:0 auto;display:flex}
+.bx-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:9px 4px calc(9px + env(safe-area-inset-bottom));text-decoration:none;color:var(--ink-3);font-size:10.5px;font-weight:600;
+  font-family:var(--sans);transition:color .15s}
+.bx-nav-btn svg{width:22px;height:22px}
+.bx-nav-btn:hover{color:var(--ink-2)}
+.bx-nav-btn.on{color:var(--ember)}
+
 /* cart */
-.bx-cart{position:fixed;left:50%;bottom:22px;transform:translate(-50%,160%);width:min(560px,calc(100% - 36px));
+.bx-cart{position:fixed;left:50%;bottom:80px;transform:translate(-50%,220%);width:min(560px,calc(100% - 36px));
   background:var(--ink);color:var(--surface);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:14px;
   box-shadow:0 18px 44px -14px rgba(0,0,0,.6);transition:transform .3s cubic-bezier(.2,.8,.2,1);z-index:40}
 .bx-cart.show{transform:translate(-50%,0)}
@@ -313,7 +353,7 @@ video.bx-real{object-fit:contain;background:#000}
 .bx-cart .bx-btn{margin-left:auto}
 
 /* toast */
-.bx-toast{position:fixed;left:50%;bottom:96px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+.bx-toast{position:fixed;left:50%;bottom:150px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
   background:var(--ink);color:var(--surface);font-size:13px;font-weight:500;padding:11px 18px;border-radius:12px;
   box-shadow:var(--shadow);transition:.25s;max-width:86%;text-align:center;z-index:50}
 .bx-toast.show{opacity:1;transform:translate(-50%,0)}

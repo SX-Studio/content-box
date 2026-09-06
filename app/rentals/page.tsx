@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { boxCss, fmtCountdown, gradOf, ClockIcon, LockIcon } from '@/app/box-ui';
+import { boxCss, fmtCountdown, gradOf, ClockIcon, LockIcon, BottomNav } from '@/app/box-ui';
 
 type Rental = {
   public_id: string;
@@ -92,6 +92,7 @@ export default function MyRentalsPage() {
           );
         })}
       </div>
+      <BottomNav />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { boxCss } from '@/app/box-ui';
+import { boxCss, BottomNav } from '@/app/box-ui';
 import { PACKAGES } from '@/lib/packages';
 
 type LedgerRow = {
@@ -126,6 +126,7 @@ export default function WalletPage() {
       )}
 
       <div className={`bx-toast ${toast ? 'show' : ''}`}>{toast}</div>
+      <BottomNav />
     </div>
   );
 }

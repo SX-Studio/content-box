@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { boxCss, FeedCard, PhotoIcon, type FeedItem } from '@/app/box-ui';
+import { boxCss, FeedCard, PhotoIcon, BottomNav, type FeedItem } from '@/app/box-ui';
 
 type Ctx = { canUpload: boolean; boxName: string };
 
@@ -140,6 +140,7 @@ export default function BoxPage({ params }: { params: { id: string } }) {
       </div>
 
       <div className={`bx-toast ${toast ? 'show' : ''}`}>{toast}</div>
+      <BottomNav />
     </div>
   );
 }
