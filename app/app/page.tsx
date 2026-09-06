@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { PACKAGES } from '@/lib/packages';
+import { boxCss, BottomNav } from '@/app/box-ui';
 
 type Me = { account: { public_id: string; status: string; email: string | null }; roles: { role: string; box_id: string | null }[] };
 type Box = { public_id: string; name: string; description: string | null; status: string; role?: string };
@@ -39,7 +40,8 @@ export default function Dashboard() {
   if (loading) return <div className="container"><p className="dim">Loading…</p></div>;
 
   return (
-    <div className="container">
+    <div className="container" style={{ paddingBottom: 120 }}>
+      <style>{boxCss}</style>
       <div className="between">
         <div>
           <p className="eyebrow">Your account</p>
@@ -87,6 +89,7 @@ export default function Dashboard() {
           </div>
         ))
       )}
+      <BottomNav />
     </div>
   );
 }
