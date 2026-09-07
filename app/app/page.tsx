@@ -37,6 +37,23 @@ export default function Dashboard() {
     router.push('/login');
   }
 
+  // App Admin / box admin: rename a box in place.
+  async function renameBox(b: Box) {
+    const name = window.prompt('Edit group name', b.name);
+    if (name == null) return;
+    if (!name.trim() || name.trim() === b.name) return;
+    const r = await fetch(`/api/boxes/${b.public_id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.trim() }),
+    });
+    if (r.ok) {
+      const j = await r.json();
+      setBoxes((prev) => prev.map((x) => (x.public_id === b.public_id ? { ...x, name: j.box.name } : x)));
+    } else {
+      alert((await r.json()).error || 'Rename failed');
+    }
+  }
+
   if (loading) return <div className="container"><p className="dim">Loading…</p></div>;
 
   return (
@@ -83,7 +100,10 @@ export default function Dashboard() {
                 <strong>{b.name}</strong> {b.role && <span className="tag">· {b.role}</span>}
                 <div className="dim"><span className="mono">{b.public_id}</span>{b.description ? ` — ${b.description}` : ''}</div>
               </div>
-              <a href={`/box/${b.public_id}`}><button className="ghost sm">Open feed →</button></a>
+              <div className="row" style={{ gap: 8 }}>
+                {canAdmin(b) && <button className="ghost sm" onClick={() => renameBox(b)}>Edit name</button>}
+                <a href={`/box/${b.public_id}`}><button className="ghost sm">Open feed →</button></a>
+              </div>
             </div>
             {canAdmin(b) && <Invite boxId={b.public_id} />}
           </div>

@@ -49,6 +49,22 @@ export async function createBox(opts: { name: string; description?: string | nul
   return box;
 }
 
+// Rename a box (App Admin / box admin action). Returns the updated row.
+export async function renameBox(opts: { boxPublicId: string; name: string; actorId: string }): Promise<Box> {
+  const name = validateBoxName(opts.name);
+  const { data, error } = await admin()
+    .from('box')
+    .update({ name })
+    .eq('public_id', opts.boxPublicId)
+    .select(SELECT)
+    .single();
+  if (error || !data) throw new Error(error?.message ?? 'box rename failed');
+  const box = data as Box;
+  await writeAudit({ actorId: opts.actorId, action: 'box.renamed', targetType: 'box', targetId: box.public_id, metadata: { name } });
+  await emit('BOX_RENAMED', { box_id: box.id, public_id: box.public_id, name, by: opts.actorId });
+  return box;
+}
+
 // Operators see every box; everyone else sees the boxes they belong to.
 export async function listBoxesForAccount(accountId: string, isOperator: boolean): Promise<BoxWithRole[]> {
   if (isOperator) {
