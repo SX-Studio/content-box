@@ -1,16 +1,40 @@
 import 'server-only';
 import { env } from '@/lib/env';
+import { birdSendSms } from '@/lib/bird';
 
 const MESSAGES_BASE = 'https://api.twilio.com/2010-04-01/Accounts';
 
-export function smsConfigured(): boolean {
-  return env.twilio() !== null;
+// Notification SMS follows the OTP provider: when OTP_SENDER=bird, notifications go
+// through Bird too (so a Twilio problem can't silently keep affecting payout/identity
+// texts). Any other value keeps the original Twilio path exactly as before.
+function useBird(): boolean {
+  return env.otpSender() === 'bird';
 }
 
-// Best-effort transactional SMS over Twilio (same credentials as the OTP sender).
-// Returns false instead of throwing when unconfigured or on error, so callers can
-// treat notifications as fire-and-forget. Never logs the recipient or the body.
+export function smsConfigured(): boolean {
+  return useBird() ? env.bird() !== null : env.twilio() !== null;
+}
+
+// Best-effort transactional SMS. Returns false instead of throwing when unconfigured
+// or on error, so callers can treat notifications as fire-and-forget. Never logs the
+// recipient or the body.
 export async function sendSms(toE164: string, body: string): Promise<boolean> {
+  if (useBird()) {
+    try {
+      const r = await birdSendSms(toE164, body, 'transactional');
+      if (!r.ok) {
+        // eslint-disable-next-line no-console
+        console.warn(`[sms] send failed (${r.status})`);
+        return false;
+      }
+      return true;
+    } catch {
+      // eslint-disable-next-line no-console
+      console.warn('[sms] send error');
+      return false;
+    }
+  }
+
   const cfg = env.twilio();
   if (!cfg) return false;
 
