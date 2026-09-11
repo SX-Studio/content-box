@@ -117,9 +117,11 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
 ## Session log — 2026-09-11 (email sign-in, private)
-Branch `claude/email-login-private` → PR. **Migration `0019_email_login.sql` NOT yet
-applied live** — apply it BEFORE merging (purely additive, zero-downtime; until then
-email sign-in returns a handled 500 and phone sign-in is unaffected).
+Branch `claude/email-login-private` → PR #9. **Migration `0019_email_login.sql` APPLIED
+live** to `jpnnzxnvubrosjjcbkmn` (version `20260911070703`) and verified: all five
+`account` columns present with the right nullability, `account_has_login_identifier`
+CHECK in place, `otp_challenge.channel` NOT NULL, 0 rows violating. Safe to merge —
+the schema is ahead of the code, which is the correct order for an additive change.
 
 - **Email as a second login channel, same privacy model as phone.** Mirrors the phone
   flow end-to-end. `lib/crypto.ts` refactored onto shared `encryptString/decryptString`
@@ -205,7 +207,7 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - Don't break existing functionality without explicit permission.
 
 ## Useful files
-- `supabase/migrations/` — schema + RLS (`0001`–`0019`; `0019` = email login, pending apply)
+- `supabase/migrations/` — schema + RLS (`0001`–`0019`, all applied live; `0019` = email login)
 - `lib/supabase/{admin,server,client}.ts` — service-role / SSR / browser clients
 - `lib/crypto.ts` — phone + login-email encrypt/decrypt, domain-separated HMACs, E.164 / email normalise
 - `lib/auth/channel.ts` — `resolveLoginIdentifier`: phone-xor-email channel resolution for the OTP routes
