@@ -31,9 +31,14 @@ Standalone product; optional SecretXperience integration is a later phase. This 
 ## Privacy model (non-negotiable)
 Pseudonymous **between participants**, transparent **to the platform**.
 - Participants identify each other only by public IDs (`USR-`/`CRT-`/`BOX-`/`CNT-`).
-- **No participant ever sees another's phone number.** Only platform operators can
-  decrypt a phone, and every such access is audit-logged.
+- **No participant ever sees another's phone number or login email.** Only the
+  platform can decrypt either, server-side, and every such access is audit-logged.
 - Phone stored `phone_enc` (AES-256-GCM) + `phone_hash` (keyed HMAC for lookup).
+- Login email stored the same way: `email_enc` + `email_hash` (HMAC domain-separated
+  with an `email:` prefix so it can never collide with a phone hash). An account has
+  phone, email, or both — never neither (DB CHECK). ⚠️ Distinct from `account.email`
+  (0015), the OPTIONAL plaintext *contact* address for notifications — see the
+  2026-09-11 log for the follow-up to encrypt that too.
 
 ## The 24h rental rule (core)
 Every rental has its OWN timer, anchored to the purchase moment:
@@ -114,9 +119,10 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
-## Session log — 2026-09-11 (SMS provider → Bird)
-Branch `claude/sms-bird` → PR. Pure config-selected addition; **no migration**, no
-behaviour change unless `OTP_SENDER=bird`.
+## Session log — 2026-09-11/12 (SMS provider → Bird)
+Branch `claude/sms-bird` → PR #10, **merged to `main`** (squash `e6ff737`, 2026-09-12).
+Pure config-selected addition; **no migration**, no behaviour change unless
+`OTP_SENDER=bird`.
 
 - **Why:** Twilio has been giving complications; the `OtpSender` adapter was built for
   exactly this swap. Bird's *current* API was **verified from bird.com docs, not memory**
@@ -154,8 +160,50 @@ behaviour change unless `OTP_SENDER=bird`.
 - Tests: `tests/otp-bird.test.ts` (11) + `tests/sms-bird.test.ts` (4). `tsc` clean.
 - **To go live (config, not code):** in Vercel set `OTP_SENDER=bird` + the 3 `BIRD_*`
   vars, redeploy. Keep `TWILIO_*` set for instant rollback (`OTP_SENDER=twilio`).
-- Note: this branch and `claude/email-login-private` (PR #9) both add a 2026-09-11 log
-  section here → expect a trivial CLAUDE.md merge conflict on the second merge; keep both.
+- **Live config (2026-09-12):** `OTP_SENDER=bird`, `BIRD_API_KEY`, `BIRD_REGION` and
+  `BIRD_FROM` are set in the Vercel `sx-content-box` project (Production).
+  `BIRD_TEMPLATE_SLUG` / `BIRD_TEMPLATE_LANGUAGE` deliberately left UNSET → the
+  **free-text** path (the original, test-covered shape). `OTP_SENDER=bird` also closes
+  the dev top-up route. Real delivery still depends on the `BIRD_FROM` sender ID being
+  approved in Bird for BE/NL/DE/FR/LU — the first live send confirms it; an unapproved
+  sender surfaces as a 400/422 in the `[otp/start]` log line, and an `[OTP:stub]` line
+  while `OTP_SENDER=bird` means a `BIRD_*` var is missing or the region is wrong.
+
+## Session log — 2026-09-11 (email sign-in, private)
+Branch `claude/email-login-private` → PR #9. **Migration `0019_email_login.sql` APPLIED
+live** to `jpnnzxnvubrosjjcbkmn` (version `20260911070703`) and verified: all five
+`account` columns present with the right nullability, `account_has_login_identifier`
+CHECK in place, `otp_challenge.channel` NOT NULL, 0 rows violating. Safe to merge —
+the schema is ahead of the code, which is the correct order for an additive change.
+
+- **Email as a second login channel, same privacy model as phone.** Mirrors the phone
+  flow end-to-end. `lib/crypto.ts` refactored onto shared `encryptString/decryptString`
+  (phone helpers are now thin wrappers, behaviour unchanged) + `encryptEmail/decryptEmail`,
+  `emailHash` (domain-separated), `normalizeLoginEmail` (throws; the contact-email
+  normaliser in lib/accounts returns null for empty — different on purpose).
+  `lib/accounts.ts`: `findAccountByEmailHash`, `findOrCreateAccountByEmail`; the
+  first-account operator bootstrap + audit/emit moved into a shared `afterCreate()` so
+  both channels behave identically. The admin allowlist stays phone-based.
+- **`lib/auth/channel.ts`** — `resolveLoginIdentifier(body)`: the one place deciding
+  the channel; exactly one of `{phone,email}` or it throws. Both OTP routes use it.
+  `otp_challenge` gained `channel` ('sms'|'email'); the challenge lookup on verify
+  filters on channel too, so a phone code can't be redeemed against an email.
+- **`lib/auth/otp-email.ts`** — Resend delivery. **Deliberately stricter fallback than
+  SMS:** with no Resend configured, codes are stub-logged (address MASKED via
+  `maskEmail`) ONLY when `OTP_SENDER=stub`; in any other mode email sign-in is
+  refused with a 503 `EmailLoginUnavailable`. Reason: email is independent of
+  `OTP_SENDER`, so a prod site running real SMS but no Resend would otherwise leak
+  email codes into Vercel logs. The start route checks `emailLoginAvailable()` up
+  front, before writing a challenge or spending rate-limit budget.
+- **UI** `app/login/page.tsx`: Phone/Email segmented toggle; sends only the active
+  identifier. Nullable phone verified safe: every `phone_enc` consumer already
+  null-guards; `invitations.ts` phone-match fails *closed* for email-only accounts.
+- Tests: `tests/email-login.test.ts` (13) — 76 total passing; `tsc --noEmit` clean.
+- **Follow-ups (not in this PR, by design — reviewable chunks):** (1) email-bound box
+  invitations (`acceptInvitation` still requires a phone match, so an email-only
+  account can log in but can't yet join a box via invite); (2) link a second
+  identifier to an existing account (avoid duplicate accounts); (3) encrypt the
+  legacy plaintext `account.email` contact column to match this model.
 
 ## Session log — 2026-08-30 (login fix · payout security · Twilio docs)
 Three PRs merged to `main`; two DB migrations applied live to `jpnnzxnvubrosjjcbkmn`.
@@ -212,9 +260,11 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - Don't break existing functionality without explicit permission.
 
 ## Useful files
-- `supabase/migrations/` — schema + RLS (`0001`–`0018`)
+- `supabase/migrations/` — schema + RLS (`0001`–`0019`, all applied live; `0019` = email login)
 - `lib/supabase/{admin,server,client}.ts` — service-role / SSR / browser clients
-- `lib/crypto.ts` — phone encrypt/decrypt + HMAC + E.164 normalise
+- `lib/crypto.ts` — phone + login-email encrypt/decrypt, domain-separated HMACs, E.164 / email normalise
+- `lib/auth/channel.ts` — `resolveLoginIdentifier`: phone-xor-email channel resolution for the OTP routes
+- `lib/auth/otp-email.ts` — Resend OTP delivery with the strict (masked-stub / 503) fallback policy
 - `lib/ids.ts` — public ID generation
 - `lib/config.ts` — reads `app_config` (token defaults)
 - `tests/` — vitest (unit +, later, integration/security)

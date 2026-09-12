@@ -1,6 +1,6 @@
 import 'server-only';
 import { admin } from '@/lib/supabase/admin';
-import { encryptPhone, phoneHash } from '@/lib/crypto';
+import { encryptPhone, phoneHash, encryptEmail, emailHash } from '@/lib/crypto';
 import { publicId } from '@/lib/ids';
 import { writeAudit } from '@/lib/audit';
 import { emit } from '@/lib/events';
@@ -10,10 +10,11 @@ export type Account = {
   public_id: string;
   status: string;
   phone_verified_at: string | null;
+  email_verified_at: string | null;
   email: string | null;
 };
 
-const SELECT = 'id, public_id, status, phone_verified_at, email';
+const SELECT = 'id, public_id, status, phone_verified_at, email_verified_at, email';
 
 // bytea columns take a Postgres hex literal (\x…) over PostgREST, not a raw Buffer.
 function toBytea(buf: Buffer): string {
@@ -38,8 +39,11 @@ export async function findAccountByPhoneHash(hash: string): Promise<Account | nu
   return (data as Account) ?? null;
 }
 
-// Find the account for a verified phone, or create it. The very first account in the
-// system is bootstrapped as platform_operator so there's someone who can create boxes.
+export async function findAccountByEmailHash(hash: string): Promise<Account | null> {
+  const { data } = await admin().from('account').select(SELECT).eq('email_hash', hash).maybeSingle();
+  return (data as Account) ?? null;
+}
+
 // Grant platform_operator to an account whose phone is on the admin allowlist.
 // Idempotent — safe to call on every login. Matched by keyed HMAC (no plaintext).
 export async function ensureOperatorIfAllowlisted(accountId: string, hash: string): Promise<void> {
@@ -61,6 +65,20 @@ export async function ensureOperatorIfAllowlisted(accountId: string, hash: strin
   await writeAudit({ actorId: accountId, action: 'account.operator_from_allowlist', targetType: 'account', targetId: accountId });
 }
 
+// Shared post-insert steps for a brand-new account: the very first account in the
+// system is bootstrapped as platform_operator so there's someone who can create
+// boxes; then audit + emit. Identical regardless of which identifier created it.
+async function afterCreate(account: Account): Promise<void> {
+  const { count } = await admin().from('account').select('id', { count: 'exact', head: true });
+  if ((count ?? 0) === 1) {
+    await admin().from('account_role').insert({ account_id: account.id, role: 'platform_operator', box_id: null });
+    await writeAudit({ actorId: account.id, action: 'account.bootstrap_operator', targetType: 'account', targetId: account.public_id });
+  }
+  await writeAudit({ actorId: account.id, action: 'account.created', targetType: 'account', targetId: account.public_id });
+  await emit('ACCOUNT_CREATED', { account_id: account.id, public_id: account.public_id });
+}
+
+// Find the account for a verified phone, or create it. Idempotent — safe on every login.
 export async function findOrCreateAccount(e164: string): Promise<{ account: Account; isNew: boolean }> {
   const hash = phoneHash(e164);
   const existing = await findAccountByPhoneHash(hash);
@@ -85,13 +103,37 @@ export async function findOrCreateAccount(e164: string): Promise<{ account: Acco
   if (error || !data) throw new Error(error?.message ?? 'account create failed');
   const account = data as Account;
 
-  const { count } = await admin().from('account').select('id', { count: 'exact', head: true });
-  if ((count ?? 0) === 1) {
-    await admin().from('account_role').insert({ account_id: account.id, role: 'platform_operator', box_id: null });
-    await writeAudit({ actorId: account.id, action: 'account.bootstrap_operator', targetType: 'account', targetId: account.public_id });
-  }
-  await writeAudit({ actorId: account.id, action: 'account.created', targetType: 'account', targetId: account.public_id });
-  await emit('ACCOUNT_CREATED', { account_id: account.id, public_id: account.public_id });
+  await afterCreate(account);
   await ensureOperatorIfAllowlisted(account.id, hash);
+  return { account, isNew: true };
+}
+
+// Find the account for a verified login email, or create it. Same privacy model as
+// phone: the address is stored encrypted, looked up by keyed HMAC, never in plaintext.
+// The admin allowlist is phone-based, so email-created accounts don't consult it.
+export async function findOrCreateAccountByEmail(email: string): Promise<{ account: Account; isNew: boolean }> {
+  const hash = emailHash(email);
+  const existing = await findAccountByEmailHash(hash);
+  if (existing) {
+    if (!existing.email_verified_at) {
+      await admin().from('account').update({ email_verified_at: new Date().toISOString() }).eq('id', existing.id);
+    }
+    return { account: existing, isNew: false };
+  }
+
+  const { data, error } = await admin()
+    .from('account')
+    .insert({
+      public_id: publicId('USR'),
+      email_enc: toBytea(encryptEmail(email)),
+      email_hash: hash,
+      email_verified_at: new Date().toISOString(),
+    })
+    .select(SELECT)
+    .single();
+  if (error || !data) throw new Error(error?.message ?? 'account create failed');
+  const account = data as Account;
+
+  await afterCreate(account);
   return { account, isNew: true };
 }
