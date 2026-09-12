@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-const BIRD_KEYS = ['BIRD_API_KEY', 'BIRD_REGION', 'BIRD_FROM'] as const;
+const BIRD_KEYS = ['BIRD_API_KEY', 'BIRD_REGION', 'BIRD_FROM', 'BIRD_TEMPLATE_SLUG', 'BIRD_TEMPLATE_LANGUAGE'] as const;
 
 function clearBirdEnv() {
   for (const k of BIRD_KEYS) delete process.env[k];
@@ -99,5 +99,67 @@ describe('bird otp sender', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('<html>gateway</html>', { status: 502 }));
     const { birdSender } = await import('@/lib/auth/otp-bird');
     await expect(birdSender.send('+32477704740', '000000')).rejects.toThrow(/^Bird send failed \(502\)$/);
+  });
+
+  it('with BIRD_TEMPLATE_SLUG set, sends a template body (no text/from/category)', async () => {
+    configure();
+    process.env.BIRD_TEMPLATE_SLUG = 'bird_otp_verification';
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 202 }));
+    const { birdSender } = await import('@/lib/auth/otp-bird');
+    await birdSender.send('+32477704740', '493021');
+
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://eu1.platform.bird.com/v1/sms/messages');
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    expect(body.to).toBe('+32477704740');
+    expect(body.template).toEqual({ slug: 'bird_otp_verification', parameters: { code: '493021' } });
+    // text and template are mutually exclusive; the template picks sender + category.
+    expect(body.text).toBeUndefined();
+    expect(body.from).toBeUndefined();
+    expect(body.category).toBeUndefined();
+  });
+
+  it('includes language only when BIRD_TEMPLATE_LANGUAGE is set', async () => {
+    configure();
+    process.env.BIRD_TEMPLATE_SLUG = 'bird_otp_verification';
+    process.env.BIRD_TEMPLATE_LANGUAGE = 'nl';
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 202 }));
+    const { birdSender } = await import('@/lib/auth/otp-bird');
+    await birdSender.send('+32477704740', '493021');
+
+    const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(init.body)) as { template: Record<string, unknown> };
+    expect(body.template.language).toBe('nl');
+  });
+
+  it('without a slug, keeps the free-text body (regression guard)', async () => {
+    configure();
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 202 }));
+    const { birdSender } = await import('@/lib/auth/otp-bird');
+    await birdSender.send('+32477704740', '493021');
+
+    const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    expect(body.template).toBeUndefined();
+    expect(String(body.text)).toContain('493021');
+    expect(body.category).toBe('authentication');
+  });
+
+  it('surfaces a rejected template send with status and detail', async () => {
+    configure();
+    process.env.BIRD_TEMPLATE_SLUG = 'nope_missing_template';
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ code: 'template_not_found', message: 'no such slug' }), { status: 404 }),
+    );
+    const { birdSender } = await import('@/lib/auth/otp-bird');
+    await expect(birdSender.send('+32477704740', '493021')).rejects.toThrow(
+      /Bird send failed \(404\): template_not_found no such slug/,
+    );
   });
 });

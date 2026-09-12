@@ -139,7 +139,19 @@ behaviour change unless `OTP_SENDER=bird`.
 - `lib/env.ts → env.bird()`, `lib/auth/sender.ts` `case 'bird'`, `.env.example` Bird
   section, `docs/bird-setup.md` (accuracy-flagged: HTTP-status table is reasoning, the
   log line's Bird code is authoritative), pointer atop `docs/twilio-setup.md`.
-- Tests: `tests/otp-bird.test.ts` (7) + `tests/sms-bird.test.ts` (4). `tsc` clean.
+- **Template OTP (2026-09-12).** Bird can send a stored template instead of free text;
+  verified at bird.com/docs/api/reference/create-sms-message: same endpoint/auth, body
+  `{ to, template: { slug, language?, parameters } }`, **mutually exclusive with `text`**,
+  and the template picks its own sender + category (so no from/category on that body).
+  `lib/bird.ts` refactored onto a private `birdPost()` so both shapes share auth/error
+  parsing; adds `birdSendTemplate()`. `otp-bird.ts` branches on the new optional
+  `BIRD_TEMPLATE_SLUG` (+ `BIRD_TEMPLATE_LANGUAGE`): set → template with
+  `parameters.code`; unset → free text, unchanged (regression-guarded by a test).
+  ⚠️ We did NOT add `@messagebird/sdk`: the package is real and `BirdClient` is the
+  right export, but its published README documents only `bird.email.send` — `sms.send`
+  appears nowhere in it, so that method is unverified; the REST path is verified and
+  keeps the serverless bundle small (same rationale as the Twilio sender).
+- Tests: `tests/otp-bird.test.ts` (11) + `tests/sms-bird.test.ts` (4). `tsc` clean.
 - **To go live (config, not code):** in Vercel set `OTP_SENDER=bird` + the 3 `BIRD_*`
   vars, redeploy. Keep `TWILIO_*` set for instant rollback (`OTP_SENDER=twilio`).
 - Note: this branch and `claude/email-login-private` (PR #9) both add a 2026-09-11 log

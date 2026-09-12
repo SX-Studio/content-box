@@ -53,6 +53,32 @@ EU markets require sender-ID pre-registration.
 **Option B — A Bird-owned number.** Buy/attach an SMS-capable number in Bird and set it as
 `BIRD_FROM` in E.164 form (`+32…`). Simpler approval, but a monthly rental.
 
+## Step 2b — Optional: send the OTP as a template
+
+Bird can send a **stored template** instead of free text. Templates are pre-registered
+with operators and generally deliver better for OTP; the template also selects its own
+sender and category, so `from`/`category` are omitted from the request.
+
+Verified request shapes (bird.com/docs/api/reference/create-sms-message) — `text` and
+`template` are **mutually exclusive**:
+
+```
+# free text
+{ "to": "+32…", "from": "<BIRD_FROM>", "text": "…", "category": "authentication" }
+
+# template
+{ "to": "+32…", "template": { "slug": "bird_otp_verification", "language": "en",
+                              "parameters": { "code": "123456" } } }
+```
+
+To switch, set `BIRD_TEMPLATE_SLUG` (and optionally `BIRD_TEMPLATE_LANGUAGE`). Bird ships
+a built-in **`bird_otp_verification`** template whose variable is `code` — the app passes
+the generated code as `parameters.code`, so a custom template must use that variable name
+too. Leaving the slug unset keeps the free-text path exactly as before.
+
+A wrong or unapproved slug surfaces as `Bird send failed (404): template_not_found …` in
+the `[otp/start]` log line.
+
 ## Step 3 — Destination countries
 
 Make sure your sender is enabled for **Belgium** and the other launch markets (**NL, DE, FR, LU**).

@@ -42,9 +42,13 @@ export const env = {
     const apiKey = (process.env.BIRD_API_KEY ?? '').trim();
     const from = (process.env.BIRD_FROM ?? '').trim();
     const region = (process.env.BIRD_REGION ?? 'eu1').trim();
+    // Optional: send OTP via a stored Bird template instead of free text. Unset =
+    // the free-text path, so adding a slug is the only switch needed.
+    const templateSlug = (process.env.BIRD_TEMPLATE_SLUG ?? '').trim();
+    const templateLanguage = (process.env.BIRD_TEMPLATE_LANGUAGE ?? '').trim();
     if (!apiKey || !from) return null;
     if (region !== 'eu1' && region !== 'us1') return null;
-    return { apiKey, from, region };
+    return { apiKey, from, region, templateSlug, templateLanguage };
   },
   // WebAuthn (admin fingerprint). RP ID must be the registrable domain; origin the
   // full https origin. Local dev falls back to localhost.
