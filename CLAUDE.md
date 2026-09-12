@@ -18,8 +18,11 @@ Standalone product; optional SecretXperience integration is a later phase. This 
 - **Modules, not microservices** (yet): the 11 logical services live as `lib/` modules
   in one app, with an append-only `events` table standing in for Kafka. Extract real
   services only when scale demands it.
-- **SMS/OTP**: provider-agnostic adapter, **stub in Phase 1** (codes log to console).
-  Real provider (Twilio/MessageBird/Vonage) plugs in later without app changes.
+- **SMS/OTP**: provider-agnostic adapter (`OtpSender`), selected by `OTP_SENDER`
+  (`stub` | `twilio` | `bird`). **Bird is the preferred real provider** (2026-09-11;
+  Twilio kept as a fallback because it "has been giving complications"). Both real
+  senders fall back to the stub when unconfigured. `OTP_SENDER=bird` also carries
+  notification SMS. Docs: `docs/bird-setup.md`, `docs/twilio-setup.md`.
 - **Token economics (DB-configurable, in `app_config`)**: €10 = 1000 tokens
   (100 tok = €1), 80/20 creator/platform split, €50 payout threshold, 24h rental.
 - **Payments**: ⚠️ **NOT Stripe** — Stripe prohibits adult content. Phase 3 needs an
@@ -111,6 +114,49 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-11 (SMS provider → Bird)
+Branch `claude/sms-bird` → PR. Pure config-selected addition; **no migration**, no
+behaviour change unless `OTP_SENDER=bird`.
+
+- **Why:** Twilio has been giving complications; the `OtpSender` adapter was built for
+  exactly this swap. Bird's *current* API was **verified from bird.com docs, not memory**
+  — it is the simple platform API, NOT the older "Channels API": `POST
+  https://{eu1|us1}.platform.bird.com/v1/sms/messages`, `Authorization: Bearer
+  bk_{region}_…`, flat body `{to, from, text, category}`, `202 Accepted`; error envelope
+  `{type, code, message, request_id}`. So only 3 env vars: `BIRD_API_KEY`, `BIRD_REGION`
+  (must match the key prefix), `BIRD_FROM` (alphanumeric sender ID or owned number).
+- **`lib/bird.ts`** — ONE shared transport (`birdSendSms(to, text, category)`) used by
+  both the OTP sender and notification SMS so they can't drift. Never logs phone/text;
+  surfaces Bird's `code message` (top-level or nested `error`) in the failure detail.
+- **`lib/auth/otp-bird.ts`** — `birdSender`, same contract as Twilio: unconfigured (or
+  unknown region) → warn + stub fallback; rejected send → throws `Bird send failed
+  (NNN): code message` → visible in `[otp/start] unexpected error:`. OTP uses
+  `category:'authentication'`.
+- **`lib/sms.ts`** — dispatches on `OTP_SENDER`: `bird` → Bird (`category:
+  'transactional'`); **anything else → the original Twilio path, byte-for-byte
+  unchanged** (regression-guarded by test). With `OTP_SENDER=bird`, Twilio vars are
+  deliberately NOT a silent notification fallback.
+- `lib/env.ts → env.bird()`, `lib/auth/sender.ts` `case 'bird'`, `.env.example` Bird
+  section, `docs/bird-setup.md` (accuracy-flagged: HTTP-status table is reasoning, the
+  log line's Bird code is authoritative), pointer atop `docs/twilio-setup.md`.
+- **Template OTP (2026-09-12).** Bird can send a stored template instead of free text;
+  verified at bird.com/docs/api/reference/create-sms-message: same endpoint/auth, body
+  `{ to, template: { slug, language?, parameters } }`, **mutually exclusive with `text`**,
+  and the template picks its own sender + category (so no from/category on that body).
+  `lib/bird.ts` refactored onto a private `birdPost()` so both shapes share auth/error
+  parsing; adds `birdSendTemplate()`. `otp-bird.ts` branches on the new optional
+  `BIRD_TEMPLATE_SLUG` (+ `BIRD_TEMPLATE_LANGUAGE`): set → template with
+  `parameters.code`; unset → free text, unchanged (regression-guarded by a test).
+  ⚠️ We did NOT add `@messagebird/sdk`: the package is real and `BirdClient` is the
+  right export, but its published README documents only `bird.email.send` — `sms.send`
+  appears nowhere in it, so that method is unverified; the REST path is verified and
+  keeps the serverless bundle small (same rationale as the Twilio sender).
+- Tests: `tests/otp-bird.test.ts` (11) + `tests/sms-bird.test.ts` (4). `tsc` clean.
+- **To go live (config, not code):** in Vercel set `OTP_SENDER=bird` + the 3 `BIRD_*`
+  vars, redeploy. Keep `TWILIO_*` set for instant rollback (`OTP_SENDER=twilio`).
+- Note: this branch and `claude/email-login-private` (PR #9) both add a 2026-09-11 log
+  section here → expect a trivial CLAUDE.md merge conflict on the second merge; keep both.
+
 ## Session log — 2026-08-30 (login fix · payout security · Twilio docs)
 Three PRs merged to `main`; two DB migrations applied live to `jpnnzxnvubrosjjcbkmn`.
 
@@ -172,7 +218,9 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - `lib/ids.ts` — public ID generation
 - `lib/config.ts` — reads `app_config` (token defaults)
 - `tests/` — vitest (unit +, later, integration/security)
-- `docs/twilio-setup.md` — switch OTP delivery from stub to real Twilio SMS + error-code fixes
+- `lib/bird.ts` — shared Bird SMS transport (OTP + notifications); `lib/auth/otp-bird.ts` — Bird OTP sender
+- `docs/bird-setup.md` — switch OTP delivery to Bird (preferred) + how to read a failed send
+- `docs/twilio-setup.md` — Twilio (fallback provider) setup + error-code fixes
 
 ## How to run
 ```bash
