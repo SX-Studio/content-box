@@ -1,5 +1,5 @@
 import 'server-only';
-import { sendEmail, emailConfigured } from '@/lib/email';
+import { sendEmailChecked, emailConfigured } from '@/lib/email';
 import { env } from '@/lib/env';
 
 // Email OTP delivery over Resend. Same contract as the Twilio sender: a
@@ -38,10 +38,13 @@ export async function sendEmailOtp(email: string, code: string): Promise<void> {
     console.log(`[OTP:email-stub] ${maskEmail(email)} -> ${code}`);
     return;
   }
-  const ok = await sendEmail(
+  const r = await sendEmailChecked(
     email,
     'Your Content Box sign-in code',
     `Your Content Box code is ${code}. It expires in a few minutes. Do not share it.`,
   );
-  if (!ok) throw new Error('Email OTP send failed');
+  // Carry Resend's own code/message into the thrown error. A bare status is not enough
+  // to tell an unverified EMAIL_FROM domain (403 validation_error) apart from a bad key,
+  // and that distinction is the whole diagnosis.
+  if (!r.ok) throw new Error(`Email send failed (${r.status})${r.detail ? `: ${r.detail}` : ''}`);
 }

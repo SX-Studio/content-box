@@ -119,6 +119,37 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-12 (Resend wired up for email sign-in)
+Branch `claude/resend-email-otp`. Config-only to switch on; **no migration**, no schema
+change. Email sign-in shipped in #9 but had never been given credentials.
+
+- **Why now:** the first live Bird SMS send failed (`/api/auth/otp/start` → 500) and the
+  browser showed only the generic *"Server not configured to send codes."* — Bird's real
+  reason was reachable only by digging through Vercel logs. Likely causes: an unfunded
+  Bird balance (SMS is charged per send; Belgium **$0.090**/msg per bird.com/pricing/sms)
+  and/or a still-unverified sender, since Bird's pricing page states *"Production unlocks
+  once you verify a sender."* Email is the channel that costs nothing per attempt, so it
+  was wired up as the parallel way in while Bird is sorted out.
+- **`lib/email.ts` refactored onto a private `resendPost()`** — same shape as
+  `lib/bird.ts`, so auth, error parsing and the never-log-the-recipient rule are written
+  once. `sendEmail()` keeps its boolean fire-and-forget contract (payouts.ts,
+  identity.ts unchanged); new **`sendEmailChecked()`** returns
+  `{ok} | {ok:false,status,detail}` for callers that must not silently swallow a failure.
+- **`lib/auth/otp-email.ts`** now throws `Email send failed (NNN): <name> <message>`
+  instead of a bare `'Email OTP send failed'`. This is the whole point of the change: a
+  403 `validation_error` (unverified `EMAIL_FROM` domain — the single most common setup
+  failure) is otherwise indistinguishable from a bad key. Verified from Resend's docs,
+  not memory: errors are `{statusCode, name, message}`; `onboarding@resend.dev` delivers
+  **only to the Resend account owner's own address**.
+- Guarded by tests that the code and the recipient never reach the log line or the
+  thrown error — email is as private as a phone here.
+- **`docs/resend-setup.md`** (new) — key, sender choice (smoke-test address vs. verified
+  domain), free-tier caps (~3,000/mo, **100/day**), and a `name`-code → fix table.
+  `.env.example` Resend block rewritten to say what unset actually does.
+- Tests: `tests/email.test.ts` 3 → 11. **99 passing**; `tsc --noEmit` clean.
+- **To go live (config, not code):** set `RESEND_API_KEY` + `EMAIL_FROM` in the Vercel
+  `sx-content-box` project, redeploy. The Email tab on `/login` works from that deploy.
+
 ## Session log — 2026-09-11/12 (SMS provider → Bird)
 Branch `claude/sms-bird` → PR #10, **merged to `main`** (squash `e6ff737`, 2026-09-12).
 Pure config-selected addition; **no migration**, no behaviour change unless
@@ -270,6 +301,8 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - `tests/` — vitest (unit +, later, integration/security)
 - `lib/bird.ts` — shared Bird SMS transport (OTP + notifications); `lib/auth/otp-bird.ts` — Bird OTP sender
 - `docs/bird-setup.md` — switch OTP delivery to Bird (preferred) + how to read a failed send
+- `docs/resend-setup.md` — turn on email sign-in (Resend key + verified sender) + error-code fixes
+- `lib/email.ts` — shared Resend transport: `sendEmail` (fire-and-forget) / `sendEmailChecked` (detailed)
 - `docs/twilio-setup.md` — Twilio (fallback provider) setup + error-code fixes
 
 ## How to run
