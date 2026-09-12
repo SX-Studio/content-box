@@ -1,4 +1,8 @@
-# Twilio SMS setup (OTP delivery)
+# Twilio SMS setup (OTP delivery) — fallback provider
+
+> **Bird is now the preferred SMS provider** (`OTP_SENDER=bird`, see `docs/bird-setup.md`).
+> Twilio remains fully supported as a fallback: keep these vars set and switch `OTP_SENDER`
+> back to `twilio` for an instant rollback.
 
 How to switch OTP delivery from the console **stub** to real **Twilio** SMS, and how
 to debug a failed send. Tailored to the EU (Belgium-first) audience.
