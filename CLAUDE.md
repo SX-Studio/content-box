@@ -119,6 +119,35 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-13 (box invitations actually deliver)
+Branch `claude/invite-sms`. No migration. Three real bugs, not a missing feature.
+
+1. **Wrong transport.** The route called `getSender().send(phone, 'Join on Content Box:
+   /invite/…')`. `OtpSender.send(phoneE164, code)` takes a **code** and wraps it in its
+   own copy, so the invitee would have received *"Your Content Box code is Join on
+   Content Box: /invite/abc. It expires in a few minutes. Do not share it."* — a garbled
+   message telling them not to share the link they need to open. Now uses
+   **`sendSms()`**, which carries arbitrary text and is fire-and-forget.
+2. **Relative link.** `/invite/${token}` has no origin and is unusable in an SMS. Now
+   `${env.appOrigin()}/invite/${token}`.
+3. **Silently unsent.** `lib/sms.ts` `useBird()` matched only `'bird'`, so under
+   `OTP_SENDER=bird-verify` every notification SMS fell through to the unconfigured
+   Twilio branch and returned false. Verify only ever sends a verification code, so
+   invites, payout and identity texts must still take the plain Bird send — `useBird()`
+   now matches `bird-verify` too. **This silently affected payout and identity texts as
+   well, not just invites.**
+
+- The response now returns `link` to the **inviter** always (was stub-only, which left
+  no delivery path at all once a real sender was selected) plus `smsSent`, so the UI can
+  fall back to "share this link" when delivery fails. Safe: the token is phone-bound and
+  `acceptInvitation` still requires the invitee's own verified number.
+- ⚠️ **Invite SMS depends on the plain-SMS path, which Verify does NOT cover.** It needs
+  the Bird key's own SMS send scope plus an approved `BIRD_FROM` — the gate `bird-verify`
+  was chosen to sidestep. Until that is granted, `smsSent:false` and the `link` fallback
+  is the working path. Check the key's SMS scope the way `verify:write` was found.
+- Tests: `tests/invite-sms.test.ts` (5), incl. a guard that the body is carried verbatim
+  and never reworded as a code. **167 passing**; `tsc` clean; `next build` compiles.
+
 ## Session log — 2026-09-13 (Bird Verify — managed OTP, no sender registration)
 Branch `claude/bird-verify`. Migration `0021_bird_verify.sql` — **needs applying**.
 Off unless `OTP_SENDER=bird-verify`; every other value leaves the existing flow alone.

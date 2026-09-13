@@ -4,11 +4,18 @@ import { birdSendSms } from '@/lib/bird';
 
 const MESSAGES_BASE = 'https://api.twilio.com/2010-04-01/Accounts';
 
-// Notification SMS follows the OTP provider: when OTP_SENDER=bird, notifications go
-// through Bird too (so a Twilio problem can't silently keep affecting payout/identity
+// Notification SMS follows the OTP provider: when OTP_SENDER selects Bird, notifications
+// go through Bird too (so a Twilio problem can't silently keep affecting payout/identity
 // texts). Any other value keeps the original Twilio path exactly as before.
+//
+// 'bird-verify' counts as Bird here even though its OTP codes go via the Verify API:
+// Verify only ever sends a verification code, so arbitrary notification text — payout
+// decisions, identity outcomes, box invites — must still go over the plain SMS send.
+// Without this, selecting bird-verify silently routed every notification to the
+// unconfigured Twilio path, where it returned false and vanished.
 function useBird(): boolean {
-  return env.otpSender() === 'bird';
+  const s = env.otpSender();
+  return s === 'bird' || s === 'bird-verify';
 }
 
 export function smsConfigured(): boolean {

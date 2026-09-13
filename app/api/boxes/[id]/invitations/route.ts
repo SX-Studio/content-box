@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentAccount, hasRole } from '@/lib/authz';
 import { admin } from '@/lib/supabase/admin';
 import { createInvitation } from '@/lib/invitations';
-import { getSender } from '@/lib/auth/sender';
+import { sendSms } from '@/lib/sms';
 import { env } from '@/lib/env';
 
 export const runtime = 'nodejs';
@@ -39,17 +39,29 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       targetRole: role,
       invitedBy: account.id,
     });
-    // Deliver the invite link over SMS (stub logs it in Phase 1).
-    const link = `/invite/${token}`;
-    await getSender().send(String(raw?.phone ?? ''), `Join on Content Box: ${link}`);
+    // Absolute URL: a relative path is useless in an SMS, which has no page context.
+    const link = `${env.appOrigin()}/invite/${token}`;
 
-    const payload: Record<string, unknown> = {
+    // sendSms, NOT getSender(). An OtpSender takes a CODE and wraps it in its own
+    // "Your Content Box code is …" copy, so passing an invite link through it produced
+    // a garbled message telling the invitee not to share the thing they need to open.
+    // sendSms carries arbitrary text and is fire-and-forget (false, never throws), so a
+    // delivery problem can't lose an invitation that is already stored.
+    const smsSent = await sendSms(
+      String(raw?.phone ?? ''),
+      `You have been invited to a box on Content Box: ${link}`,
+    );
+
+    return NextResponse.json({
       ok: true,
       invitation: { public_id: invitation.public_id, target_role: invitation.target_role, expires_at: invitation.expires_at },
-    };
-    // Dev convenience only: expose the link while the sender is the console stub.
-    if (env.otpSender() === 'stub') payload.dev = { token, link };
-    return NextResponse.json(payload, { status: 201 });
+      smsSent,
+      // Always returned to the INVITER so they can pass it on themselves when SMS is
+      // unavailable — previously this was stub-only, which left no delivery path at all
+      // once a real sender was selected. Safe to hand back: the token is phone-bound,
+      // and acceptInvitation still requires the invitee's own verified number.
+      link,
+    }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 400 });
   }
