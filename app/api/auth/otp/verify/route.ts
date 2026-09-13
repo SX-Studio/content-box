@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { admin } from '@/lib/supabase/admin';
 import { otpMatches } from '@/lib/auth/otp';
+import { toVerifyTarget } from '@/lib/auth/verify-mode';
+import { birdVerifyCheck } from '@/lib/bird-verify';
 import { resolveLoginIdentifier, type LoginIdentifier } from '@/lib/auth/channel';
 import { findOrCreateAccount, findOrCreateAccountByEmail } from '@/lib/accounts';
 import { setSessionCookie } from '@/lib/session-cookie';
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
   // against an email that happens to share nothing but a lookup namespace.
   const { data: challenge } = await admin()
     .from('otp_challenge')
-    .select('id, code_hash, attempts')
+    .select('id, code_hash, attempts, provider')
     .eq('phone_hash', id.hash)
     .eq('channel', id.channel)
     .is('consumed_at', null)
@@ -57,7 +59,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Too many attempts. Request a new code.' }, { status: 429 });
   }
 
-  if (!otpMatches(id.hash, code, challenge.code_hash)) {
+  // The challenge records who owns the code, so a challenge started under one provider
+  // is always checked by that same provider — flipping OTP_SENDER mid-flight can never
+  // check a Bird code against a local hash, or the reverse.
+  let matched: boolean;
+  if (challenge.provider === 'bird_verify') {
+    const checked = await birdVerifyCheck(toVerifyTarget(id), code);
+    if (!checked.ok) {
+      throw new Error(`Bird Verify check failed (${checked.status})${checked.detail ? `: ${checked.detail}` : ''}`);
+    }
+    matched = checked.success;
+  } else {
+    matched = otpMatches(id.hash, code, challenge.code_hash ?? '');
+  }
+
+  if (!matched) {
     await admin().from('otp_challenge').update({ attempts: challenge.attempts + 1 }).eq('id', challenge.id);
     return NextResponse.json({ ok: false, error: 'Incorrect code' }, { status: 400 });
   }

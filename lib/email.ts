@@ -16,12 +16,18 @@ async function resendPost(to: string, subject: string, text: string): Promise<Em
   const from = process.env.EMAIL_FROM;
   if (!apiKey || !from) return { ok: false, status: 0, detail: 'not configured' };
 
+  // People reply to a no-reply sender regardless of what the label says. When
+  // EMAIL_REPLY_TO is set those replies reach a mailbox that is read, instead of
+  // bouncing into nothing. Omitted entirely when unset, so the payload is unchanged
+  // for anyone who hasn't configured it.
+  const replyTo = (process.env.EMAIL_REPLY_TO ?? '').trim();
+
   let res: Response;
   try {
     res = await fetch(RESEND_URL, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to, subject, text }),
+      body: JSON.stringify(replyTo ? { from, to, subject, text, reply_to: replyTo } : { from, to, subject, text }),
     });
   } catch {
     return { ok: false, status: 0, detail: 'network error' };

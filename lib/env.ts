@@ -59,6 +59,16 @@ export const env = {
     const v = (process.env.OTP_DEBUG_ERRORS ?? '').trim().toLowerCase();
     return v === '1' || v === 'true' || v === 'yes';
   },
+  // Bird Verify (managed OTP). Needs only the key and region — Verify uses Bird's
+  // shared senders, so there is no BIRD_FROM to configure and no per-country sender
+  // registration to wait on. Selected with OTP_SENDER=bird-verify.
+  birdVerify: () => {
+    const apiKey = (process.env.BIRD_API_KEY ?? '').trim();
+    const region = (process.env.BIRD_REGION ?? 'eu1').trim();
+    if (!apiKey) return null;
+    if (region !== 'eu1' && region !== 'us1') return null;
+    return { apiKey, region: region as 'eu1' | 'us1' };
+  },
   // WebAuthn (admin fingerprint). RP ID must be the registrable domain; origin the
   // full https origin. Local dev falls back to localhost.
   rpId: () => process.env.RP_ID ?? 'localhost',

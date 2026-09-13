@@ -147,3 +147,40 @@ describe('sendEmailOtp surfaces the reason', () => {
     delete process.env.OTP_SENDER;
   });
 });
+
+describe('EMAIL_REPLY_TO', () => {
+  beforeEach(() => { vi.resetModules(); clear(); delete process.env.EMAIL_REPLY_TO; });
+  afterEach(() => { vi.restoreAllMocks(); clear(); delete process.env.EMAIL_REPLY_TO; });
+
+  it('omits reply_to entirely when unset (payload unchanged)', async () => {
+    process.env.RESEND_API_KEY = 're_test';
+    process.env.EMAIL_FROM = 'x@y.com';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }));
+    const { sendEmail } = await import('@/lib/email');
+    await sendEmail('a@b.com', 's', 'b');
+    const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).not.toHaveProperty('reply_to');
+  });
+
+  it('sends reply_to when set, so replies to a no-reply sender are not lost', async () => {
+    process.env.RESEND_API_KEY = 're_test';
+    process.env.EMAIL_FROM = 'Content Box <no-reply@secretxperience.eu>';
+    process.env.EMAIL_REPLY_TO = 'support@secretxperience.eu';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }));
+    const { sendEmail } = await import('@/lib/email');
+    await sendEmail('a@b.com', 's', 'b');
+    const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body)).reply_to).toBe('support@secretxperience.eu');
+  });
+
+  it('ignores a whitespace-only value rather than sending an empty reply_to', async () => {
+    process.env.RESEND_API_KEY = 're_test';
+    process.env.EMAIL_FROM = 'x@y.com';
+    process.env.EMAIL_REPLY_TO = '   ';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }));
+    const { sendEmail } = await import('@/lib/email');
+    await sendEmail('a@b.com', 's', 'b');
+    const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).not.toHaveProperty('reply_to');
+  });
+});
