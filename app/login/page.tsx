@@ -78,13 +78,18 @@ export default function LoginPage() {
         body: JSON.stringify(identifier),
       });
       const j = await readJson(r);
-      if (!r.ok) throw new Error(j.error || `Could not send code (HTTP ${r.status})`);
+      // `detail` only appears when the server has OTP_DEBUG_ERRORS on; show it so a
+      // misconfigured sender is visible here instead of only in the server logs.
+      if (!r.ok) {
+        const detail = typeof j.detail === 'string' ? j.detail : '';
+        throw new Error([j.error || `Could not send code (HTTP ${r.status})`, detail].filter(Boolean).join(' — '));
+      }
       setStep('code');
       setMsg({
         kind: 'ok',
         text: channel === 'email'
           ? 'Code sent. Check your inbox (and your spam folder).'
-          : 'Code sent. In this preview it is printed in the server console.',
+          : 'Code sent. Check your messages.',
       });
     } catch (err) {
       setMsg({ kind: 'err', text: (err as Error).message });

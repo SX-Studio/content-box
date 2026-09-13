@@ -102,6 +102,14 @@ Redeploy — env changes do not apply to existing deployments. Setting `OTP_SEND
 
 ## Step 5 — Reading a failure
 
+**Fastest route: set `OTP_DEBUG_ERRORS=1`** in Vercel and redeploy. The login page then
+shows Bird's own reason next to the friendly message — `Bird send failed (400): ...` —
+instead of only the generic *"Server not configured to send codes."* Turn it back off
+once the sender works. It never exposes a key, a phone number or a code.
+
+Otherwise, read the log.
+
+
 The `[otp/start] unexpected error: Bird send failed (NNN): <code> <message>` line is
 authoritative. As a first orientation by HTTP status:
 

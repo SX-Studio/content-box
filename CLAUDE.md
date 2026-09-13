@@ -156,6 +156,34 @@ applying**. OTP is unchanged and remains the recovery path.
   guess across many accounts is not slowed by it — that needs per-IP throttling with
   the other rate limits rather than bolted onto this route.
 
+## Session log — 2026-09-13 (OTP failures made diagnosable)
+Branch `claude/otp-debug-errors`. No migration.
+
+- **Why:** two separate debugging rounds were lost to the same blind spot. A failed OTP
+  send throws, the outer catch in `/api/auth/otp/start` logs the real cause but returns
+  only *"Server not configured to send codes."*, and the Vercel runtime logs were not
+  reachable in the moment. The provider's reason existed and was simply unreachable.
+- **`OTP_DEBUG_ERRORS`** (new, `env.otpDebugErrors()`, OFF by default): when set, the
+  500 response carries `detail` with the thrown message — `Bird send failed (400): …`,
+  `Email send failed (403): validation_error …` — and `app/login/page.tsx` appends it
+  to the on-screen error. Senders are written to keep the phone number, the address and
+  the code out of their messages, so this exposes provider/config state only; it is
+  still behind an explicit switch rather than on for everyone. Turn on, fix, turn off.
+- **Fixed stale UI copy:** the SMS success message still said *"In this preview it is
+  printed in the server console"* — untrue since Bird went live, and actively
+  misleading during exactly this debugging. Now *"Code sent. Check your messages."*
+- Tests: `tests/otp-debug.test.ts` (11). **110 passing**; `tsc --noEmit` clean.
+
+### Bird status (2026-09-13) — still not sending
+Account funded, but a live send still fails. Ruled out: not the rate limit (that is a
+429 with different text) and not missing env vars (a real POST to Bird fires — three
+external calls in the invocation trace). Leading hypothesis: **funding and sender
+approval are separate gates.** bird.com/pricing/sms states *"Production unlocks once
+you verify a sender"*, and alphanumeric sender IDs need per-country pre-registration in
+several EU markets including Belgium. A Bird-owned E.164 number as `BIRD_FROM` sidesteps
+that registration entirely and is the faster route to a first successful send.
+⚠️ Unconfirmed — needs the `Bird send failed (NNN)` line (or `OTP_DEBUG_ERRORS=1`).
+
 ## Session log — 2026-09-12 (Resend wired up for email sign-in)
 Branch `claude/resend-email-otp`. Config-only to switch on; **no migration**, no schema
 change. Email sign-in shipped in #9 but had never been given credentials.
