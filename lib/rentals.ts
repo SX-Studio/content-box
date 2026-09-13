@@ -37,7 +37,7 @@ export async function rentContent(userId: string, contentPublicId: string, idemp
 
 // Authoritative access check → short-lived signed URL for the master. No active,
 // unexpired rental means no URL.
-export async function viewContent(userId: string, contentPublicId: string): Promise<string | null> {
+export async function viewContent(userId: string, contentPublicId: string): Promise<string[] | null> {
   const { data: content } = await admin().from('content').select('id, status, creator_id').eq('public_id', contentPublicId).maybeSingle();
   if (!content) return null;
   const c = content as { id: string; status: string; creator_id: string };
@@ -59,17 +59,22 @@ export async function viewContent(userId: string, contentPublicId: string): Prom
     if (!rental) return null;
   }
 
-  const { data: asset } = await admin()
+  // Every asset, in order — a content item can carry several photos, and a renter who
+  // paid for the item is entitled to all of them, not just the cover.
+  const { data: assets } = await admin()
     .from('content_asset')
-    .select('storage_path')
+    .select('storage_path, kind, position')
     .eq('content_id', contentId)
-    .order('position', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (!asset) return null;
+    .order('position', { ascending: true });
+  const rows = (assets as { storage_path: string; kind: string; position: number }[] | null) ?? [];
+  if (rows.length === 0) return null;
 
-  const { data: signed } = await admin().storage.from('master').createSignedUrl((asset as { storage_path: string }).storage_path, 120);
-  return signed?.signedUrl ?? null;
+  const urls: string[] = [];
+  for (const a of rows) {
+    const { data: signed } = await admin().storage.from('master').createSignedUrl(a.storage_path, 120);
+    if (signed?.signedUrl) urls.push(signed.signedUrl);
+  }
+  return urls.length > 0 ? urls : null;
 }
 
 export async function listMyRentals(userId: string): Promise<MyRental[]> {

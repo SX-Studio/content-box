@@ -11,7 +11,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const account = await currentAccount();
   if (!account) return NextResponse.json({ ok: false, error: 'Not authenticated' }, { status: 401 });
 
-  const url = await viewContent(account.id, params.id);
-  if (!url) return NextResponse.json({ ok: false, error: 'No active rental for this content' }, { status: 403 });
-  return NextResponse.json({ ok: true, url });
+  const urls = await viewContent(account.id, params.id);
+  if (!urls) return NextResponse.json({ ok: false, error: 'No active rental for this content' }, { status: 403 });
+  // `url` stays in the response as the first asset so existing callers keep working;
+  // `urls` carries every photo for multi-photo items.
+  return NextResponse.json({ ok: true, url: urls[0], urls });
 }

@@ -30,6 +30,16 @@ export async function objectExists(bucket: 'master', path: string): Promise<bool
   return (await signedUrl(bucket, path, 30)) !== null;
 }
 
+// Read a private object back on the server. Needed because images now upload
+// straight from the browser to storage (bypassing the ~4.5MB serverless body limit),
+// so the bytes are in the bucket rather than in the request — but we still have to
+// screen them and derive the blurred preview + thumbnail here.
+export async function downloadObject(bucket: 'master' | 'identity', path: string): Promise<Buffer | null> {
+  const { data, error } = await admin().storage.from(bucket).download(path);
+  if (error || !data) return null;
+  return Buffer.from(await data.arrayBuffer());
+}
+
 export function publicUrl(bucket: 'preview', path: string): string {
   return `${env.supabaseUrl()}/storage/v1/object/public/${bucket}/${path}`;
 }
