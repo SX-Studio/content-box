@@ -119,6 +119,43 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-13 (Bird Verify — managed OTP, no sender registration)
+Branch `claude/bird-verify`. Migration `0021_bird_verify.sql` — **needs applying**.
+Off unless `OTP_SENDER=bird-verify`; every other value leaves the existing flow alone.
+
+- **Why:** live SMS sends kept failing after the account was funded. Bird's docs give
+  three gates beyond funding — sender **claimed**, sender **registered per country**,
+  and **destination enabled** (*"a fully approved registration still refuses messages
+  while the destination is off"*). Verify sidesteps the sender gates: per Bird, its
+  **shared senders** *"require no sender registration or template setup."*
+- **Different API from `lib/bird.ts`.** Verified at
+  bird.com/docs/guides/verify/sending-verifications — `POST /v1/verify/verifications`
+  with `{to:{phone_number}}` or `{to:{email}}` → `{id:'vrf_…', status}`, and
+  `POST /v1/verify/verifications/check` with `{to, code}` →
+  `{success, reason, attempts_remaining}`. Statuses: pending → verified|failed|expired.
+- **`lib/bird-verify.ts`** (new) — one `post()` for auth + error parsing, mirroring
+  `lib/bird.ts`. Never logs the recipient or the code. A wrong code is a **200 with
+  `success:false`**, not an error — conflating them would turn a mistyped digit into a
+  500, and there's a test for it.
+- **`lib/auth/verify-mode.ts`** — `birdVerifyMode(channel)`. ⚠️ **SMS only on purpose**:
+  email stays on Resend, which already sends from our own verified domain, whereas
+  Bird's shared sender would rebrand it. Falls back off when the key is missing rather
+  than half-enabling.
+- **Migration 0021** adds `otp_challenge.provider` ('local'|'bird_verify') +
+  `provider_ref` (Bird's `vrf_…`), and makes `code_hash` nullable — guarded by a CHECK
+  that a `local` challenge must still have one. The challenge row is still written in
+  verify mode (without a hash) so **rate limiting, the attempt cap and the audit trail
+  are unchanged**. The verify route dispatches on the row's `provider`, so flipping
+  `OTP_SENDER` mid-flight can never check a Bird code against a local hash.
+- ⚠️ **Trade-off to accept before switching:** on a shared sender the code arrives
+  branded **Authifly**, not Content Box.
+- ⚠️ **Still unproven:** we never obtained the actual `Bird send failed (NNN)` line, so
+  it remains a hypothesis that sender registration was the blocker. Bird's docs also
+  say production unlocks *"when you add a payment method and verify a sender"*, which
+  sits in tension with the no-registration claim. First live send settles it.
+- Tests: `tests/bird-verify.test.ts` (13). **142 passing**; `tsc` clean; `next build`
+  compiles.
+
 ## Session log — 2026-09-13 (optional password sign-in)
 Branch `claude/password-login`. Migration `0020_password_login.sql` — **additive, needs
 applying**. OTP is unchanged and remains the recovery path.

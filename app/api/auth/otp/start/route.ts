@@ -5,6 +5,8 @@ import { getSender } from '@/lib/auth/sender';
 import { resolveLoginIdentifier, type LoginIdentifier } from '@/lib/auth/channel';
 import { sendEmailOtp, emailLoginAvailable, EmailLoginUnavailable } from '@/lib/auth/otp-email';
 import { tooManyOtpRequests } from '@/lib/ratelimit';
+import { birdVerifyMode, toVerifyTarget } from '@/lib/auth/verify-mode';
+import { birdVerifyStart } from '@/lib/bird-verify';
 import { writeAudit } from '@/lib/audit';
 import { env } from '@/lib/env';
 
@@ -40,26 +42,50 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Too many codes requested. Please wait and try again.' }, { status: 429 });
   }
 
-  const code = generateOtp();
-  const { error } = await admin().from('otp_challenge').insert({
-    phone_hash: id.hash,
-    channel: id.channel,
-    code_hash: hashOtp(id.hash, code),
-    expires_at: new Date(Date.now() + env.otpTtlSeconds() * 1000).toISOString(),
-    request_ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
-  });
-  if (error) {
-    return NextResponse.json({ ok: false, error: 'Could not start verification' }, { status: 500 });
-  }
+  const requestIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
 
-  try {
-    if (id.channel === 'email') await sendEmailOtp(id.identifier, code);
-    else await getSender().send(id.identifier, code);
-  } catch (e) {
-    if (e instanceof EmailLoginUnavailable) {
-      return NextResponse.json({ ok: false, error: e.message }, { status: 503 });
+  if (birdVerifyMode(id.channel)) {
+    // Bird generates, delivers and stores the code. We ask it to start, then record a
+    // challenge row WITHOUT a code_hash purely so rate limiting, the attempt cap and
+    // the audit trail behave exactly as they do on the local path.
+    const started = await birdVerifyStart(toVerifyTarget(id));
+    if (!started.ok) {
+      throw new Error(`Bird Verify start failed (${started.status})${started.detail ? `: ${started.detail}` : ''}`);
     }
-    throw e;
+    const { error: vErr } = await admin().from('otp_challenge').insert({
+      phone_hash: id.hash,
+      channel: id.channel,
+      provider: 'bird_verify',
+      provider_ref: started.id,
+      expires_at: new Date(Date.now() + env.otpTtlSeconds() * 1000).toISOString(),
+      request_ip: requestIp,
+    });
+    if (vErr) {
+      return NextResponse.json({ ok: false, error: 'Could not start verification' }, { status: 500 });
+    }
+  } else {
+    const code = generateOtp();
+    const { error } = await admin().from('otp_challenge').insert({
+      phone_hash: id.hash,
+      channel: id.channel,
+      provider: 'local',
+      code_hash: hashOtp(id.hash, code),
+      expires_at: new Date(Date.now() + env.otpTtlSeconds() * 1000).toISOString(),
+      request_ip: requestIp,
+    });
+    if (error) {
+      return NextResponse.json({ ok: false, error: 'Could not start verification' }, { status: 500 });
+    }
+
+    try {
+      if (id.channel === 'email') await sendEmailOtp(id.identifier, code);
+      else await getSender().send(id.identifier, code);
+    } catch (e) {
+      if (e instanceof EmailLoginUnavailable) {
+        return NextResponse.json({ ok: false, error: e.message }, { status: 503 });
+      }
+      throw e;
+    }
   }
 
   await writeAudit({

@@ -36,6 +36,28 @@ and how to read a failed send. Bird is the preferred provider; Twilio is kept as
   `[otp/start] unexpected error: …`. **Read that log line first** — it names the fix.
   Neither the phone number nor the message text is ever logged.
 
+## Shortcut: `OTP_SENDER=bird-verify` (no sender registration)
+
+If sender-ID registration is the blocker, skip Steps 2–3 entirely. Setting
+`OTP_SENDER=bird-verify` routes **SMS codes** through Bird's managed **Verify** product
+instead of sending the message ourselves:
+
+```
+POST https://{eu1|us1}.platform.bird.com/v1/verify/verifications      { "to": { "phone_number": "+32…" } }
+POST https://{eu1|us1}.platform.bird.com/v1/verify/verifications/check { "to": {…}, "code": "123456" }
+```
+
+Bird generates, delivers and checks the code; we keep only a challenge row (no
+`code_hash`) so rate limiting, the attempt cap and the audit trail are unchanged.
+It uses Bird's **shared senders**, which per Bird's docs *"require no sender
+registration or template setup"*. Needs only `BIRD_API_KEY` + `BIRD_REGION` —
+`BIRD_FROM` is ignored.
+
+⚠️ **Trade-off:** on a shared sender the code arrives branded **Authifly**, not Content
+Box. Email codes are unaffected and stay on Resend.
+
+Requires migration `0021_bird_verify.sql`.
+
 ## Step 1 — API key + region
 
 1. In the Bird dashboard, create an **API key**.
