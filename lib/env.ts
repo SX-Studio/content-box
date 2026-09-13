@@ -50,6 +50,15 @@ export const env = {
     if (region !== 'eu1' && region !== 'us1') return null;
     return { apiKey, from, region, templateSlug, templateLanguage };
   },
+  // Opt-in diagnostics for OTP sends. OFF by default. When on, /api/auth/otp/start
+  // returns the provider's own failure reason to the caller alongside the friendly
+  // message, so a misconfigured sender can be diagnosed without log access. It names
+  // the provider and its config state (never a key, a phone number or a code), so it
+  // stays behind an explicit switch rather than being on for everyone.
+  otpDebugErrors: () => {
+    const v = (process.env.OTP_DEBUG_ERRORS ?? '').trim().toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes';
+  },
   // WebAuthn (admin fingerprint). RP ID must be the registrable domain; origin the
   // full https origin. Local dev falls back to localhost.
   rpId: () => process.env.RP_ID ?? 'localhost',

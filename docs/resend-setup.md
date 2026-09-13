@@ -83,6 +83,10 @@ logins could be — a 429 `daily_quota_exceeded` in the log line means you found
 
 ## Step 5 — Reading a failure
 
+Same shortcut as SMS: **`OTP_DEBUG_ERRORS=1`** in Vercel surfaces Resend's own
+`name message` in the browser instead of the generic 500 text. Off by default.
+
+
 The `[otp/start] unexpected error: Email send failed (NNN): <name> <message>` line is
 authoritative. Common ones:
 

@@ -73,6 +73,14 @@ export async function POST(req: NextRequest) {
   // Supabase service-role key) would otherwise return a bodyless 500, which the
   // client can't parse. Log the real cause; return parseable JSON.
   console.error('[otp/start] unexpected error:', e);
-  return NextResponse.json({ ok: false, error: 'Server not configured to send codes. Please try again later.' }, { status: 500 });
+  const body: { ok: false; error: string; detail?: string } = {
+    ok: false,
+    error: 'Server not configured to send codes. Please try again later.',
+  };
+  // With OTP_DEBUG_ERRORS set, hand the caller the provider's own reason too — e.g.
+  // `Bird send failed (400): ...` — which names the fix. Senders are written to keep
+  // the phone number, the address and the code out of their messages.
+  if (env.otpDebugErrors() && e instanceof Error) body.detail = e.message;
+  return NextResponse.json(body, { status: 500 });
  }
 }
