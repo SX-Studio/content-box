@@ -65,6 +65,16 @@ verbatim as `from`.
 Until the domain verifies, sending from it fails with
 `403 validation_error: The content24market.space domain is not verified.`
 
+## Reply-to
+
+`EMAIL_FROM` is the identity recipients see; `EMAIL_REPLY_TO` is where their replies
+go. Set both when sending from a no-reply address — people reply to those anyway, and
+without it the reply bounces into nothing. Unset means no `reply_to` is sent at all.
+
+Note the sender domain must be **verified in Resend**, and verification is per domain:
+sending from `@secretxperience.eu` needs that domain verified, independently of
+`content24market.space`.
+
 ## Step 3 — Set env vars in Vercel (Production), then redeploy
 
 ```
