@@ -119,6 +119,43 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-13 (optional password sign-in)
+Branch `claude/password-login`. Migration `0020_password_login.sql` — **additive, needs
+applying**. OTP is unchanged and remains the recovery path.
+
+- **Why:** a returning user shouldn't wait for an SMS, and at ~$0.09 per Belgian SMS
+  every repeat login is a real charge. Note the session cookie is already 30 days, so
+  this mostly pays off on a new device or after clearing cookies — not every visit.
+- **`lib/password.ts`** — scrypt from Node's stdlib (no bcrypt/argon2 dependency; same
+  reasoning that kept the SMS/email transports on plain fetch). N=2^14, r=8, 16-byte
+  salt, 64-byte key; stored as self-describing `scrypt$N$r$p$salt$hash` so the cost can
+  be raised later **without invalidating existing passwords**. Constant-time compare;
+  every malformed stored value returns false rather than throwing. Policy is
+  length-led (min 10, max 200, must not be repetitive), not a character-class checklist.
+- **`lib/fresh-auth.ts` + `lib/fresh-auth-cookie.ts`** (new) — a 15-minute proof that
+  the account authenticated *from scratch*, minted on a successful OTP verify.
+  ⚠️ **Deliberately NOT `lib/stepup.ts`.** That cookie is the admin fingerprint proof
+  and `requireAdminStepUp()` gates the admin backend on it — minting it on an OTP
+  sign-in would have let an operator into the admin area by SMS, skipping their
+  fingerprint. Separate namespace (`freshauth:`), separate cookie, with tests asserting
+  no token from one family verifies as another.
+- **Setting a password requires fresh auth OR the current password** — never the
+  30-day session alone, so a stolen cookie can't mint a permanent credential.
+  Password *login* deliberately does NOT mint fresh-auth: a stored credential is not
+  proof of live control of the number.
+- **`lib/password-auth.ts`** — lockout after 8 failures for 15 min, reset on success.
+  Uniform `invalid` for "no account" / "no password set" / "wrong password", **with
+  dummy scrypt work on the missing-account path**, so the login form can't be used to
+  discover which numbers are registered.
+- Routes `POST|GET /api/auth/password/set`, `POST /api/auth/password/login`. UI:
+  `/account/password` (set / change / remove) linked from `/app`; `/login` gained an
+  "I have a password" mode that keeps the code path one click away.
+- Tests: `tests/password.test.ts` (19) + `tests/fresh-auth.test.ts` (11). **129
+  passing**; `tsc --noEmit` clean.
+- **Known gap (not fixed here):** the lockout is per account. An attacker spraying one
+  guess across many accounts is not slowed by it — that needs per-IP throttling with
+  the other rate limits rather than bolted onto this route.
+
 ## Session log — 2026-09-12 (Resend wired up for email sign-in)
 Branch `claude/resend-email-otp`. Config-only to switch on; **no migration**, no schema
 change. Email sign-in shipped in #9 but had never been given credentials.
@@ -291,7 +328,9 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - Don't break existing functionality without explicit permission.
 
 ## Useful files
-- `supabase/migrations/` — schema + RLS (`0001`–`0019`, all applied live; `0019` = email login)
+- `supabase/migrations/` — schema + RLS (`0001`–`0019` applied live; `0020` = password login, **pending apply**)
+- `lib/password.ts` / `lib/password-auth.ts` — scrypt hashing + lockout for optional password sign-in
+- `lib/fresh-auth.ts` — 15-min proof of a from-scratch sign-in; NOT the admin step-up cookie
 - `lib/supabase/{admin,server,client}.ts` — service-role / SSR / browser clients
 - `lib/crypto.ts` — phone + login-email encrypt/decrypt, domain-separated HMACs, E.164 / email normalise
 - `lib/auth/channel.ts` — `resolveLoginIdentifier`: phone-xor-email channel resolution for the OTP routes

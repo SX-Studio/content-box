@@ -72,6 +72,7 @@ export default function Dashboard() {
         <div className="row">
           <a href="/discover"><button className="ghost sm">✦ Discover</button></a>
           <a href="/rentals"><button className="ghost sm">My rentals</button></a>
+          <a href="/account/password"><button className="ghost sm">🔑 Password</button></a>
           {(isOperator || me?.roles.some((r) => r.role === 'moderator')) && (
             <a href="/moderation"><button className="ghost sm">🛡 Moderation</button></a>
           )}

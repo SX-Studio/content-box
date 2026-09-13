@@ -4,6 +4,7 @@ import { otpMatches } from '@/lib/auth/otp';
 import { resolveLoginIdentifier, type LoginIdentifier } from '@/lib/auth/channel';
 import { findOrCreateAccount, findOrCreateAccountByEmail } from '@/lib/accounts';
 import { setSessionCookie } from '@/lib/session-cookie';
+import { setFreshAuthCookie } from '@/lib/fresh-auth-cookie';
 import { writeAudit } from '@/lib/audit';
 import { env } from '@/lib/env';
 
@@ -67,6 +68,10 @@ export async function POST(req: NextRequest) {
     ? await findOrCreateAccountByEmail(id.identifier)
     : await findOrCreateAccount(id.identifier);
   await setSessionCookie(account.id);
+  // A successful code is the only proof of fresh, from-scratch authentication we get.
+  // Setting or changing a password requires it, so a stolen 30-day session cookie
+  // alone can't mint a permanent credential for someone else's account.
+  await setFreshAuthCookie(account.id);
   await writeAudit({
     actorId: account.id,
     action: isNew ? 'account.registered' : 'account.login',
@@ -75,7 +80,7 @@ export async function POST(req: NextRequest) {
     metadata: { channel: id.channel },
   });
 
-  return NextResponse.json({ ok: true, account: { public_id: account.public_id }, isNew });
+  return NextResponse.json({ ok: true, account: { public_id: account.public_id }, isNew, canSetPassword: true });
  } catch (e) {
   // Never let an unexpected throw (missing env var, DB/session failure) return a
   // bodyless 500 the client can't parse. Log the real cause; return JSON.

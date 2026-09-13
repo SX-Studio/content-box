@@ -25,6 +25,9 @@ export default function LoginPage() {
   }, []);
 
   const [channel, setChannel] = useState<Channel>('sms');
+  // 'code' = the OTP round trip; 'password' = straight in with a stored password.
+  const [mode, setMode] = useState<'code' | 'password'>('code');
+  const [password, setPassword] = useState('');
   const [step, setStep] = useState<'identify' | 'code'>('identify');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -41,6 +44,27 @@ export default function LoginPage() {
     setChannel(c);
     setMsg(null);
     setCode('');
+    setPassword('');
+  }
+
+  async function signInWithPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await fetch('/api/auth/password/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...identifier, password }),
+      });
+      const j = await readJson(r);
+      if (!r.ok) throw new Error(j.error || `Could not sign in (HTTP ${r.status})`);
+      router.push(next);
+    } catch (err) {
+      setMsg({ kind: 'err', text: (err as Error).message });
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function start(e: React.FormEvent) {
@@ -94,13 +118,15 @@ export default function LoginPage() {
       <p className="eyebrow">Content Box</p>
       <h1>Sign in</h1>
       <p className="muted">
-        {channel === 'email'
-          ? 'We’ll email you a 6-digit code. Your address stays private — other members never see it.'
-          : 'We’ll text you a 6-digit code to verify your number.'}
+        {mode === 'password'
+          ? 'Sign in with the password you set. Forgotten it? Use a code instead — that always works.'
+          : channel === 'email'
+            ? 'We’ll email you a 6-digit code. Your address stays private — other members never see it.'
+            : 'We’ll text you a 6-digit code to verify your number.'}
       </p>
 
       {step === 'identify' ? (
-        <form onSubmit={start} className="card">
+        <form onSubmit={mode === 'password' ? signInWithPassword : start} className="card">
           <div className="row" style={{ gap: 8, marginBottom: 12 }} role="tablist" aria-label="Sign-in method">
             <button type="button" role="tab" aria-selected={channel === 'sms'} className={channel === 'sms' ? '' : 'ghost'} onClick={() => switchChannel('sms')}>Phone</button>
             <button type="button" role="tab" aria-selected={channel === 'email'} className={channel === 'email' ? '' : 'ghost'} onClick={() => switchChannel('email')}>Email</button>
@@ -118,9 +144,35 @@ export default function LoginPage() {
             </>
           )}
 
+          {mode === 'password' && (
+            <>
+              <label htmlFor="pw">Password</label>
+              <input
+                id="pw" type="password" value={password} autoComplete="current-password"
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </>
+          )}
+
           <div className="row" style={{ marginTop: 16 }}>
-            <button disabled={busy || !canStart}>{busy ? 'Sending…' : 'Send code'}</button>
+            {mode === 'password' ? (
+              <button disabled={busy || !canStart || !password}>{busy ? 'Signing in…' : 'Sign in'}</button>
+            ) : (
+              <button disabled={busy || !canStart}>{busy ? 'Sending…' : 'Send code'}</button>
+            )}
           </div>
+
+          <p className="dim" style={{ marginTop: 12 }}>
+            {mode === 'password' ? (
+              <a onClick={() => { setMode('code'); setMsg(null); setPassword(''); }} style={{ cursor: 'pointer' }}>
+                Sign in with a code instead
+              </a>
+            ) : (
+              <a onClick={() => { setMode('password'); setMsg(null); }} style={{ cursor: 'pointer' }}>
+                I have a password
+              </a>
+            )}
+          </p>
         </form>
       ) : (
         <form onSubmit={verify} className="card">
