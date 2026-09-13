@@ -58,6 +58,22 @@ Box. Email codes are unaffected and stay on Resend.
 
 Requires migration `0021_bird_verify.sql`.
 
+## Step 0 — API key SCOPES (check this first)
+
+A Bird key carries scopes, and a key without the right one fails with a 403 even when
+the account is funded and the sender is fine. This cost a full debugging session once:
+
+```
+Bird Verify start failed (403): E02035 This request requires the "verify:write"
+scope, which your credential has not been granted.
+```
+
+- `OTP_SENDER=bird-verify` needs **`verify:write`**.
+- `OTP_SENDER=bird` (plain send) needs the equivalent SMS send scope.
+
+Grant both and either mode works. **Check scopes before investigating funding, sender
+registration or destinations** — a scope 403 looks identical to those from the outside.
+
 ## Step 1 — API key + region
 
 1. In the Bird dashboard, create an **API key**.

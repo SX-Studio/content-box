@@ -149,10 +149,19 @@ Off unless `OTP_SENDER=bird-verify`; every other value leaves the existing flow 
   `OTP_SENDER` mid-flight can never check a Bird code against a local hash.
 - ⚠️ **Trade-off to accept before switching:** on a shared sender the code arrives
   branded **Authifly**, not Content Box.
-- ⚠️ **Still unproven:** we never obtained the actual `Bird send failed (NNN)` line, so
-  it remains a hypothesis that sender registration was the blocker. Bird's docs also
-  say production unlocks *"when you add a payment method and verify a sender"*, which
-  sits in tension with the no-registration claim. First live send settles it.
+- ✅ **RESOLVED 2026-09-13 — root cause was an API-key SCOPE, nothing else.** With
+  `OTP_SENDER=bird-verify` + `OTP_DEBUG_ERRORS=1`, a live probe returned the real
+  reason at last: `Bird Verify start failed (403): E02035 This request requires the
+  "verify:write" scope, which your credential has not been granted.` After granting
+  `verify:write` on the Bird key, the same probe returned `{"ok":true,
+  ttlSeconds:300, channel:"sms"}` (HTTP 200).
+  **Every earlier hypothesis was wrong** — not account funding, not alphanumeric
+  sender-ID registration, not `destination_enabled`, not a missing `Idempotency-Key`.
+  A 403 on scope also proves the request shape was right the whole time. If plain SMS
+  (`OTP_SENDER=bird`) is ever needed again, check its own scope (e.g. `sms:write`)
+  FIRST — the original silent failure was most likely the same class of problem.
+  **Lesson: get the provider's own error before theorising. Two rounds were lost to
+  hypotheses that all sounded plausible and were all false.**
 - Tests: `tests/bird-verify.test.ts` (13). **142 passing**; `tsc` clean; `next build`
   compiles.
 
