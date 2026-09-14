@@ -26,11 +26,11 @@ export type NewInvitation = { id: string; public_id: string; target_role: string
 export async function createInvitation(opts: {
   boxId: string;
   targetPhone: string;
-  targetRole: 'creator' | 'user';
+  targetRole: 'box_admin' | 'creator' | 'user';
   invitedBy: string;
 }): Promise<{ invitation: NewInvitation; token: string }> {
-  if (opts.targetRole !== 'creator' && opts.targetRole !== 'user') {
-    throw new Error('Role must be creator or user');
+  if (!['box_admin', 'creator', 'user'].includes(opts.targetRole)) {
+    throw new Error('Role must be box_admin, creator or user');
   }
   const e164 = toE164(opts.targetPhone);
   const ttlHours = Number(await getConfig<number>('invitation_ttl_hours')) || 72;

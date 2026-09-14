@@ -14,12 +14,17 @@ export async function GET() {
   return NextResponse.json({ ok: true, boxes });
 }
 
-// Create a box — platform operators only.
+// Create a box — platform operators and creators. createBox makes whoever creates it
+// the box's first box_admin, so a creator who starts a box owns it: they can invite
+// into it and run it without an operator having to set it up for them.
 export async function POST(req: NextRequest) {
   const account = await currentAccount();
   if (!account) return NextResponse.json({ ok: false, error: 'Not authenticated' }, { status: 401 });
-  if (!(await hasRole(account.id, 'platform_operator'))) {
-    return NextResponse.json({ ok: false, error: 'Only platform operators can create boxes' }, { status: 403 });
+  // 'creator' is granted per box, so this asks whether they are a creator ANYWHERE —
+  // i.e. an onboarded creator on the platform, not a stranger.
+  const canCreate = (await hasRole(account.id, 'platform_operator')) || (await hasRole(account.id, 'creator'));
+  if (!canCreate) {
+    return NextResponse.json({ ok: false, error: 'Only creators and platform operators can create boxes' }, { status: 403 });
   }
 
   let body: unknown;

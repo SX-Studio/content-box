@@ -119,6 +119,30 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-14 (box admins: grantable + creator-owned boxes)
+Branch `claude/box-admin-roles`. Migration `0022_invite_box_admin.sql` — **needs
+applying**; strictly widens a CHECK, so no existing row can violate it.
+
+- **Admins can now promote a number to box admin.** Only the invitation CHECK was
+  narrow (`creator`/`user`): `box_membership.role` and `account_role.role` already
+  permitted `box_admin` — `createBox` has always written it for a box's first admin —
+  and `acceptInvitation` upserts `target_role` generically into both. So widening the
+  constraint plus the role guard was the entire change; the accept path is untouched.
+  ⚠️ **Appointing a box admin is PLATFORM-OPERATOR ONLY.** A box admin invites creators
+  and users into their own box but cannot appoint another admin — otherwise one
+  careless admin multiplies into several and operators lose control of who runs a box.
+  Enforced server-side in the invitations route; the UI simply hides the option from
+  non-operators. `platform_operator` and `moderator` remain ungrantable through a box
+  invite at all. Both rules pinned by tests.
+- **Creators can create boxes and own what they create.** `POST /api/boxes` was
+  operator-only; it now also accepts a creator. No change was needed to make them the
+  admin — `createBox` already writes `box_admin` membership + role for whoever creates
+  it. Note `hasRole(id, 'creator')` with no boxId asks "a creator anywhere", i.e. an
+  onboarded creator rather than any signed-in stranger.
+- Dashboard shows the Create Box form to creators as well as operators; the invite
+  form gained a "box admin" role option.
+- Tests: `tests/box-roles.test.ts` (7). `tsc` clean; `next build` compiles.
+
 ## Session log — 2026-09-13 (Bird Verify — managed OTP, no sender registration)
 Branch `claude/bird-verify`. Migration `0021_bird_verify.sql` — **needs applying**.
 Off unless `OTP_SENDER=bird-verify`; every other value leaves the existing flow alone.

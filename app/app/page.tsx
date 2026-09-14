@@ -88,11 +88,11 @@ export default function Dashboard() {
 
       <AccountSettings initialEmail={me?.account.email ?? null} />
 
-      {isOperator && <CreateBox onCreated={loadBoxes} />}
+      {(isOperator || isCreator) && <CreateBox onCreated={loadBoxes} />}
 
       <h2 style={{ marginTop: 26 }}>Your boxes</h2>
       {boxes.length === 0 ? (
-        <div className="card"><p className="dim" style={{ margin: 0 }}>No boxes yet.{isOperator ? ' Create one above.' : ' You’ll see a box here once you’re invited to one.'}</p></div>
+        <div className="card"><p className="dim" style={{ margin: 0 }}>No boxes yet.{isOperator || isCreator ? ' Create one above.' : ' You’ll see a box here once you’re invited to one.'}</p></div>
       ) : (
         boxes.map((b) => (
           <div className="card" key={b.public_id}>
@@ -106,7 +106,7 @@ export default function Dashboard() {
                 <a href={`/box/${b.public_id}`}><button className="ghost sm">Open feed →</button></a>
               </div>
             </div>
-            {canAdmin(b) && <Invite boxId={b.public_id} />}
+            {canAdmin(b) && <Invite boxId={b.public_id} canMakeAdmin={isOperator} />}
           </div>
         ))
       )}
@@ -531,7 +531,9 @@ function CreateBox({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-function Invite({ boxId }: { boxId: string }) {
+// canMakeAdmin mirrors the server rule: only a platform operator may appoint a box
+// admin, so a box admin never sees the option. The server enforces it regardless.
+function Invite({ boxId, canMakeAdmin }: { boxId: string; canMakeAdmin: boolean }) {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState('creator');
   const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
@@ -571,6 +573,7 @@ function Invite({ boxId }: { boxId: string }) {
             <select id={`r-${boxId}`} value={role} onChange={(e) => setRole(e.target.value)}>
               <option value="creator">creator</option>
               <option value="user">user</option>
+              {canMakeAdmin && <option value="box_admin">box admin</option>}
             </select>
           </div>
           <button className="sm" disabled={busy || !phone}>{busy ? 'Sending…' : 'Invite'}</button>
