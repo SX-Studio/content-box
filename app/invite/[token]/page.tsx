@@ -29,9 +29,14 @@ export default function AcceptInvitePage({ params }: { params: { token: string }
   }
 
   return (
-    <div className="center">
-      <p className="eyebrow">Invitation</p>
-      <h1>You&apos;ve been invited to a box</h1>
+    <div className="center wash">
+      <div className="brand-mark">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon-512.png" alt="Content24" />
+        <div className="wordmark">CONTENT24</div>
+        <p className="eyebrow">— Uitnodiging —</p>
+      </div>
+      <h1 style={{ textAlign: 'center' }}>Je bent uitgenodigd voor een box</h1>
 
       {state === 'checking' && <p className="dim">Checking…</p>}
 
