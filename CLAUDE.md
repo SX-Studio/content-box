@@ -207,6 +207,44 @@ bundle "Classic Neon Templates" (project `Neon templates for content24market`).
   components across the 14 routes. The bundle's screen map lists the repo file for each.
 - Handoff bundle extracted at `scratchpad/neon/` (session-local; re-upload if needed).
 
+## Session log — 2026-09-14 (neon screens — stage 2)
+Branch `claude/neon-screens`. Follows the token pass. No migration.
+
+- **The design is a RE-SKIN of the existing app, not new layouts.** Its own `github.md`
+  says copy, token amounts and package tiers were "lifted from the real source", and it
+  shows: `/wallet` and `/app` already render `◈ {balance}`, `≈ €12.40 · 100 tokens = €1`,
+  `Koop tokens` and `tokens · transactie-ledger` **verbatim**. So most of stage 2 was
+  palette and chrome, not rebuilding screens.
+- **Component layer** in `globals.css` — the design ships 678 inline styles and *zero*
+  classes, so the repeated patterns are named once: `.brand-mark`, `.wash`, `.seg`,
+  `.code-cell`, `.stat`, `.gradtext`. ⚠️ Artboard device chrome (phone bezel, fake
+  status bar with wifi/battery, screen number plates) is **deliberately not
+  reproduced** — that is framing around the mockups, not product UI.
+- ⚠️ **Corrected a token-pass assumption:** the design's CTAs are **dark text
+  (`#05030c`) on accent→lighter-accent**, not white on accent→violet. `button` now
+  matches; `.alt` is the cyan CTA (the design's most common) and `.go` the green one.
+- **Screens applied:** login (brand mark + segmented control + six code cells), invite,
+  password, admin unlock. The code cells are decorative — the real input sits over them
+  at `opacity:0`, so paste, keyboard and one-time-code autofill still work.
+- **`BottomNav` already existed** in `box-ui.tsx` with the design's exact four tabs and
+  inline SVGs; it only needed the cyan active state and the deep ground. A duplicate
+  `.botnav` block was written and then removed — check `box-ui.tsx` before adding
+  shared UI, it holds more than its name suggests.
+- **Hardcoded colours swept app-wide.** `app/page.tsx` had its OWN local token block
+  (`--pink/--orange/--cyan/...`) that the global swap could never reach; the design's
+  landing uses **no orange at all**, so those are retired to violet and light cyan.
+  Also cleared: old gold in the admin pages, ember-browns in `box-ui`, the feed
+  placeholder gradient.
+- **Copy follows the design into Dutch** on the screens touched. The design took its
+  Dutch from the repo's own box UI, so this reduces a pre-existing English/Dutch mix
+  rather than creating one — but it is a product change, not a visual one.
+- ⚠️ **Not visually verified.** These screens sit behind auth, so nothing here was
+  confirmed in a browser; `tsc`, tests and `next build` pass, which is not the same
+  thing. The bundle's README also asks that the files not be screenshotted.
+- Icons stay inline SVG rather than the design's Tabler CDN webfont: a third-party
+  request from a signed-in page is exactly what `docs/data-handling-policy.md` treats
+  as a deliberate decision, and an icon font does not earn one.
+
 ## Session log — 2026-09-13 (Bird Verify — managed OTP, no sender registration)
 Branch `claude/bird-verify`. Migration `0021_bird_verify.sql` — **needs applying**.
 Off unless `OTP_SENDER=bird-verify`; every other value leaves the existing flow alone.

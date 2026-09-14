@@ -64,7 +64,7 @@ export default function Home() {
                   <defs>
                     <linearGradient id="lg" x1="0" y1="0" x2="48" y2="60" gradientUnits="userSpaceOnUse">
                       <stop stopColor="#ff2d9b" />
-                      <stop offset="1" stopColor="#7c5cff" />
+                      <stop offset="1" stopColor="#8b5cf6" />
                     </linearGradient>
                   </defs>
                 </svg>
@@ -150,7 +150,7 @@ export default function Home() {
             <span><small>Download on the</small><b>App Store</b></span>
           </Link>
           <Link href="/login" className="c24-store">
-            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden><path fill="#00e0ff" d="M3.6 2.3 13 12 3.6 21.7c-.4-.2-.6-.6-.6-1.1V3.4c0-.5.2-.9.6-1.1Z" /><path fill="#ffce00" d="m16.8 8.5 2.9 1.7c.9.5.9 1.8 0 2.3l-2.9 1.7L13.8 12l3-3.5Z" /><path fill="#ff3d5f" d="M3.6 2.3c.3-.2.7-.2 1.1 0L16.8 8.5 13.8 12 3.6 2.3Z" /><path fill="#00d95f" d="M3.6 21.7 13.8 12l3 3.5L4.7 21.7c-.4.2-.8.2-1.1 0Z" /></svg>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden><path fill="#22e1ff" d="M3.6 2.3 13 12 3.6 21.7c-.4-.2-.6-.6-.6-1.1V3.4c0-.5.2-.9.6-1.1Z" /><path fill="#ffb648" d="m16.8 8.5 2.9 1.7c.9.5.9 1.8 0 2.3l-2.9 1.7L13.8 12l3-3.5Z" /><path fill="#ff5d6c" d="M3.6 2.3c.3-.2.7-.2 1.1 0L16.8 8.5 13.8 12 3.6 2.3Z" /><path fill="#3ddc97" d="M3.6 21.7 13.8 12l3 3.5L4.7 21.7c-.4.2-.8.2-1.1 0Z" /></svg>
             <span><small>GET IT ON</small><b>Google Play</b></span>
           </Link>
         </div>
@@ -179,10 +179,14 @@ function Feature({ title, body, icon }: { title: string; body: string; icon: Rea
 
 const c24css = `
 .c24 {
-  --pink: #ff2d9b; --pink2: #b026ff; --blue: #4da6ff; --violet: #7c5cff;
-  --orange: #ff8a3d; --orange2: #ff5030; --cyan: #2dd4ff; --ink: #ece9ff; --dim: #a79fc9;
+  /* Aligned to the Classic Neon design: exact token values, and the two oranges
+     retired — the design's landing uses no orange at all, only cyan/magenta/violet.
+     --orange/--orange2 are kept as names so existing rules resolve, but now carry
+     the violet and light-cyan the design puts in those positions. */
+  --pink: #ff2d9b; --pink2: #b026ff; --blue: #4da6ff; --violet: #8b5cf6;
+  --orange: #8b5cf6; --orange2: #6ff0ff; --cyan: #22e1ff; --ink: #f4efff; --dim: #a99ad4;
   position: relative; min-height: 100vh; overflow: hidden;
-  background: #05040c; color: var(--ink);
+  background: #05030c; color: var(--ink);
   font-family: 'Poppins', 'IBM Plex Sans', system-ui, sans-serif;
 }
 .c24 a { color: inherit; text-decoration: none; }
@@ -191,21 +195,21 @@ const c24css = `
 .c24-glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55; }
 .c24-glow.g1 { width: 620px; height: 620px; left: -180px; top: -120px; background: radial-gradient(circle, #6b3df5, transparent 68%); }
 .c24-glow.g2 { width: 680px; height: 680px; right: -220px; top: 40px; background: radial-gradient(circle, #2b6bff, transparent 66%); opacity: .5; }
-.c24-glow.g3 { width: 560px; height: 560px; right: 6%; bottom: -220px; background: radial-gradient(circle, #ff5e3a, transparent 66%); opacity: .38; }
+.c24-glow.g3 { width: 560px; height: 560px; right: 6%; bottom: -220px; background: radial-gradient(circle, #ff2d9b, transparent 66%); opacity: .38; }
 .c24 > *:not(.c24-bg) { position: relative; z-index: 1; }
 
 /* logo */
 .c24-logo { position: relative; width: 42px; height: 42px; display: inline-grid; place-items: center; flex: none; }
 .c24-logo.lg { width: 66px; height: 66px; }
 .c24-logo-ring { position: absolute; inset: 0; border-radius: 50%;
-  background: conic-gradient(from 210deg, #ff8a3d, #ff2d9b, #7c5cff, #2dd4ff, #ff8a3d);
+  background: conic-gradient(from 210deg, #22e1ff, #ff2d9b, #8b5cf6, #22e1ff);
   padding: 3.5px; -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
           mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
 }
 .c24-logo::after { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: #0a0714; }
 .c24-logo.lg::after { inset: 9px; }
 .c24-logo-c { position: relative; z-index: 1; font-weight: 800; font-size: 19px;
-  background: linear-gradient(135deg, #2dd4ff, #ff2d9b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  background: linear-gradient(135deg, #22e1ff, #ff2d9b); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .c24-logo.lg .c24-logo-c { font-size: 30px; }
 
 /* header */
@@ -214,7 +218,7 @@ const c24css = `
 .c24-brand { display: flex; align-items: center; gap: 12px; }
 .c24-brand-txt { display: flex; flex-direction: column; line-height: 1; }
 .c24-brand-txt b { font-weight: 800; font-size: 21px; letter-spacing: .01em;
-  background: linear-gradient(120deg, #c9b6ff, #ff2d9b 60%, #ff8a3d); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  background: linear-gradient(120deg, #c9b6ff, #ff2d9b 60%, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .c24-brand-txt i { font-style: normal; font-size: 9.5px; letter-spacing: .34em; color: var(--dim); margin-top: 3px; }
 .c24-nav { margin-left: auto; display: flex; gap: 30px; }
 .c24-nav a { font-size: 14.5px; font-weight: 500; color: #e8e6f7; opacity: .82; transition: opacity .15s, color .15s; }
@@ -263,7 +267,7 @@ const c24css = `
   display: flex; flex-direction: column; align-items: center; padding: 54px 26px 30px; text-align: center; }
 .c24-screen-brand { display: flex; flex-direction: column; line-height: 1; margin: 14px 0 26px; }
 .c24-screen-brand b { font-weight: 800; font-size: 20px;
-  background: linear-gradient(120deg, #c9b6ff, #ff2d9b 60%, #ff8a3d); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  background: linear-gradient(120deg, #c9b6ff, #ff2d9b 60%, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .c24-screen-brand i { font-style: normal; font-size: 8.5px; letter-spacing: .3em; color: var(--dim); margin-top: 4px; }
 .c24-screen-btn { width: 100%; padding: 12px; border-radius: 30px; font-weight: 600; font-size: 14px; margin-bottom: 12px; }
 .c24-screen-btn.primary { color: #fff; background: linear-gradient(100deg, var(--pink), var(--pink2)); box-shadow: 0 10px 26px -12px rgba(255,45,155,.8); }
@@ -289,7 +293,7 @@ const c24css = `
   border-top: 1px solid rgba(150,120,255,.16);
   background: linear-gradient(0deg, rgba(90,40,180,.22), transparent); }
 .c24-tagline { font-weight: 800; font-size: clamp(16px, 2.4vw, 22px); letter-spacing: .04em; margin: 0 0 24px;
-  background: linear-gradient(100deg, #ff8a3d, #ff2d9b, #7c5cff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  background: linear-gradient(100deg, #8b5cf6, #ff2d9b, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .c24-tagline span { display: inline; }
 .c24-stores { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
 .c24-store { display: inline-flex; align-items: center; gap: 10px; padding: 10px 20px; border-radius: 12px;

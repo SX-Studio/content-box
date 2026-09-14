@@ -112,8 +112,8 @@ export default async function AdminDashboard() {
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div style={{ flex: '1 1 130px', minWidth: 130, padding: '10px 12px', border: '1px solid var(--line,#2a2a2a)', borderRadius: 12 }}>
-      <div style={{ fontSize: 26, fontWeight: 600, color: accent ? 'var(--gold, #a9762a)' : 'inherit' }}>{value}</div>
+    <div style={{ flex: '1 1 130px', minWidth: 130, padding: '10px 12px', border: '1px solid var(--line,var(--surface-3))', borderRadius: 12 }}>
+      <div style={{ fontSize: 26, fontWeight: 600, color: accent ? 'var(--gold, var(--gold))' : 'inherit' }}>{value}</div>
       <div className="dim mono" style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.06em' }}>{label}</div>
     </div>
   );

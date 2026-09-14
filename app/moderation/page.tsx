@@ -10,7 +10,7 @@ type Case = {
 };
 type Report = { public_id: string; target_type: string; target_id: string; reason: string; details: string | null; status: string; created_at: string };
 
-const RISK_COLOR: Record<string, string> = { low: 'var(--ok)', uncertain: 'var(--warn, #b8811c)', high: 'var(--bad)' };
+const RISK_COLOR: Record<string, string> = { low: 'var(--ok)', uncertain: 'var(--warn, var(--warn))', high: 'var(--bad)' };
 
 export default function ModerationPage() {
   const router = useRouter();
@@ -74,7 +74,7 @@ export default function ModerationPage() {
           <div className="row" style={{ marginTop: 10, flexWrap: 'wrap' }}>
             <button className="ghost sm" onClick={() => viewOriginal(c.content!.public_id)}>👁 View original (logged)</button>
             <button className="sm" style={{ background: 'var(--ok)' }} onClick={() => decide(c.content!.public_id, 'approve')}>Approve</button>
-            <button className="sm" style={{ background: 'var(--warn,#b8811c)' }} onClick={() => decide(c.content!.public_id, 'suspend')}>Suspend</button>
+            <button className="sm" style={{ background: 'var(--warn,var(--warn))' }} onClick={() => decide(c.content!.public_id, 'suspend')}>Suspend</button>
             <button className="sm" style={{ background: 'var(--bad)' }} onClick={() => decide(c.content!.public_id, 'reject')}>Reject</button>
             <button className="sm ghost" onClick={() => decide(c.content!.public_id, 'delete')}>Delete</button>
           </div>

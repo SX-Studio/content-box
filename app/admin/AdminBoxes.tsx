@@ -39,7 +39,7 @@ export default function AdminBoxes({ boxes }: { boxes: BoxStat[] }) {
                 </div>
                 <div className="between" style={{ marginTop: 4 }}>
                   <span className="dim mono" style={{ fontSize: 11 }}>{b.public_id}</span>
-                  <span className="pill mono" style={{ background: 'var(--gold,#a9762a)', color: '#fff' }}>{eur(b.tokens_in)}</span>
+                  <span className="pill mono" style={{ background: 'var(--gold,var(--gold))', color: '#fff' }}>{eur(b.tokens_in)}</span>
                 </div>
                 <div className="row" style={{ gap: 12, marginTop: 8, fontSize: 13 }}>
                   <span>👤 {b.users}</span>
@@ -47,7 +47,7 @@ export default function AdminBoxes({ boxes }: { boxes: BoxStat[] }) {
                   <span>⏱ {b.rentals}</span>
                 </div>
                 {isOpen && (
-                  <div style={{ marginTop: 10, borderTop: '1px solid var(--line,#2a2a2a)', paddingTop: 8, fontSize: 13 }}>
+                  <div style={{ marginTop: 10, borderTop: '1px solid var(--line,var(--surface-3))', paddingTop: 8, fontSize: 13 }}>
                     <Row label="In (tokens)" value={String(b.tokens_in)} />
                     <Row label="Out — platform" value={String(b.platform_tokens)} />
                     <Row label="Earning — creator" value={String(b.creator_tokens)} />

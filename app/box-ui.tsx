@@ -205,7 +205,7 @@ export const boxCss = `
 /* top bar */
 .bx-top{display:flex;align-items:center;gap:11px;padding:6px 2px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .bx-badge{width:44px;height:44px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,var(--ember),#8f2f1c);color:#fff;font-size:21px;box-shadow:0 6px 16px -6px var(--ember)}
+  background:linear-gradient(135deg,var(--ember),#8b5cf6);color:#fff;font-size:21px;box-shadow:0 6px 16px -6px var(--ember)}
 .bx-badge svg{width:22px;height:22px}
 .bx-titles{min-width:0}
 .bx-name{font-family:var(--serif);font-weight:600;font-size:22px;line-height:1.1;letter-spacing:-.01em}
@@ -236,7 +236,7 @@ export const boxCss = `
   transition:transform .18s cubic-bezier(.2,.7,.2,1),box-shadow .18s,border-color .15s}
 .bx-card:hover{transform:translateY(-3px);box-shadow:0 20px 44px -22px rgba(0,0,0,.5),var(--shadow)}
 .bx-card.sel{border-color:var(--ember);box-shadow:0 0 0 1px var(--ember),var(--shadow)}
-.bx-media{position:relative;aspect-ratio:4/5;overflow:hidden;cursor:pointer;background:#141019}
+.bx-media{position:relative;aspect-ratio:4/5;overflow:hidden;cursor:pointer;background:#120a24}
 .bx-ph{position:absolute;inset:0;background-size:cover;background-position:center;transition:filter .5s,transform .5s}
 .bx-ph.blur{filter:blur(26px) saturate(1.2) brightness(.9);transform:scale(1.18)}
 .bx-real{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -275,7 +275,7 @@ video.bx-real{object-fit:contain;background:#000}
 
 /* library (rentals) cards */
 .bx-rcard{display:flex;gap:13px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:var(--shadow)}
-.bx-rthumb{width:76px;height:76px;border-radius:13px;flex:none;position:relative;overflow:hidden;background:#141019}
+.bx-rthumb{width:76px;height:76px;border-radius:13px;flex:none;position:relative;overflow:hidden;background:#120a24}
 .bx-rthumb .bx-ph,.bx-rthumb .bx-real{border-radius:13px}
 .bx-rmeta{flex:1;min-width:0}
 .bx-rmeta .t{font-family:var(--serif);font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -313,7 +313,7 @@ video.bx-real{object-fit:contain;background:#000}
 .bx-dropnote{font-size:12px;color:var(--ink-3);text-align:center;margin-top:10px}
 
 /* wallet */
-.bx-balcard{background:linear-gradient(150deg,var(--ember),#7e2a19);border-radius:20px;padding:24px;color:#fff;box-shadow:var(--shadow);margin:18px 0 20px}
+.bx-balcard{background:linear-gradient(150deg,var(--ember),#6d3fb5);border-radius:20px;padding:24px;color:#fff;box-shadow:var(--shadow);margin:18px 0 20px}
 .bx-balcard .lab{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.82}
 .bx-balcard .big{font-family:var(--serif);font-weight:600;font-size:clamp(40px,8vw,52px);line-height:1;margin:8px 0 4px;display:flex;align-items:baseline;gap:9px}
 .bx-balcard .big span{font-family:var(--mono);font-size:15px;font-weight:400;opacity:.85}
@@ -338,7 +338,7 @@ video.bx-real{object-fit:contain;background:#000}
 .bx-led .r .bal{font-family:var(--mono);font-size:11px;color:var(--ink-3);flex:none;width:64px;text-align:right}
 
 /* bottom tab nav */
-.bx-nav{position:fixed;left:0;right:0;bottom:0;z-index:45;background:color-mix(in srgb,var(--surface) 90%,transparent);
+.bx-nav{position:fixed;left:0;right:0;bottom:0;z-index:45;background:rgba(10,6,24,.92);
   backdrop-filter:blur(16px);border-top:1px solid var(--line)}
 .bx-nav-inner{max-width:520px;margin:0 auto;display:flex}
 .bx-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
@@ -346,7 +346,7 @@ video.bx-real{object-fit:contain;background:#000}
   font-family:var(--sans);transition:color .15s}
 .bx-nav-btn svg{width:22px;height:22px}
 .bx-nav-btn:hover{color:var(--ink-2)}
-.bx-nav-btn.on{color:var(--ember)}
+.bx-nav-btn.on{color:var(--teal)}
 .bx-nav.off .bx-nav-btn{color:var(--ink-3);opacity:.5;cursor:default;pointer-events:none}
 
 /* cart */

@@ -112,9 +112,9 @@ code.link { display: block; word-break: break-all; background: var(--surface-2);
   box-shadow: var(--shadow); transition: transform .22s cubic-bezier(.2,.7,.2,1), box-shadow .22s, border-color .2s;
 }
 .feed-card:hover { transform: translateY(-4px); box-shadow: 0 22px 48px -22px rgba(0,0,0,.5), var(--shadow); border-color: var(--line-2); }
-.feed-media { position: relative; aspect-ratio: 4/5; background: linear-gradient(135deg, #2a2340, #141019); overflow: hidden; }
+.feed-media { position: relative; aspect-ratio: 4/5; background: linear-gradient(135deg, #2a1a4d, #120a24); overflow: hidden; }
 .feed-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.feed-noimg { position: absolute; inset: 0; background: linear-gradient(135deg, #2a2340, #141019); }
+.feed-noimg { position: absolute; inset: 0; background: linear-gradient(135deg, #2a1a4d, #120a24); }
 .feed-media::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(6,7,12,.55), transparent 45%); pointer-events: none; }
 .feed-lock { position: absolute; left: 0; right: 0; bottom: 0; padding: 9px 11px; font-size: 11px; font-weight: 500; color: #fff; z-index: 2; display: flex; align-items: center; gap: 5px; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
 .feed-body { padding: 12px 13px 13px; }
@@ -171,13 +171,6 @@ code.link { display: block; word-break: break-all; background: var(--surface-2);
 .gradtext { background: linear-gradient(135deg, var(--teal), var(--ember)); -webkit-background-clip: text;
   background-clip: text; color: transparent; }
 
-/* Bottom navigation (Ontdekken / Verhuur / Portemonnee / Dashboard). */
-.botnav { position: sticky; bottom: 0; display: flex; gap: 4px; padding: 9px 10px calc(9px + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--line); background: rgba(10,6,24,.92); backdrop-filter: blur(12px); }
-.botnav a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px;
-  font-size: 10.5px; color: var(--ink-3); text-decoration: none; border-radius: 10px; }
-.botnav a.on { color: var(--teal); }
-.botnav a .ic { font-size: 19px; line-height: 1; }
 
 /* Code entry: the cells are the visible control, with the real input laid over
    them at zero opacity so keyboard, paste and one-time-code autofill all still
