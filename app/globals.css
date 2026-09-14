@@ -19,6 +19,10 @@
      design's primary CTA (140deg, a2 -> vi) without touching the rule. */
   --ember: #ff2d9b; --ember-d: #8b5cf6; --ember-soft: rgba(255,45,155,.14);
   --teal: #22e1ff; --gold: #8b5cf6;
+  /* Light tints: the design's CTAs run accent -> lighter accent with DARK text on
+     top (#05030c), not white text. --on-accent is that near-black. */
+  --ember-l: #ff6fbd; --teal-l: #6ff0ff; --ok-l: #7ef0bd;
+  --on-accent: #05030c;
 
   --line: rgba(150,110,255,.20); --line-2: rgba(150,110,255,.34);
   --ok: #3ddc97; --warn: #ffb648; --bad: #ff5d6c;
@@ -57,35 +61,39 @@ a { color: var(--ember); text-underline-offset: 2px; }
 .container { max-width: 760px; margin: 0 auto; padding: 40px 20px 96px; }
 .center { max-width: 430px; margin: 9vh auto 0; padding: 0 20px; }
 
-.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--ember); font-weight: 500; }
+.eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--teal); font-weight: 500; }
 h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(28px, 5vw, 40px); line-height: 1.05; letter-spacing: -.01em; margin: 8px 0 6px; text-wrap: balance; }
 h2 { font-family: var(--serif); font-weight: 600; font-size: 22px; margin: 0 0 12px; letter-spacing: -.01em; }
 h3 { font-family: var(--serif); font-weight: 600; font-size: 18px; margin: 0 0 8px; }
 .muted { color: var(--ink-2); }
 .dim { color: var(--ink-3); font-size: 13px; }
 
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; margin: 14px 0; box-shadow: var(--shadow); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px 17px; margin: 14px 0; box-shadow: var(--shadow); }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .between { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 12px 0 6px; letter-spacing: .01em; }
 input, select {
-  width: 100%; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 11px;
-  padding: 11px 13px; font: inherit; font-size: 15px; color: var(--ink); outline: none; transition: border-color .12s, box-shadow .12s;
+  width: 100%; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 12px;
+  padding: 12px 13px; font: inherit; font-size: 15px; color: var(--ink); outline: none; transition: border-color .12s, box-shadow .12s;
 }
 input:focus, select:focus { border-color: var(--ember); box-shadow: 0 0 0 3px var(--ember-soft); }
 input[type="file"] { padding: 9px 11px; }
 
 button {
-  font-family: var(--sans); font-weight: 600; font-size: 14px; cursor: pointer; border: none; border-radius: 11px;
-  padding: 11px 17px; color: #fff; transition: filter .12s, transform .05s, box-shadow .12s;
-  background: linear-gradient(135deg, var(--ember), var(--ember-d));
-  box-shadow: 0 8px 22px -12px var(--ember);
+  font-family: var(--serif); font-weight: 600; font-size: 14px; cursor: pointer; border: none; border-radius: 12px;
+  padding: 12px 17px; color: var(--on-accent); transition: filter .12s, transform .05s, box-shadow .12s;
+  background: linear-gradient(135deg, var(--ember), var(--ember-l));
+  box-shadow: 0 0 calc(24px * var(--glow)) rgba(255,45,155,.45);
 }
+/* Cyan is the design's most common CTA — used for confirm/continue actions. */
+button.alt { background: linear-gradient(135deg, var(--teal), var(--teal-l)); box-shadow: 0 0 calc(24px * var(--glow)) rgba(34,225,255,.4); }
+button.go { background: linear-gradient(135deg, var(--ok), var(--ok-l)); box-shadow: 0 0 calc(24px * var(--glow)) rgba(61,220,151,.4); }
 button:hover { filter: brightness(1.06); }
 button:active { transform: translateY(1px); }
 button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 button.ghost { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line-2); box-shadow: none; }
+button.ghost:disabled { opacity: .45; }
 button.ghost:hover { border-color: var(--ink-3); }
 button.sm { padding: 8px 13px; font-size: 13px; }
 
@@ -104,9 +112,9 @@ code.link { display: block; word-break: break-all; background: var(--surface-2);
   box-shadow: var(--shadow); transition: transform .22s cubic-bezier(.2,.7,.2,1), box-shadow .22s, border-color .2s;
 }
 .feed-card:hover { transform: translateY(-4px); box-shadow: 0 22px 48px -22px rgba(0,0,0,.5), var(--shadow); border-color: var(--line-2); }
-.feed-media { position: relative; aspect-ratio: 4/5; background: linear-gradient(135deg, #2a2340, #141019); overflow: hidden; }
+.feed-media { position: relative; aspect-ratio: 4/5; background: linear-gradient(135deg, #2a1a4d, #120a24); overflow: hidden; }
 .feed-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.feed-noimg { position: absolute; inset: 0; background: linear-gradient(135deg, #2a2340, #141019); }
+.feed-noimg { position: absolute; inset: 0; background: linear-gradient(135deg, #2a1a4d, #120a24); }
 .feed-media::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(6,7,12,.55), transparent 45%); pointer-events: none; }
 .feed-lock { position: absolute; left: 0; right: 0; bottom: 0; padding: 9px 11px; font-size: 11px; font-weight: 500; color: #fff; z-index: 2; display: flex; align-items: center; gap: 5px; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
 .feed-body { padding: 12px 13px 13px; }
@@ -115,3 +123,60 @@ code.link { display: block; word-break: break-all; background: var(--surface-2);
 .cd { font-family: var(--mono); color: var(--teal); font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } .feed-card:hover { transform: none; } }
+
+/* ============================================================================
+   Neon screen components — derived from the "Classic Neon Templates" handoff.
+   The design carries no CSS of its own (678 inline styles, no classes), so the
+   repeated patterns are named here once instead of being pasted per page.
+   Device chrome from the artboards — phone bezel, fake status bar, screen
+   number plates — is deliberately NOT reproduced: that is presentation framing
+   around the mockups, not part of the product.
+   ========================================================================== */
+
+/* Brand lockup: the app icon as a glowing badge, wordmark, then an eyebrow.
+   Appears at the head of the focused screens (login, invite, password, unlock). */
+.brand-mark { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.brand-mark img { width: 52px; height: 52px; border-radius: 16px; flex: none; object-fit: cover;
+  box-shadow: 0 0 calc(26px * var(--glow)) rgba(255,45,155,.45); }
+.brand-mark .wordmark { font-family: var(--serif); font-weight: 700; font-size: 15px; margin-top: 11px; letter-spacing: .06em; }
+.brand-mark .eyebrow { margin-top: 3px; }
+.brand-mark.sm img { width: 44px; height: 44px; border-radius: 13px;
+  box-shadow: 0 0 calc(20px * var(--glow)) rgba(34,225,255,.4); }
+.brand-mark.xs img { width: 30px; height: 30px; border-radius: 9px; box-shadow: none; }
+
+/* A violet wash behind the top of a focused screen. */
+.wash { background: radial-gradient(320px 240px at 50% 0%, rgba(139,92,246,.28), transparent 70%); }
+
+/* Segmented control (Phone/Email on login, filters elsewhere). The active
+   segment is a cyan gradient carrying dark text, like the design's CTAs. */
+.seg { display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: rgba(150,110,255,.10); border: 1px solid var(--line); }
+.seg > button { flex: 1; font-size: 12.5px; padding: 8px; border-radius: 9px; background: none; color: var(--ink-2); box-shadow: none; }
+.seg > button.on { color: var(--on-accent); background: linear-gradient(135deg, var(--teal), var(--teal-l)); }
+.seg > button:hover { filter: none; }
+
+/* One-time-code cells. Filled digits glow cyan; empty ones stay quiet. */
+.code-row { display: flex; gap: 8px; }
+.code-cell { flex: 1; text-align: center; font-family: var(--mono); font-size: 19px; padding: 11px 0;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-3); }
+.code-cell.filled { border-color: var(--teal); background: rgba(34,225,255,.08); color: var(--teal);
+  box-shadow: 0 0 calc(14px * var(--glow)) rgba(34,225,255,.35); }
+
+/* Stat tiles — the dashboard/wallet number blocks. */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; }
+.stat { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: var(--surface); }
+.stat .n { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--teal); line-height: 1.1; }
+.stat .k { font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+
+/* Accent text used for token amounts and headline numerals. */
+.gradtext { background: linear-gradient(135deg, var(--teal), var(--ember)); -webkit-background-clip: text;
+  background-clip: text; color: transparent; }
+
+
+/* Code entry: the cells are the visible control, with the real input laid over
+   them at zero opacity so keyboard, paste and one-time-code autofill all still
+   work. The cells are decorative; the input remains the accessible target. */
+.code-wrap { position: relative; }
+.code-wrap input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; padding: 0; margin: 0;
+  border: none; background: none; letter-spacing: 2em; font-family: var(--mono); cursor: text; }
+.code-wrap input:focus { box-shadow: none; }
+.code-wrap input:focus + .code-row .code-cell.next { border-color: var(--teal-l); }

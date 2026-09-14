@@ -50,8 +50,13 @@ export default function AdminUnlockPage() {
 
   return (
     <div className="container" style={{ maxWidth: 420 }}>
-      <p className="eyebrow">Admin</p>
-      <h1>Unlock</h1>
+      <div className="brand-mark sm">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon-512.png" alt="Content24" />
+        <div className="wordmark">ADMIN</div>
+        <p className="eyebrow">— Unlock —</p>
+      </div>
+      <h1 style={{ textAlign: 'center' }}>Unlock</h1>
       <div className="card">
         <p className="dim" style={{ marginTop: 0 }}>Confirm your fingerprint to open the admin backend.</p>
         <div className="row" style={{ flexDirection: 'column', gap: 8 }}>

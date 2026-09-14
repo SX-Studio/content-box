@@ -119,10 +119,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="center">
-      <p className="eyebrow">Content Box</p>
-      <h1>Sign in</h1>
-      <p className="muted">
+    <div className="center wash">
+      <div className="brand-mark">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon-512.png" alt="Content24" />
+        <div className="wordmark">CONTENT24</div>
+        <p className="eyebrow">— {mode === 'password' ? 'Wachtwoord' : 'Inloggen'} —</p>
+      </div>
+      <p className="muted" style={{ textAlign: 'center', marginTop: 16 }}>
         {mode === 'password'
           ? 'Sign in with the password you set. Forgotten it? Use a code instead — that always works.'
           : channel === 'email'
@@ -132,9 +136,9 @@ export default function LoginPage() {
 
       {step === 'identify' ? (
         <form onSubmit={mode === 'password' ? signInWithPassword : start} className="card">
-          <div className="row" style={{ gap: 8, marginBottom: 12 }} role="tablist" aria-label="Sign-in method">
-            <button type="button" role="tab" aria-selected={channel === 'sms'} className={channel === 'sms' ? '' : 'ghost'} onClick={() => switchChannel('sms')}>Phone</button>
-            <button type="button" role="tab" aria-selected={channel === 'email'} className={channel === 'email' ? '' : 'ghost'} onClick={() => switchChannel('email')}>Email</button>
+          <div className="seg" style={{ marginBottom: 14 }} role="tablist" aria-label="Sign-in method">
+            <button type="button" role="tab" aria-selected={channel === 'sms'} className={channel === 'sms' ? 'on' : ''} onClick={() => switchChannel('sms')}>Telefoon</button>
+            <button type="button" role="tab" aria-selected={channel === 'email'} className={channel === 'email' ? 'on' : ''} onClick={() => switchChannel('email')}>E-mail</button>
           </div>
 
           {channel === 'email' ? (
@@ -163,7 +167,7 @@ export default function LoginPage() {
             {mode === 'password' ? (
               <button disabled={busy || !canStart || !password}>{busy ? 'Signing in…' : 'Sign in'}</button>
             ) : (
-              <button disabled={busy || !canStart}>{busy ? 'Sending…' : 'Send code'}</button>
+              <button disabled={busy || !canStart}>{busy ? 'Versturen…' : 'Code versturen'}</button>
             )}
           </div>
 
@@ -182,10 +186,23 @@ export default function LoginPage() {
       ) : (
         <form onSubmit={verify} className="card">
           <div className="dim">Code for <span className="mono">{identifierShown}</span> · <a onClick={() => { setStep('identify'); setCode(''); }} style={{ cursor: 'pointer' }}>change</a></div>
-          <label htmlFor="code">6-digit code</label>
-          <input id="code" inputMode="numeric" maxLength={6} placeholder="123456" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} autoComplete="one-time-code" />
+          <label htmlFor="code">6-cijferige code</label>
+          <div className="code-wrap">
+            <input
+              id="code" inputMode="numeric" maxLength={6} value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              autoComplete="one-time-code" autoFocus aria-label="6-cijferige code"
+            />
+            <div className="code-row" aria-hidden="true">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className={`code-cell${code[i] ? ' filled' : ''}${i === code.length ? ' next' : ''}`}>
+                  {code[i] ?? '·'}
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="row" style={{ marginTop: 16 }}>
-            <button disabled={busy || code.length !== 6}>{busy ? 'Verifying…' : 'Verify & continue'}</button>
+            <button className="alt" disabled={busy || code.length !== 6}>{busy ? 'Verifiëren…' : 'Verifieer & ga verder'}</button>
           </div>
         </form>
       )}

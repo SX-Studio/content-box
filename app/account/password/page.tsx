@@ -76,9 +76,14 @@ export default function PasswordSettingsPage() {
   if (loading) return <div className="center"><p className="muted">Loading…</p></div>;
 
   return (
-    <div className="center">
-      <p className="eyebrow">Content Box</p>
-      <h1>{state?.hasPassword ? 'Change your password' : 'Set a password'}</h1>
+    <div className="center wash">
+      <div className="brand-mark">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon-512.png" alt="Content24" />
+        <div className="wordmark">CONTENT24</div>
+        <p className="eyebrow">— Wachtwoord —</p>
+      </div>
+      <h1 style={{ textAlign: 'center' }}>{state?.hasPassword ? 'Wijzig je wachtwoord' : 'Stel een wachtwoord in'}</h1>
       <p className="muted">
         A password lets you sign in without waiting for a code. You can always still sign
         in with a code — and a code is how you get back in if you forget the password.
@@ -87,39 +92,39 @@ export default function PasswordSettingsPage() {
       <form onSubmit={save} className="card">
         {needsCurrent && (
           <>
-            <label htmlFor="currentPassword">Current password</label>
+            <label htmlFor="currentPassword">Huidig wachtwoord</label>
             <input
               id="currentPassword" type="password" value={currentPassword} autoComplete="current-password"
               onChange={(e) => setCurrentPassword(e.target.value)}
             />
             <p className="dim" style={{ marginTop: 4 }}>
-              Or <a href="/login?next=/account/password">sign in with a code</a> to change it without this.
+              Or <a href="/login?next=/account/password">log in met een code</a> to change it without this.
             </p>
           </>
         )}
 
-        <label htmlFor="password">{state?.hasPassword ? 'New password' : 'Password'}</label>
+        <label htmlFor="password">{state?.hasPassword ? 'Nieuw wachtwoord' : 'Wachtwoord'}</label>
         <input
           id="password" type="password" value={password} autoComplete="new-password"
-          placeholder="at least 10 characters" onChange={(e) => setPassword(e.target.value)}
+          placeholder="minimaal 10 tekens" onChange={(e) => setPassword(e.target.value)}
         />
 
-        <label htmlFor="confirm">Repeat it</label>
+        <label htmlFor="confirm">Herhaal</label>
         <input
           id="confirm" type="password" value={confirm} autoComplete="new-password"
           onChange={(e) => setConfirm(e.target.value)}
         />
 
         <div className="row" style={{ marginTop: 16, gap: 8 }}>
-          <button disabled={busy || password.length < 10}>{busy ? 'Saving…' : 'Save password'}</button>
-          <a href="/app"><button type="button" className="ghost">Back</button></a>
+          <button disabled={busy || password.length < 10}>{busy ? 'Opslaan…' : 'Opslaan'}</button>
+          <a href="/app"><button type="button" className="ghost">Terug</button></a>
         </div>
       </form>
 
       {state?.hasPassword && (
         <p className="dim" style={{ marginTop: 16 }}>
           <a onClick={() => { if (!busy) void remove(); }} style={{ cursor: 'pointer' }}>
-            Remove my password
+            Verwijder mijn wachtwoord
           </a>{' '}— go back to codes only.
         </p>
       )}
