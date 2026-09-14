@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 
 // Shared UI for the Content Box surfaces (group box, discover, rentals): one card
 // language + design tokens so /box/[id], /discover and /rentals read as one product.
-// Styling piggybacks on the app's globals.css tokens (ember/gold/Fraunces).
+// Styling piggybacks on the app's globals.css tokens (magenta/cyan/violet, Poppins).
 
 export type FeedItem = {
   public_id: string;
@@ -27,17 +27,24 @@ export function fmtCountdown(iso: string): string {
   return `${p(h)}:${p(m)}:${p(sec)}`;
 }
 
+// Deterministic per-identity colours for items and avatars. These are hardcoded
+// rather than tokenised on purpose — they must stay stable per creator — but that
+// also means the theme swap cannot reach them, so they are re-picked here to sit in
+// the neon range (cyan/magenta/violet) instead of the old ember/teal/gold one.
+// #8e2de2 -> #f9508b is the design's own media placeholder gradient.
 const GRADS = [
-  'linear-gradient(135deg,#e85d78,#7b2ff7)',
-  'linear-gradient(135deg,#f7971e,#d92662)',
-  'linear-gradient(135deg,#11998e,#38ef7d)',
   'linear-gradient(135deg,#8e2de2,#f9508b)',
-  'linear-gradient(135deg,#c94b4b,#4b134f)',
-  'linear-gradient(135deg,#0083b0,#ff5f6d)',
-  'linear-gradient(135deg,#654ea3,#eaafc8)',
-  'linear-gradient(135deg,#d38312,#a83279)',
+  'linear-gradient(135deg,#22e1ff,#8b5cf6)',
+  'linear-gradient(135deg,#ff2d9b,#8b5cf6)',
+  'linear-gradient(135deg,#7b2ff7,#22e1ff)',
+  'linear-gradient(135deg,#ff2d9b,#ffb648)',
+  'linear-gradient(135deg,#3ddc97,#22e1ff)',
+  'linear-gradient(135deg,#654ea3,#ff2d9b)',
+  'linear-gradient(135deg,#22e1ff,#3ddc97)',
 ];
-const AV_COLORS = ['#e85d78', '#f7971e', '#11998e', '#8e2de2', '#0083b0', '#d94e2f', '#654ea3', '#c94b4b'];
+// Solid fills for initials avatars. Each is legible against --surface (#100a24) and
+// carries white initials, so they are chosen from the brighter end of the range.
+const AV_COLORS = ['#ff2d9b', '#22e1ff', '#8b5cf6', '#3ddc97', '#ffb648', '#f9508b', '#7b2ff7', '#ff5d6c'];
 function hash(s: string): number { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
 export function gradOf(s: string) { return GRADS[hash(s) % GRADS.length]; }
 export function avColorOf(s: string) { return AV_COLORS[hash(s) % AV_COLORS.length]; }
