@@ -150,15 +150,16 @@ function Upload({ boxId, onUploaded }: { boxId: string; onUploaded: () => void }
   const [mode, setMode] = useState<'image' | 'video'>('image');
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('250');
-  const [file, setFile] = useState<File | null>(null);       // image, or video poster
+  const [file, setFile] = useState<File | null>(null);       // cover image, or video poster
+  const [extra, setExtra] = useState<File[]>([]);            // further photos, uploaded direct to storage
   const [video, setVideo] = useState<File | null>(null);     // video master
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
 
   function reset() {
-    setTitle(''); setFile(null); setVideo(null); setProgress(null);
-    (['file', 'poster', 'video'] as const).forEach((k) => {
+    setTitle(''); setFile(null); setVideo(null); setExtra([]); setProgress(null);
+    (['file', 'poster', 'video', 'extra'] as const).forEach((k) => {
       const el = document.getElementById(`${k}-${boxId}`) as HTMLInputElement | null;
       if (el) el.value = '';
     });
@@ -187,12 +188,31 @@ function Upload({ boxId, onUploaded }: { boxId: string; onUploaded: () => void }
         setProgress('Afronden…');
       } else {
         fd.set('file', file);
+        // Extra photos go straight to storage: a request body is capped at ~4.5MB, so
+        // several phone photos cannot ride along in this POST. Only their paths do.
+        if (extra.length > 0) {
+          const paths: string[] = [];
+          for (let i = 0; i < extra.length; i++) {
+            setProgress(`Foto ${i + 2}/${extra.length + 1} uploaden…`);
+            const u = await fetch('/api/content/video-upload-url', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ boxId, contentType: extra[i].type }),
+            });
+            const uj = await u.json();
+            if (!u.ok) throw new Error(uj.error || 'Could not start photo upload');
+            const put = await fetch(uj.uploadUrl, { method: 'PUT', headers: { 'Content-Type': extra[i].type }, body: extra[i] });
+            if (!put.ok) throw new Error(`Foto ${i + 2} upload failed`);
+            paths.push(uj.path);
+          }
+          fd.set('imagePaths', JSON.stringify(paths));
+          setProgress('Afronden…');
+        }
       }
 
       const r = await fetch('/api/content', { method: 'POST', body: fd });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Upload failed');
-      setMsg({ kind: 'ok', text: `Gepost ${j.content.public_id}${j.content.status === 'pending' ? ' (in review)' : ''}` });
+      setMsg({ kind: 'ok', text: `Gepost ${j.content.public_id}${j.content.photos > 1 ? ` · ${j.content.photos} foto's` : ''}${j.content.status === 'pending' ? ' (in review)' : ''}` });
       reset();
       onUploaded();
     } catch (err) {
@@ -218,6 +238,12 @@ function Upload({ boxId, onUploaded }: { boxId: string; onUploaded: () => void }
             <div className="bx-field">
               <label htmlFor={`file-${boxId}`}>Afbeelding (JPEG / PNG / WebP, max 15MB)</label>
               <input id={`file-${boxId}`} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              <label htmlFor={`extra-${boxId}`}>Meer foto&apos;s (optioneel, max 9 extra)</label>
+              <input
+                id={`extra-${boxId}`} type="file" multiple accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => setExtra(Array.from(e.target.files ?? []).slice(0, 9))}
+              />
+              {extra.length > 0 && <p className="bx-hint">{extra.length + 1} foto&apos;s — de eerste is de cover</p>}
             </div>
           ) : (
             <>
