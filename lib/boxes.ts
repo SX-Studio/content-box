@@ -25,8 +25,8 @@ export function validateBoxName(raw: string): string {
   return name;
 }
 
-// Create a box. The creator (a platform operator) becomes its first box_admin so the
-// box has someone who can invite creators.
+// Create a box. Whoever creates it — operator or creator — becomes its first box_admin,
+// so the box always has someone who can invite into it and run it.
 export async function createBox(opts: { name: string; description?: string | null; createdBy: string }): Promise<Box> {
   const name = validateBoxName(opts.name);
   const { data, error } = await admin()
