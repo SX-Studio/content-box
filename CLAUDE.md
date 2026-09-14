@@ -247,9 +247,17 @@ Branch `claude/neon-landing`, off `claude/neon-screens`. No migration.
   first frame and drops `--nx-g` to `.6`; `.nx-176`/`.nx-182` carry a `vw` `font-size`
   before the `cqw` one, so browsers without container queries (Safari < 16) get a sized
   headline instead of a discarded declaration.
-- **Anchors wired:** nav CTA and the band arrow → `/login`; footer → the five real
-  `/legal/*` routes (all 200). The store badges stay `#download` — there are no listings
-  to point at, and "Download on the App Store" → a web login would be a lie. The phone's
+- ⚠️ **Entry points into the app: keep all four.** The landing it replaced had four
+  links to `/login` (nav pill, hero CTA, both store buttons); this one first shipped with
+  two, and the two most prominent — the hero store badges — were inert `#download`
+  anchors. The user could not find their boxes from the homepage. All four now point at
+  **`/app`**, which is strictly better than `/login`: signed out it redirects to
+  `/login?next=/app`, signed in it lands straight on the boxes. The nav pill reads
+  **"Open the app"**, not the design's "Download App" — a signed-in user does not click
+  "Download App" to reach their own content. That is the **only** departure from the
+  reference: 647 px inside a 94×38 box at the nav pill; the rest of the page is still
+  pixel-identical at every width. Footer → the five real `/legal/*` routes (all 200).
+  The phone's
   `Log in` / `Register` pills stay inert: they are decoration inside a mockup, and the
   mockup is one labelled `role="img"` so they are not announced as controls.
 - Nav copy stays Dutch over an English hero, as the handoff shipped it — its README
