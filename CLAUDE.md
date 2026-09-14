@@ -207,6 +207,54 @@ bundle "Classic Neon Templates" (project `Neon templates for content24market`).
   components across the 14 routes. The bundle's screen map lists the repo file for each.
 - Handoff bundle extracted at `scratchpad/neon/` (session-local; re-upload if needed).
 
+## Session log — 2026-09-14 (neon landing page — exact)
+Branch `claude/neon-landing`, off `claude/neon-screens`. No migration.
+
+- Implemented from the second handoff bundle, `design_handoff_neon_landing/`, which
+  unlike the first ships a **drop-in React component + CSS with byte-identical values**.
+  Its README says to prefer copying over re-deriving by eye, so `neon-landing.css` was
+  copied verbatim (md5 match) and only the DOM was adapted.
+- **`app/page.tsx` is now a four-line wrapper** around `app/neon-landing/NeonLanding.tsx`.
+  The hand-built `.c24` landing it replaced is gone. `app/neon-landing/` has no
+  `page.tsx`, so it adds no route.
+- ⚠️ **Two bugs in the handoff, both fixed here — do not "restore" them:**
+  1. Each `<i>` carried **two `className` attributes** (`"ti ti-lock"` and `"nx-071"`),
+     which TypeScript rejects. Merged into one.
+  2. The reference styles anchors inline; the drop-in converted them to single-class
+     rules but kept the base rule as `.nx-root a` (0,1,1), which **outranks** every
+     `.nx-061`…`.nx-190` colour (0,1,0). Nav, footer, both store buttons and the
+     Download App pill all rendered cyan. Base rules are now `:where(.nx-root) a`,
+     matching the reference's bare `a {}` specificity.
+- ⚠️ **`.nx-root` pins `line-height:normal`.** The reference renders on a bare document;
+  `globals.css` sets `body{line-height:1.55}`, which inflated every metric on the page.
+- **Verified, not assumed:** reference and route captured side by side in headless
+  Chromium with real Poppins/IBM Plex and the real icon font, then pixel-diffed —
+  **0 differing pixels at 1920/1440/1280/1024/834/768/600/430/390/360/320px**, no
+  horizontal overflow at any of them. A DOM probe also matched all 197 nodes on
+  geometry, colour, gradient, shadow, transform, filter and type. Harness in the
+  session scratchpad (`fdiff.mjs`, `shot2.mjs`); it needs a local `next start` on 3210
+  and the reference served on 3211, and it fulfils the two CDN stylesheets from disk
+  because this container cannot reach them.
+- **Icons: self-hosted, not the CDN.** `public/fonts/tabler-icons-subset.woff2` is the
+  seven glyphs this page uses, subset with `pyftsubset` — **2 KB from 462 KB**. The
+  `@font-face` and the seven `:before` rules live in `neon-landing.css` scoped to
+  `.nx-root`, so no other page gains an icon-font dependency. This keeps the stage-2
+  decision intact: a jsDelivr request from the app is exactly what
+  `docs/data-handling-policy.md` says has to be earned. The only third-party request the
+  landing makes is the Google Fonts stylesheet that was already in the root layout.
+- **Added beyond the handoff** (neither changes the default rendering — re-diffed at 0):
+  `@media (prefers-reduced-motion: reduce)` holds all 15 ambient animations at their
+  first frame and drops `--nx-g` to `.6`; `.nx-176`/`.nx-182` carry a `vw` `font-size`
+  before the `cqw` one, so browsers without container queries (Safari < 16) get a sized
+  headline instead of a discarded declaration.
+- **Anchors wired:** nav CTA and the band arrow → `/login`; footer → the five real
+  `/legal/*` routes (all 200). The store badges stay `#download` — there are no listings
+  to point at, and "Download on the App Store" → a web login would be a lie. The phone's
+  `Log in` / `Register` pills stay inert: they are decoration inside a mockup, and the
+  mockup is one labelled `role="img"` so they are not announced as controls.
+- Nav copy stays Dutch over an English hero, as the handoff shipped it — its README
+  says not to normalise that without asking.
+
 ## Session log — 2026-09-14 (neon screens — stage 2)
 Branch `claude/neon-screens`. Follows the token pass. No migration.
 
