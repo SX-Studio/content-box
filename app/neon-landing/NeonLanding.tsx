@@ -10,11 +10,12 @@ import './neon-landing.css';
  * Deviations from the handoff, all deliberate:
  *  - the handoff emitted two `className` attributes on each <i> (invalid JSX);
  *    the icon and layout classes are merged into one.
- *  - decorative layers carry aria-hidden and the phone is a labelled role="img",
- *    so its fake "Log in" / "Register" pills are not announced as controls.
+ *  - decorative layers carry aria-hidden. The phone's Log in / Register pills are
+ *    real links, so the mockup is NOT a role="img" — that would hide them from
+ *    assistive tech. Only the non-interactive bezel layers are hidden.
  *  - the #download / #contact placeholders are wired to real routes. Every route
- *    into the product points at /app, which redirects to /login?next=/app when
- *    signed out and lands on the user's boxes when signed in.
+ *    into the product points at /login, which forwards an already-signed-in user
+ *    on to /app. The landing never drops a signed-out visitor into the app.
  */
 export default function NeonLanding() {
   return (
@@ -96,29 +97,29 @@ export default function NeonLanding() {
             <a href="#functies" className="nx-064">Functies</a>
             <a href="#contact" className="nx-065">Contact</a>
           </div>
-          <Link href="/app" className="nx-066">Open the app</Link>
+          <Link href="/login" className="nx-066">Download App</Link>
         </div>
 
         {/* HERO */}
         <div className="nx-067" id="about">
 
-          <div className="nx-068" role="img" aria-label="The Content24 Marketspace app shown on a phone">
-            <div className="nx-069"></div>
-            <div className="nx-070"><i className="ti ti-lock nx-071"></i></div>
+          <div className="nx-068">
+            <div className="nx-069" aria-hidden="true"></div>
+            <div className="nx-070" aria-hidden="true"><i className="ti ti-lock nx-071"></i></div>
             <div className="nx-072">
-              <div className="nx-073"></div>
-              <div className="nx-074"></div>
-              <div className="nx-075"></div>
+              <div className="nx-073" aria-hidden="true"></div>
+              <div className="nx-074" aria-hidden="true"></div>
+              <div className="nx-075" aria-hidden="true"></div>
               <div className="nx-076">
               <div className="nx-077">
               <div className="nx-078">
-                <div className="nx-079"></div>
+                <div className="nx-079" aria-hidden="true"></div>
                 <img src="/icon-512.png" alt="" className="nx-080" />
                 <div className="nx-081">CONTENT<span className="nx-082">24</span></div>
                 <div className="nx-083">— MARKETSPACE —</div>
-                <div className="nx-084">Log in</div>
-                <div className="nx-085">Register</div>
-                <div className="nx-086">
+                <Link href="/login" className="nx-084">Log in</Link>
+                <Link href="/login" className="nx-085">Register</Link>
+                <div className="nx-086" aria-hidden="true">
                   <div className="nx-087"></div>
                   <div className="nx-088">
                     <div className="nx-089">
@@ -133,11 +134,11 @@ export default function NeonLanding() {
                     </div>
                   </div>
                 </div>
-                <div className="nx-096"></div>
+                <div className="nx-096" aria-hidden="true"></div>
                 </div>
               </div>
               </div>
-              <div className="nx-097"></div>
+              <div className="nx-097" aria-hidden="true"></div>
             </div>
           </div>
 
@@ -151,8 +152,8 @@ export default function NeonLanding() {
             </h1>
             <p className="nx-105">Exclusive content from creators in private groups. 24 hours access. No limits.</p>
             <div className="nx-106" id="download">
-              <Link href="/app" className="nx-107"><i className="ti ti-brand-apple nx-108" aria-hidden="true"></i><span><span className="nx-109">Download on the</span><span className="nx-110">App Store</span></span></Link>
-              <Link href="/app" className="nx-111"><i className="ti ti-brand-google-play nx-112" aria-hidden="true"></i><span><span className="nx-113">Get it on</span><span className="nx-114">Google Play</span></span></Link>
+              <Link href="/login" className="nx-107"><i className="ti ti-brand-apple nx-108" aria-hidden="true"></i><span><span className="nx-109">Download on the</span><span className="nx-110">App Store</span></span></Link>
+              <Link href="/login" className="nx-111"><i className="ti ti-brand-google-play nx-112" aria-hidden="true"></i><span><span className="nx-113">Get it on</span><span className="nx-114">Google Play</span></span></Link>
             </div>
           </div>
         </div>
@@ -234,7 +235,7 @@ export default function NeonLanding() {
             <div className="nx-176"><span className="nx-177">Invite</span> <span className="nx-178">-</span> <span className="nx-179">Drop</span> <span className="nx-180">-</span> <span className="nx-181">Earn</span></div>
             <div className="nx-182">Invite your friends, drop content and earn together.</div>
           </div>
-          <Link href="/app" className="nx-183" aria-label="Open the app"><i className="ti ti-arrow-right nx-184" aria-hidden="true"></i></Link>
+          <Link href="/login" className="nx-183" aria-label="Inloggen"><i className="ti ti-arrow-right nx-184" aria-hidden="true"></i></Link>
         </div>
 
         {/* FOOTER */}

@@ -22,8 +22,17 @@ export default function LoginPage() {
   useEffect(() => {
     const n = new URLSearchParams(window.location.search).get('next');
     // '//evil.com' starts with '/' but is protocol-relative — the router leaves the site.
-    if (n && n.startsWith('/') && !n.startsWith('//')) setNext(n);
-  }, []);
+    if (n && n.startsWith('/') && !n.startsWith('//')) { setNext(n); return; }
+    // Landing CTAs all point here, so an already-signed-in visitor would be asked to
+    // sign in again; send them on instead. Only when there is NO `next`: a caller that
+    // asked for a specific destination wants a fresh sign-in, which is exactly how
+    // /account/password gets its 15-minute fresh-auth proof. Redirecting that away
+    // would put the password page back in the dead end it was just taken out of.
+    void (async () => {
+      const r = await fetch('/api/me').catch(() => null);
+      if (r?.ok) router.replace('/app');
+    })();
+  }, [router]);
 
   const [channel, setChannel] = useState<Channel>('sms');
   // 'code' = the OTP round trip; 'password' = straight in with a stored password.

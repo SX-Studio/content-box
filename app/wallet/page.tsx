@@ -43,29 +43,41 @@ export default function WalletPage() {
   }, [router]);
   useEffect(() => { load(); }, [load]);
 
-  // Buy a package: try the real PSP (Verotel) → redirect to hosted payment; if the
-  // PSP isn't configured yet (pre-production), fall back to the dev top-up.
+  // Buy a package. Every built rail is tried in turn — card first, then crypto —
+  // because each answers { configured:false } when its env vars are unset, and only
+  // one of them needs to be live for a user to be able to top up. Previously only
+  // Verotel was attempted, so the two working rails behind it were unreachable and
+  // an unconfigured Verotel dead-ended on the dev top-up.
+  const RAILS: { path: string; label: string }[] = [
+    { path: '/api/wallet/purchase', label: 'card' },
+    { path: '/api/wallet/purchase-crypto', label: 'crypto' },
+  ];
+
   async function buy(pkgId: string, tokens: number) {
     if (busy) return;
     setBusy(pkgId);
     try {
-      const r = await fetch('/api/wallet/purchase', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packageId: pkgId }),
-      });
-      const j = await r.json();
-      if (r.ok && j.url) { window.location.href = j.url; return; }
-      if (r.ok && j.configured === false) {
-        const t = await fetch('/api/wallet/topup', {
+      for (const rail of RAILS) {
+        const r = await fetch(rail.path, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: tokens }),
+          body: JSON.stringify({ packageId: pkgId }),
         });
-        const tj = await t.json();
-        if (t.ok) { await load(); flash(`+${tokens} tokens toegevoegd (dev)`); }
-        else flash(tj.error || 'Betaling binnenkort beschikbaar');
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.url) { window.location.href = j.url; return; }
+        if (r.ok && j.configured === false) continue; // rail not set up — try the next
+        flash(j.error || `Kon aankoop niet starten (${rail.label})`);
         return;
       }
-      flash(j.error || 'Kon aankoop niet starten');
+
+      // No payment rail is configured. The dev top-up only answers in stub mode; in
+      // production it 403s, so say what is actually true rather than pointing at a
+      // store that does not exist.
+      const t = await fetch('/api/wallet/topup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: tokens }),
+      });
+      if (t.ok) { await load(); flash(`+${tokens} tokens toegevoegd (dev)`); return; }
+      flash('Tokens kopen kan nog niet — er is nog geen betaalmethode ingesteld.');
     } catch (e) { flash((e as Error).message); } finally { setBusy(null); }
   }
 

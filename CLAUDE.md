@@ -207,6 +207,40 @@ bundle "Classic Neon Templates" (project `Neon templates for content24market`).
   components across the 14 routes. The bundle's screen map lists the repo file for each.
 - Handoff bundle extracted at `scratchpad/neon/` (session-local; re-upload if needed).
 
+## Session log — 2026-09-14 (landing: real buttons, /login not /app, and the blur budget)
+Branch `main`. No migration.
+
+- **Every landing CTA goes to `/login` again, not `/app`.** Pointing them at `/app` was
+  my overcorrection: the landing should offer the sign-in door, not drop a visitor into
+  the product. `/login` now forwards an already-signed-in visitor to `/app` — **only
+  when there is no `next` param**, because a caller that names a destination wants a
+  fresh sign-in, which is exactly how `/account/password` earns its 15-minute
+  fresh-auth proof. Redirecting that away would re-create the dead end just fixed.
+- **The phone mockup's `Log in` / `Register` pills are real links now.** They were
+  `<div>`s inside a `role="img"` wrapper, deliberately inert. The wrapper's `role="img"`
+  had to go with them (it hides descendants from assistive tech); the non-interactive
+  bezel layers carry `aria-hidden` individually instead. ⚠️ `.nx-084`/`.nx-085` needed
+  **`display:block`** — they set `width:100%`, which an inline `<a>` ignores, so without
+  it both pills collapse. Verified by clicking all six controls: 209×42 and 209×47 hit
+  areas, all six land on `/login`.
+- ⚠️ **Performance: measure, but know what this container cannot measure.** Scrolling
+  ran at **12.3 fps at 390px and 4.8 fps at 1440px**. Ablation found the whole cost in
+  the ambient backdrop (removing `.nx-002` → 54 fps, a 10× jump) and `filter: blur()`
+  within it (2.5×), **not** the animations (killing all 44 moved 5.7 → 6.3).
+  - Shipped: `nxPrism` no longer animates `filter` (a filter animation can never be
+    composited, on any hardware), and **14 layers had their blur radius cut** —
+    70-80px → 28-34px on the blobs, blur dropped entirely from the two conic layers
+    (150vmax and 110vmax, several megapixels, and a conic gradient needs none).
+    Result **17.3 fps at 390px and 6.8 at 1440px — ~1.4×**, and the page is still
+    pixel-identical to the reference at pixelmatch's perceptual threshold: max channel
+    deviation 17/255 desktop, 30/255 mobile, mean 1.3-2.1. The blurs were softening
+    gradients that were already soft.
+  - **Reverted, deliberately: `will-change`, `backface-visibility`, `contain:paint`.**
+    These are GPU hints and this container renders in software (SwiftShader), where the
+    extra compositor layers are pure cost — they measured **worse** (390px 12.3 → 8).
+    They may well help on real hardware; that is exactly why they were not shipped.
+    **Do not add compositor hints here without a device that can measure them.**
+
 ## Session log — 2026-09-14 (password page: a state with no way out)
 Branch `main`. No migration — `0020` is applied; the four `account.password_*` columns
 were verified present live, so the DB was never the problem.

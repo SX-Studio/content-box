@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const account = await currentAccount();
   if (!account) return NextResponse.json({ ok: false, error: 'Not authenticated' }, { status: 401 });
   if (env.otpSender() !== 'stub') {
-    return NextResponse.json({ ok: false, error: 'Top-up is disabled — buy tokens via the store' }, { status: 403 });
+    return NextResponse.json({ ok: false, error: 'Dev top-up is disabled outside stub mode' }, { status: 403 });
   }
 
   let body: unknown;
