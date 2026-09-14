@@ -34,6 +34,10 @@ export default function PasswordSettingsPage() {
   // Changing a login factor needs either a fresh code or the current password — the
   // 30-day session alone is not enough, so the form says which one is missing.
   const needsCurrent = Boolean(state?.hasPassword) && !state?.freshAuth;
+  // No password yet AND no fresh code is the one combination with nothing to offer:
+  // there is no current password to type, so the form can only ever 403. Send them
+  // for a code instead of letting them fill in a form that cannot succeed.
+  const mustReauth = !state?.hasPassword && !state?.freshAuth;
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -89,6 +93,19 @@ export default function PasswordSettingsPage() {
         in with a code — and a code is how you get back in if you forget the password.
       </p>
 
+      {mustReauth ? (
+        <div className="card">
+          <p>
+            Voor het instellen van een wachtwoord is een verse code nodig. Je bent
+            ingelogd, maar die sessie loopt 30 dagen — te lang om er een permanente
+            login mee aan te maken. Een code bewijst dat jij het nu bent.
+          </p>
+          <div className="row" style={{ marginTop: 16, gap: 8 }}>
+            <a href="/login?next=/account/password"><button type="button">Stuur me een code</button></a>
+            <a href="/app"><button type="button" className="ghost">Terug</button></a>
+          </div>
+        </div>
+      ) : (
       <form onSubmit={save} className="card">
         {needsCurrent && (
           <>
@@ -120,6 +137,7 @@ export default function PasswordSettingsPage() {
           <a href="/app"><button type="button" className="ghost">Terug</button></a>
         </div>
       </form>
+      )}
 
       {state?.hasPassword && (
         <p className="dim" style={{ marginTop: 16 }}>

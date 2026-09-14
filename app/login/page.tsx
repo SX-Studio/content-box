@@ -21,7 +21,8 @@ export default function LoginPage() {
   const [next, setNext] = useState('/app');
   useEffect(() => {
     const n = new URLSearchParams(window.location.search).get('next');
-    if (n && n.startsWith('/')) setNext(n);
+    // '//evil.com' starts with '/' but is protocol-relative — the router leaves the site.
+    if (n && n.startsWith('/') && !n.startsWith('//')) setNext(n);
   }, []);
 
   const [channel, setChannel] = useState<Channel>('sms');

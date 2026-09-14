@@ -207,6 +207,29 @@ bundle "Classic Neon Templates" (project `Neon templates for content24market`).
   components across the 14 routes. The bundle's screen map lists the repo file for each.
 - Handoff bundle extracted at `scratchpad/neon/` (session-local; re-upload if needed).
 
+## Session log — 2026-09-14 (password page: a state with no way out)
+Branch `main`. No migration — `0020` is applied; the four `account.password_*` columns
+were verified present live, so the DB was never the problem.
+
+- ⚠️ **The bug: signed in, no password yet, `cb_freshauth` expired → a form that could
+  only 403.** The page computed `needsCurrent = hasPassword && !freshAuth`, and rendered
+  the "or log in met een code" escape hatch *only* inside that branch. A user with **no**
+  password and a stale session fell outside it: they got the ordinary "set a password"
+  form with no notice and no link, filled it in, and the server refused with *"Sign in
+  again with a code to set a password."* — an instruction the page gave them no way to
+  follow. The 15-minute fresh-auth TTL against a 30-day session means **every** user who
+  did not set a password within 15 minutes of signing in landed here.
+- Fix: a third state, `mustReauth = !hasPassword && !freshAuth`, renders the reason and a
+  **"Stuur me een code"** button to `/login?next=/account/password` instead of the form.
+  The gate itself is unchanged and still correct — a 30-day cookie must not mint a
+  permanent credential. Verified by rendering all three states with the API stubbed:
+  stale+no-password → 0 password fields + the link; fresh → the 2-field form, no link;
+  has-password+stale → 3 fields + the link.
+- **Open redirect closed while in there.** `app/login/page.tsx` accepted any `next`
+  passing `n.startsWith('/')` — which `//evil.com` does. The router follows that
+  off-site as a protocol-relative URL, and `/account/password` now links into `next`,
+  so the hole was newly reachable. Now also requires `!n.startsWith('//')`.
+
 ## Session log — 2026-09-14 (neon landing page — exact)
 Branch `claude/neon-landing`, off `claude/neon-screens`. No migration.
 
@@ -584,7 +607,7 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - Don't break existing functionality without explicit permission.
 
 ## Useful files
-- `supabase/migrations/` — schema + RLS (`0001`–`0019` applied live; `0020` = password login, **pending apply**)
+- `supabase/migrations/` — schema + RLS (`0001`–`0022` all applied live; `0020`'s four `account.password_*` columns verified present 2026-09-14)
 - `lib/password.ts` / `lib/password-auth.ts` — scrypt hashing + lockout for optional password sign-in
 - `lib/fresh-auth.ts` — 15-min proof of a from-scratch sign-in; NOT the admin step-up cookie
 - `lib/supabase/{admin,server,client}.ts` — service-role / SSR / browser clients
