@@ -119,6 +119,41 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-14 (neon theme — token layer)
+Branch `claude/neon-theme`. No migration. Implemented from the Claude Design handoff
+bundle "Classic Neon Templates" (project `Neon templates for content24market`).
+
+- **The app is now DARK-ONLY.** The design is dark-only, so the light `:root` default
+  and both the `prefers-color-scheme` and `[data-theme]` variants were removed — there
+  is one theme. `color-scheme: dark` set so form controls follow.
+- **A token swap re-skins all 14 routes at once.** `app/globals.css` was already fully
+  token-driven, so the palette maps straight across: `--bg/--surface*` → the neon
+  grounds, `--ink*` → the violet-tinted text ramp, **`--ember` → `#ff2d9b` magenta**,
+  `--teal` → `#22e1ff` cyan, `--gold` → `#8b5cf6` violet. The existing button rule
+  `linear-gradient(135deg, var(--ember), var(--ember-d))` reproduces the design's
+  primary CTA (`140deg, a2 → vi`) **without touching the rule**.
+- ⚠️ **One deliberate deviation from the design.** Its `--ink-3` is `#6d6197`, which
+  scores **3.49:1** on `--surface` — below AA for the 13px `.dim` text that uses it,
+  and worse than the 4.39:1 it replaced. Lifted to `#8173b3` (4.62:1) on the same hue
+  and saturation. Every other token clears AA body; contrast was computed, not eyeballed.
+- **`--glow`** carries the design's `--nx-g` glow multiplier into `--shadow`. Set it to
+  `0` to flatten every glow at once without editing a shadow.
+- `body` gains the design's two ambient washes (violet top-left, cyan top-right).
+- **`app/box-ui.tsx` `GRADS`/`AV_COLORS` re-picked.** Deterministic per-identity
+  colours, hardcoded so they stay stable per creator — which also means the theme swap
+  cannot reach them. They were still ember/teal/gold.
+- Fonts: `--serif` is now **Poppins** (was Fraunces); Poppins was already loaded, and
+  Fraunces — now unreferenced — was dropped from the `layout.tsx` font request.
+- Brand assets `public/brand/content24-{logo,brand}.png` imported. `public/icon-512.png`
+  in the bundle is **byte-identical** to the repo's (the design imported it from here).
+- ⚠️ **`support.js` in the bundle was NOT ported.** It is the Claude Design canvas
+  runtime (`dc-runtime`, a React renderer for `.dc.html`) — prototype scaffolding, not
+  app code.
+- **Stage 2 (not done):** per-screen detail — glow treatments, the icon-512 badge mark
+  the design puts on every screen, brand-asset placement, and screen-specific
+  components across the 14 routes. The bundle's screen map lists the repo file for each.
+- Handoff bundle extracted at `scratchpad/neon/` (session-local; re-upload if needed).
+
 ## Session log — 2026-09-13 (Bird Verify — managed OTP, no sender registration)
 Branch `claude/bird-verify`. Migration `0021_bird_verify.sql` — **needs applying**.
 Off unless `OTP_SENDER=bird-verify`; every other value leaves the existing flow alone.

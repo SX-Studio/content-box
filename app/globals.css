@@ -1,41 +1,50 @@
+/* Neon theme — implemented from the Claude Design handoff
+   "Classic Neon Templates" (Neon templates for content24market).
+   The design is dark-only, so the former light default and the
+   prefers-color-scheme / [data-theme] variants are gone: there is one theme now. */
 :root {
-  --bg: #f3f4f7; --surface: #ffffff; --surface-2: #eceef3; --surface-3: #e3e6ee;
-  --ink: #171a21; --ink-2: #404757; --ink-3: #6b7280;
-  --ember: #d94e2f; --ember-d: #b83c22; --ember-soft: rgba(217,78,47,.10);
-  --teal: #0f867a; --gold: #a9762a;
-  --line: #dde1e9; --line-2: #cfd4de;
-  --ok: #2c8a57; --warn: #b8811c; --bad: #c23a2b;
-  --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  color-scheme: dark;
+
+  --bg: #05030c; --deep: #0a0618;
+  --surface: #100a24; --surface-2: #180f36; --surface-3: #211545;
+
+  --ink: #f4efff; --ink-2: #a99ad4;
+  /* Design value is #6d6197, which scores 3.49:1 on --surface — below AA for the
+     13px .dim text that uses it, and worse than the 4.39:1 it replaces. Lifted to
+     4.62:1 on the same hue and saturation. */
+  --ink-3: #8173b3;
+
+  /* Magenta leads, violet follows: the existing button rule is
+     linear-gradient(135deg, var(--ember), var(--ember-d)), which reproduces the
+     design's primary CTA (140deg, a2 -> vi) without touching the rule. */
+  --ember: #ff2d9b; --ember-d: #8b5cf6; --ember-soft: rgba(255,45,155,.14);
+  --teal: #22e1ff; --gold: #8b5cf6;
+
+  --line: rgba(150,110,255,.20); --line-2: rgba(150,110,255,.34);
+  --ok: #3ddc97; --warn: #ffb648; --bad: #ff5d6c;
+
+  /* --serif is the display face; the design uses Poppins where the old theme used
+     Fraunces. Both were already loaded in layout.tsx. */
+  --serif: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
-  --shadow: 0 1px 2px rgba(20,24,34,.05), 0 10px 30px -16px rgba(20,24,34,.22);
+
+  /* Glow intensity multiplier, straight from the design (--nx-g). Set it to 0 to
+     flatten every glow at once without editing a single shadow. */
+  --glow: 1;
+  --shadow: 0 0 calc(36px * var(--glow)) rgba(139,92,246,.18), 0 24px 50px -24px #000;
   --radius: 16px;
-}
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0b0d12; --surface: #14171e; --surface-2: #1b1f28; --surface-3: #232833;
-  --ink: #ecedf2; --ink-2: #a7afbd; --ink-3: #757e8f;
-  --ember: #f0764f; --ember-d: #d9603a; --ember-soft: rgba(240,118,79,.13);
-  --teal: #3cb6a7; --gold: #d3a24e;
-  --line: #242a34; --line-2: #2f3542;
-  --ok: #54b581; --warn: #d6a53f; --bad: #e46a58;
-  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 44px -22px rgba(0,0,0,.8);
-}}
-:root[data-theme="dark"] {
-  --bg: #0b0d12; --surface: #14171e; --surface-2: #1b1f28; --surface-3: #232833;
-  --ink: #ecedf2; --ink-2: #a7afbd; --ink-3: #757e8f;
-  --ember: #f0764f; --ember-d: #d9603a; --ember-soft: rgba(240,118,79,.13);
-  --teal: #3cb6a7; --gold: #d3a24e;
-  --line: #242a34; --line-2: #2f3542;
-  --ok: #54b581; --warn: #d6a53f; --bad: #e46a58;
-  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 44px -22px rgba(0,0,0,.8);
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
+  /* Two ambient washes, violet top-left and cyan top-right, exactly as the design. */
   background:
-    radial-gradient(120% 80% at 12% -5%, var(--ember-soft), transparent 42%),
+    radial-gradient(900px 600px at 12% -6%, rgba(139,92,246,.24), transparent 60%),
+    radial-gradient(700px 500px at 92% 8%, rgba(34,225,255,.14), transparent 60%),
     var(--bg);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--sans);
   line-height: 1.55;
