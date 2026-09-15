@@ -188,6 +188,32 @@ ever been able to SET it.
   the recipient / body / API key never do. **197 passing**; `tsc` clean; build clean.
 - **Not verified in a browser** — the dashboard sits behind auth.
 
+## Session log — 2026-09-15 (hand a new box to its admin at creation)
+Same branch as the invite-link pivot. **No migration** — `invitation_target_role_check`
+already allows `box_admin` (`0022`, applied live as `20260914122833`, verified against
+`jpnnzxnvubrosjjcbkmn` this session; the `0022` session log below saying it still
+"needs applying" is stale).
+
+- **`POST /api/boxes` takes an optional `adminPhone`.** Fill it in and the response
+  carries `adminInvite: { link, public_id, expires_at }` — a one-time, phone-bound
+  `box_admin` invitation for that number, created in the same request as the box. The
+  Create Box form shows the field to operators and renders the link with a Copy button.
+- ⚠️ **Operator-only, and it had to be.** Appointing a box admin is a platform-operator
+  action wherever it happens; letting box creation take an `adminPhone` from a creator
+  would have been a second, looser door to the same grant. The route re-checks
+  `platform_operator` and 403s otherwise — it does not rely on the form hiding the field.
+- ⚠️ **The phone is normalised with `toE164` BEFORE `createBox` runs.** `createInvitation`
+  would otherwise throw on a typo *after* the box row was committed, leaving an orphan
+  box with no admin and no invitation. Validate first, then create both.
+- **Link only — never SMS from here**, consistent with the invite pivot: appointing an
+  admin must not depend on a working SMS provider.
+- **Creator-owned boxes already worked** and needed no change: `createBox` writes
+  `box_admin` into both `box_membership` and `account_role` for whoever created it
+  (`lib/boxes.ts:45-46`), and `POST /api/boxes` has accepted creators since `0022`'s
+  session. Verified, not assumed.
+- Tests: `tests/box-admin-invite.test.ts` (3) pin the pre-validation contract.
+  **200 passing**; `tsc` clean; build clean. **Not verified in a browser** (auth-gated).
+
 ## Session log — 2026-09-14 (box admins: grantable + creator-owned boxes)
 Branch `claude/box-admin-roles`. Migration `0022_invite_box_admin.sql` — **needs
 applying**; strictly widens a CHECK, so no existing row can violate it.

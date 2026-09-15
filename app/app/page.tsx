@@ -88,7 +88,7 @@ export default function Dashboard() {
 
       <AccountSettings initialEmail={me?.account.email ?? null} />
 
-      {(isOperator || isCreator) && <CreateBox onCreated={loadBoxes} />}
+      {(isOperator || isCreator) && <CreateBox onCreated={loadBoxes} canMakeAdmin={isOperator} />}
 
       <h2 style={{ marginTop: 26 }}>Your boxes</h2>
       {boxes.length === 0 ? (
@@ -495,23 +495,47 @@ function AccountSettings({ initialEmail }: { initialEmail: string | null }) {
   );
 }
 
-function CreateBox({ onCreated }: { onCreated: () => void }) {
+// An operator can hand the new box straight to its admin: fill in a number and the
+// box comes back with a one-time invite link for it. Link only — appointing an admin
+// must not depend on a working SMS provider.
+function CreateBox({ onCreated, canMakeAdmin }: { onCreated: () => void; canMakeAdmin: boolean }) {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
+  const [adminPhone, setAdminPhone] = useState('');
   const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
+  const [adminLink, setAdminLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  async function copy() {
+    if (!adminLink) return;
+    try {
+      await navigator.clipboard.writeText(adminLink);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setMsg({ kind: 'err', text: 'Could not copy — select the link and copy it manually.' });
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true); setMsg(null);
+    setBusy(true); setMsg(null); setAdminLink(null); setCopied(false);
     try {
       const r = await fetch('/api/boxes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description: desc || null }),
+        body: JSON.stringify({ name, description: desc || null, adminPhone: canMakeAdmin ? adminPhone : undefined }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Could not create box');
-      setName(''); setDesc(''); setMsg({ kind: 'ok', text: `Created ${j.box.public_id}` });
+      setName(''); setDesc(''); setAdminPhone('');
+      setAdminLink(j.adminInvite?.link ?? null);
+      setMsg({
+        kind: 'ok',
+        text: j.adminInvite
+          ? `Created ${j.box.public_id}. Send the admin link below — it works once, for that number only.`
+          : `Created ${j.box.public_id}.`,
+      });
       onCreated();
     } catch (err) {
       setMsg({ kind: 'err', text: (err as Error).message });
@@ -525,8 +549,26 @@ function CreateBox({ onCreated }: { onCreated: () => void }) {
       <input id="bn" placeholder="African Girls" value={name} onChange={(e) => setName(e.target.value)} />
       <label htmlFor="bd">Description (optional)</label>
       <input id="bd" placeholder="A shared content room" value={desc} onChange={(e) => setDesc(e.target.value)} />
+      {canMakeAdmin && (
+        <>
+          <label htmlFor="ba">Box admin phone (optional)</label>
+          <input id="ba" placeholder="+31612345678" value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} />
+          <div className="dim" style={{ fontSize: 13 }}>
+            Leave empty to run the box yourself. Fill it in and you get a one-time link to send them.
+          </div>
+        </>
+      )}
       <div className="row" style={{ marginTop: 16 }}><button disabled={busy || !name}>{busy ? 'Creating…' : 'Create box'}</button></div>
       {msg && <div className={`msg ${msg.kind}`}>{msg.text}</div>}
+      {adminLink && (
+        <div style={{ marginTop: 8 }}>
+          <div className="row" style={{ alignItems: 'center', gap: 8 }}>
+            <div className="dim" style={{ fontWeight: 600 }}>Box admin invite link</div>
+            <button type="button" className="sm alt" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
+          </div>
+          <code className="link">{adminLink}</code>
+        </div>
+      )}
     </form>
   );
 }
