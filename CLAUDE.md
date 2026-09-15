@@ -148,6 +148,46 @@ Branch `claude/invite-sms`. No migration. Three real bugs, not a missing feature
 - Tests: `tests/invite-sms.test.ts` (5), incl. a guard that the body is carried verbatim
   and never reworded as a code. **167 passing**; `tsc` clean; `next build` compiles.
 
+## Session log — 2026-09-15 (invites pivot to links; SMS becomes opt-in)
+Branch `claude/lucid-einstein-r49f6g`. **No migration** — `invitation.revoked_at` has
+existed since `0003` and `acceptInvitation` already refused a revoked row; nothing had
+ever been able to SET it.
+
+- **Why:** invites were not arriving, and Bird was the suspect. But the diagnosis was
+  unreachable, because **three layers were silent at once**: `sendSms` logged only
+  `[sms] send failed (NNN)` and threw away the `detail` that `birdPost` had already
+  parsed from Bird's `{code, message}` envelope; the route returned `smsSent` and the
+  dashboard ignored it; and the dashboard read `j.dev?.link`, a shape the route stopped
+  returning on 2026-09-13, so the fallback link **never rendered**. The operator saw
+  "Invitation sent" whether or not anything was sent, and had no link to fall back on.
+- ⚠️ **So it was never established that Bird is the cause.** It may well be (invite SMS
+  needs the key's own `sms:write` scope plus an approved `BIRD_FROM`, which the
+  `bird-verify` gate deliberately sidesteps) — but the UI now reports the provider's
+  own words, so the next attempt settles it instead of guessing.
+- **The link IS the invitation.** It always was: a single-use, phone-bound, 72h token.
+  SMS was only an envelope. So SMS is now **opt-in** (`sendSms: true` in the POST body,
+  default off), the link is always returned and always displayed with a Copy button,
+  and the response carries `sms: {attempted, sent, detail?}` which the UI reports
+  truthfully. Link-only delivery costs nothing and needs no working SMS provider.
+- **Handing the link to the inviter is safe** and is why this works: the token is bound
+  to `target_phone_hash`, and `acceptInvitation` still requires the invitee's own
+  OTP-verified number. A leaked link is useless to anyone else.
+- **`lib/sms.ts`**: new `sendSmsChecked()` → `{ok} | {ok:false,status,detail}`, mirroring
+  the `sendEmail`/`sendEmailChecked` split. `sendSms()` is now a boolean wrapper over it,
+  so payouts.ts and identity.ts are unchanged. Twilio's error body is parsed too.
+- **New: `GET /api/boxes/[id]/invitations`** (box admin/operator) lists a box's
+  invitations with a derived status (pending/accepted/expired/revoked). ⚠️ It returns
+  **no phone number** — numbers are encrypted at rest and every platform decrypt is
+  audit-logged; a convenience listing has not earned one.
+- **New: `POST /api/boxes/[id]/invitations/[inviteId]/revoke`** — the kill switch that
+  makes link delivery safe. Guarded by `.is('used_at', null).is('revoked_at', null)` on
+  the UPDATE so it cannot race an accept. ⚠️ **Revoking a `box_admin` invitation is
+  operator-only**, mirroring who may create one — a box admin must not be able to undo
+  an operator's appointment.
+- Tests: `tests/invite-link.test.ts` (4) — the provider reason reaches the caller, and
+  the recipient / body / API key never do. **197 passing**; `tsc` clean; build clean.
+- **Not verified in a browser** — the dashboard sits behind auth.
+
 ## Session log — 2026-09-14 (box admins: grantable + creator-owned boxes)
 Branch `claude/box-admin-roles`. Migration `0022_invite_box_admin.sql` — **needs
 applying**; strictly widens a CHECK, so no existing row can violate it.
