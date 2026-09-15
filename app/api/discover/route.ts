@@ -15,14 +15,22 @@ export async function GET(_req: NextRequest) {
 
   const isOperator = await hasRole(account.id, 'platform_operator');
 
-  let boxIds: string[] | null = null; // null = all (operator)
+  // Archived boxes are excluded for EVERYONE here, operators included: discover is the
+  // rental surface, and content you can still rent is not archived in any useful sense.
+  // An operator inspecting an archived box does it from the moderation console.
+  const { data: liveBoxes } = await admin().from('box').select('id').neq('status', 'archived');
+  const liveBoxIds = ((liveBoxes ?? []) as { id: string }[]).map((b) => b.id);
+  if (liveBoxIds.length === 0) return NextResponse.json({ ok: true, feed: [] });
+
+  let boxIds: string[] = liveBoxIds;
   if (!isOperator) {
     const { data: memberships } = await admin()
       .from('box_membership')
       .select('box_id')
       .eq('account_id', account.id)
       .eq('status', 'active');
-    boxIds = ((memberships ?? []) as { box_id: string }[]).map((m) => m.box_id);
+    const live = new Set(liveBoxIds);
+    boxIds = ((memberships ?? []) as { box_id: string }[]).map((m) => m.box_id).filter((id) => live.has(id));
     if (boxIds.length === 0) return NextResponse.json({ ok: true, feed: [] });
   }
 
@@ -32,7 +40,7 @@ export async function GET(_req: NextRequest) {
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
     .limit(80);
-  if (boxIds) query = query.in('box_id', boxIds);
+  query = query.in('box_id', boxIds);
 
   const { data } = await query;
 

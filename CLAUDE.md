@@ -148,6 +148,134 @@ Branch `claude/invite-sms`. No migration. Three real bugs, not a missing feature
 - Tests: `tests/invite-sms.test.ts` (5), incl. a guard that the body is carried verbatim
   and never reworded as a code. **167 passing**; `tsc` clean; `next build` compiles.
 
+## Session log — 2026-09-15 (invites pivot to links; SMS becomes opt-in)
+Branch `claude/lucid-einstein-r49f6g`. **No migration** — `invitation.revoked_at` has
+existed since `0003` and `acceptInvitation` already refused a revoked row; nothing had
+ever been able to SET it.
+
+- **Why:** invites were not arriving, and Bird was the suspect. But the diagnosis was
+  unreachable, because **three layers were silent at once**: `sendSms` logged only
+  `[sms] send failed (NNN)` and threw away the `detail` that `birdPost` had already
+  parsed from Bird's `{code, message}` envelope; the route returned `smsSent` and the
+  dashboard ignored it; and the dashboard read `j.dev?.link`, a shape the route stopped
+  returning on 2026-09-13, so the fallback link **never rendered**. The operator saw
+  "Invitation sent" whether or not anything was sent, and had no link to fall back on.
+- ⚠️ **So it was never established that Bird is the cause.** It may well be (invite SMS
+  needs the key's own `sms:write` scope plus an approved `BIRD_FROM`, which the
+  `bird-verify` gate deliberately sidesteps) — but the UI now reports the provider's
+  own words, so the next attempt settles it instead of guessing.
+- **The link IS the invitation.** It always was: a single-use, phone-bound, 72h token.
+  SMS was only an envelope. So SMS is now **opt-in** (`sendSms: true` in the POST body,
+  default off), the link is always returned and always displayed with a Copy button,
+  and the response carries `sms: {attempted, sent, detail?}` which the UI reports
+  truthfully. Link-only delivery costs nothing and needs no working SMS provider.
+- **Handing the link to the inviter is safe** and is why this works: the token is bound
+  to `target_phone_hash`, and `acceptInvitation` still requires the invitee's own
+  OTP-verified number. A leaked link is useless to anyone else.
+- **`lib/sms.ts`**: new `sendSmsChecked()` → `{ok} | {ok:false,status,detail}`, mirroring
+  the `sendEmail`/`sendEmailChecked` split. `sendSms()` is now a boolean wrapper over it,
+  so payouts.ts and identity.ts are unchanged. Twilio's error body is parsed too.
+- **New: `GET /api/boxes/[id]/invitations`** (box admin/operator) lists a box's
+  invitations with a derived status (pending/accepted/expired/revoked). ⚠️ It returns
+  **no phone number** — numbers are encrypted at rest and every platform decrypt is
+  audit-logged; a convenience listing has not earned one.
+- **New: `POST /api/boxes/[id]/invitations/[inviteId]/revoke`** — the kill switch that
+  makes link delivery safe. Guarded by `.is('used_at', null).is('revoked_at', null)` on
+  the UPDATE so it cannot race an accept. ⚠️ **Revoking a `box_admin` invitation is
+  operator-only**, mirroring who may create one — a box admin must not be able to undo
+  an operator's appointment.
+- Tests: `tests/invite-link.test.ts` (4) — the provider reason reaches the caller, and
+  the recipient / body / API key never do. **197 passing**; `tsc` clean; build clean.
+- **Not verified in a browser** — the dashboard sits behind auth.
+
+## Session log — 2026-09-15 (hand a new box to its admin at creation)
+Same branch as the invite-link pivot. **No migration** — `invitation_target_role_check`
+already allows `box_admin` (`0022`, applied live as `20260914122833`, verified against
+`jpnnzxnvubrosjjcbkmn` this session; the `0022` session log below saying it still
+"needs applying" is stale).
+
+- **`POST /api/boxes` takes an optional `adminPhone`.** Fill it in and the response
+  carries `adminInvite: { link, public_id, expires_at }` — a one-time, phone-bound
+  `box_admin` invitation for that number, created in the same request as the box. The
+  Create Box form shows the field to operators and renders the link with a Copy button.
+- ⚠️ **Operator-only, and it had to be.** Appointing a box admin is a platform-operator
+  action wherever it happens; letting box creation take an `adminPhone` from a creator
+  would have been a second, looser door to the same grant. The route re-checks
+  `platform_operator` and 403s otherwise — it does not rely on the form hiding the field.
+- ⚠️ **The phone is normalised with `toE164` BEFORE `createBox` runs.** `createInvitation`
+  would otherwise throw on a typo *after* the box row was committed, leaving an orphan
+  box with no admin and no invitation. Validate first, then create both.
+- **Link only — never SMS from here**, consistent with the invite pivot: appointing an
+  admin must not depend on a working SMS provider.
+- **Creator-owned boxes already worked** and needed no change: `createBox` writes
+  `box_admin` into both `box_membership` and `account_role` for whoever created it
+  (`lib/boxes.ts:45-46`), and `POST /api/boxes` has accepted creators since `0022`'s
+  session. Verified, not assumed.
+- Tests: `tests/box-admin-invite.test.ts` (3) pin the pre-validation contract.
+  **200 passing**; `tsc` clean; build clean. **Not verified in a browser** (auth-gated).
+
+## Session log — 2026-09-15 (which boxes still need an admin)
+Same branch. **No migration.**
+
+- **The capability already existed; the visibility did not.** Every box card already
+  renders the per-box Invite form, and an operator could already pick `box_admin` there
+  for any existing box — so "let operators hand an existing box to a number" needed no
+  new endpoint. What was missing: an operator is `box_admin` on **every box they
+  created**, so counting admins naively marks all of them staffed and the ones still
+  waiting to be handed over are invisible.
+- **`listBoxesForAccount` now attaches `adminCount`** for operators: active `box_admin`
+  memberships held by accounts that are **not** platform operators. Two queries total
+  regardless of box count (memberships for the box ids, then which of those accounts are
+  operators). ⚠️ Operator-only — they are the only role that can appoint a box admin, so
+  on anyone else's dashboard it is noise that costs two extra queries. `adminCount` is
+  therefore `undefined` for non-operators, which is why the UI tests `=== 0`, not falsy.
+- **`tallyNonOperatorAdmins(boxIds, admins, operatorIds)` is exported and pure** so the
+  exclusion rule — the part that can actually be wrong — is unit-tested. It also fills
+  every requested box id with 0, so a box with no membership rows reports 0 rather than
+  going missing and silently hiding the flag.
+- **Dashboard:** a box with `adminCount === 0` shows a `· no admin yet` tag, and its
+  Invite form opens pre-set to **box admin** so handing it over is one field away.
+  ⚠️ The role state is clamped with `canMakeAdmin ? defaultRole : 'creator'` — the
+  `box admin` option is not rendered for a non-operator, so seeding the state with it
+  would submit a role the server refuses with no way to change it in the UI.
+- Tests: `tests/box-admin-count.test.ts` (6). **206 passing**; `tsc` clean; build clean.
+  **Not verified in a browser** (auth-gated).
+
+## Session log — 2026-09-15 (removing a box, without destroying paid rentals)
+Same branch. **No migration** — `box.status` already allowed `archived` since `0002`.
+
+- ⚠️ **`box.status` was never checked anywhere.** Every `.eq('status','active')` in
+  `lib/boxes.ts` is on **`box_membership.status`**, not the box. So archiving a box would
+  have hidden nothing: it would still list, open, accept uploads and accept rentals.
+  Making archive mean something took gates in **five** places, not one.
+- ⚠️ **`box(id)` CASCADES to `content`, `rental`, `box_membership` and `invitation`.**
+  A `rental` is a paid 24h entitlement, so a plain `DELETE FROM box` destroys access
+  somebody bought *and* the record of what they bought — while the `ledger_entry` debit
+  that paid for it survives (`ledger_entry` has no FK to rental; `ref_id` is free text).
+  That leaves a charge with no counterpart, in a ledger that is meant to be immutable.
+- **So `removeBox()` decides, it does not just delete.** `boxRemovalMode(content, rentals)`
+  (exported + pure + tested) hard-deletes **only** a box that has never held content and
+  never had a rental — a typo made two minutes ago. Everything else **archives**, and
+  `POST /api/boxes/[id]/restore` brings it back. There is deliberately **no force flag**.
+- **The five gates that make archived real:** `listBoxesForAccount` (filters the BOX's
+  status for non-operators), `getBoxForAccount` (null for non-operators), the box feed
+  route (404), `/api/discover` (excludes archived for **everyone including operators** —
+  it is the rental surface, and rentable content is not archived in any useful sense),
+  `POST /api/content` (409 on upload), and `rentContent` (the `rent_content` RPC takes a
+  content id and knows nothing about boxes, so without a check an archived box's items
+  stay rentable to anyone holding a direct link).
+- **UI lives in the moderation console**, not the dashboard — a new **Boxes** tab.
+  ⚠️ **Operator-only, stricter than the rest of that console**, which is moderator-gated:
+  moderators judge content, but removing a box is structural and carries other people's
+  rentals with it. `GET /api/moderation/boxes` 403s for a moderator and the tab simply
+  does not render (a 403 there is not treated as console denial).
+- The button says what will actually happen — **Delete permanently** only when the box is
+  empty, **Archive** otherwise — decided client-side by the same rule as the server, with
+  a `confirm()` that names the counts. Claiming "Delete" on a box that only archives
+  would be a lie.
+- Tests: `tests/box-removal.test.ts` (5). **211 passing**; `tsc` clean; build clean.
+  **Not verified in a browser** (auth-gated).
+
 ## Session log — 2026-09-14 (box admins: grantable + creator-owned boxes)
 Branch `claude/box-admin-roles`. Migration `0022_invite_box_admin.sql` — **needs
 applying**; strictly widens a CHECK, so no existing row can violate it.

@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(boxPublicId);
   const { data: box } = await admin()
     .from('box')
-    .select('id')
+    .select('id, status')
     .eq(isUuid ? 'id' : 'public_id', boxPublicId)
     .maybeSingle();
   if (!box) {
@@ -49,6 +49,11 @@ export async function POST(req: NextRequest) {
     );
   }
   const boxId = (box as { id: string }).id;
+  // An archived box accepts nothing new. Without this the box list hides it while
+  // uploads keep landing in it.
+  if ((box as { status?: string }).status === 'archived') {
+    return NextResponse.json({ ok: false, error: 'This box has been archived and no longer accepts uploads' }, { status: 409 });
+  }
 
   const isOperator = await hasRole(account.id, 'platform_operator');
   const allowed = isOperator || (await hasRole(account.id, 'creator', boxId)) || (await hasRole(account.id, 'box_admin', boxId));
