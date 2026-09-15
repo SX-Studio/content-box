@@ -207,6 +207,38 @@ bundle "Classic Neon Templates" (project `Neon templates for content24market`).
   components across the 14 routes. The bundle's screen map lists the repo file for each.
 - Handoff bundle extracted at `scratchpad/neon/` (session-local; re-upload if needed).
 
+## Session log — 2026-09-15 (NOWPayments crypto rail — ready to switch on)
+Branch `main`. **No migration** — `token_order` is live and correct (columns, the
+`status` CHECK `pending|paid|failed`, `status` defaulting to `pending`, and no CHECK on
+`provider`, all verified against the live DB).
+
+- **The integration was already written; this made it safe to turn on.** Every detail
+  was re-verified against NOWPayments' own Node SDK rather than memory: header
+  `x-api-key`, `POST /v1/invoice`, body `price_amount`/`price_currency`/`order_id`/
+  `order_description`/`ipn_callback_url`/`success_url`/`cancel_url`, and IPN =
+  HMAC-SHA512 of `JSON.stringify(sortObjectDeep(payload))` vs `x-nowpayments-sig`.
+  All of it matched what was in `lib/nowpayments.ts`.
+- ⚠️ **The money-losing bug found before it could fire: `APP_ORIGIN`.** `env.appOrigin()`
+  falls back to `http://localhost:3000`, and the invoice's `ipn_callback_url` is built
+  from it. An invoice created that way takes the buyer's crypto and posts the "paid"
+  callback into the void — money moves, wallet never credited, nothing errors anywhere.
+  `publicOrigin()` now refuses anything that is not a public https origin, and
+  `createInvoice` returns `{ok:false, reason}` **before** calling the API.
+- **Provider errors are no longer swallowed.** `createInvoice` returned bare `null` for
+  every failure. It now carries NOWPayments' status and body out to the route log —
+  the same lesson the Bird integration cost two debugging rounds to learn. The API key
+  is never echoed (pinned by a test).
+- **Setup order matters and is not obvious:** a **payout wallet must exist before the
+  API key can be generated**, and the **IPN secret is shown in full only once**.
+  Both documented in `docs/nowpayments-setup.md`. There is **no callback URL to
+  register** — `ipn_callback_url` rides on each invoice.
+- Tests: `tests/nowpayments.test.ts` (10) — origin rejection incl. "no fetch was made",
+  the documented request body, the provider error surfacing without the key, and IPN
+  signature accept/tamper/wrong-secret/empty. **193 passing**; `tsc` clean; build clean.
+- **Still config, not code:** set `NOWPAYMENTS_API_KEY`, `NOWPAYMENTS_IPN_SECRET` and
+  `APP_ORIGIN` in Vercel, then redeploy. Until then `/api/wallet/purchase-crypto`
+  answers `{configured:false}` and the wallet says no payment method is set up.
+
 ## Session log — 2026-09-14 (landing: real buttons, /login not /app, and the blur budget)
 Branch `main`. No migration.
 

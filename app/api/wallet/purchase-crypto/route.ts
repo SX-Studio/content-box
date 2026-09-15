@@ -37,7 +37,10 @@ export async function POST(req: NextRequest) {
       orderId: (order as { id: string }).id,
       description: `${pkg.tokens} tokens - Content Box`, // ASCII only
     });
-    if (!inv) return NextResponse.json({ ok: false, error: 'Could not start crypto checkout' }, { status: 502 });
+    if (!inv.ok) {
+      console.error('[wallet/purchase-crypto]', inv.reason);
+      return NextResponse.json({ ok: false, error: 'Could not start crypto checkout' }, { status: 502 });
+    }
 
     await writeAudit({ actorId: account.id, action: 'tokens.order', targetType: 'token_order', targetId: (order as { public_id: string }).public_id, metadata: { tokens: pkg.tokens, provider: 'nowpayments' } });
     return NextResponse.json({ configured: true, url: inv.url });

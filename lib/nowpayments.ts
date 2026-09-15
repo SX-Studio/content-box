@@ -14,15 +14,34 @@ export function nowpaymentsConfig() {
   return { configured: Boolean(apiKey && ipnSecret), apiKey, ipnSecret };
 }
 
+// Every URL handed to NOWPayments — the IPN callback above all — is built from
+// APP_ORIGIN, which falls back to http://localhost:3000 when unset. An invoice
+// created with that callback takes the buyer's crypto and then posts the "paid"
+// notification into the void: money moves, the wallet is never credited, and
+// nothing anywhere reports an error. Refuse to create the invoice instead.
+export function publicOrigin(): string | null {
+  const o = env.appOrigin().replace(/\/+$/, '');
+  if (!/^https:\/\//i.test(o)) return null;
+  if (/^https:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|$)/i.test(o)) return null;
+  return o;
+}
+
 // Create a hosted invoice; the buyer picks the coin on NOWPayments' page and is
 // returned to /app afterwards. Wallet credit happens later via the IPN webhook.
+export type InvoiceResult =
+  | { ok: true; url: string; id: string }
+  | { ok: false; reason: string };
+
 export async function createInvoice(opts: {
   apiKey: string;
   priceEur: number;
   orderId: string;
   description: string; // ASCII, slash-free (keeps IPN signature parity simple)
-}): Promise<{ url: string; id: string } | null> {
-  const origin = env.appOrigin();
+}): Promise<InvoiceResult> {
+  const origin = publicOrigin();
+  if (!origin) {
+    return { ok: false, reason: `APP_ORIGIN is not a public https origin (got "${env.appOrigin()}") — NOWPayments could not reach the IPN callback, so a paid invoice would never credit the wallet` };
+  }
   const res = await fetch(`${API}/invoice`, {
     method: 'POST',
     headers: { 'x-api-key': opts.apiKey, 'Content-Type': 'application/json' },
@@ -36,10 +55,16 @@ export async function createInvoice(opts: {
       cancel_url: `${origin}/app?status=cancel`,
     }),
   });
-  if (!res.ok) return null;
-  const j = (await res.json()) as { id?: string | number; invoice_url?: string };
-  if (!j.invoice_url) return null;
-  return { url: j.invoice_url, id: String(j.id ?? '') };
+  // Carry NOWPayments' own words out. Swallowing the provider's error is exactly
+  // what cost two debugging rounds on the Bird SMS integration — the reason existed
+  // and was simply unreachable. Nothing here echoes the API key.
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    return { ok: false, reason: `NOWPayments invoice failed (${res.status})${detail ? `: ${detail.slice(0, 300)}` : ''}` };
+  }
+  const j = (await res.json().catch(() => null)) as { id?: string | number; invoice_url?: string } | null;
+  if (!j?.invoice_url) return { ok: false, reason: 'NOWPayments returned no invoice_url' };
+  return { ok: true, url: j.invoice_url, id: String(j.id ?? '') };
 }
 
 // IPN signature: HMAC-SHA512 of the JSON body with keys sorted alphabetically,
