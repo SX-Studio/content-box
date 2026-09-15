@@ -214,6 +214,33 @@ already allows `box_admin` (`0022`, applied live as `20260914122833`, verified a
 - Tests: `tests/box-admin-invite.test.ts` (3) pin the pre-validation contract.
   **200 passing**; `tsc` clean; build clean. **Not verified in a browser** (auth-gated).
 
+## Session log — 2026-09-15 (which boxes still need an admin)
+Same branch. **No migration.**
+
+- **The capability already existed; the visibility did not.** Every box card already
+  renders the per-box Invite form, and an operator could already pick `box_admin` there
+  for any existing box — so "let operators hand an existing box to a number" needed no
+  new endpoint. What was missing: an operator is `box_admin` on **every box they
+  created**, so counting admins naively marks all of them staffed and the ones still
+  waiting to be handed over are invisible.
+- **`listBoxesForAccount` now attaches `adminCount`** for operators: active `box_admin`
+  memberships held by accounts that are **not** platform operators. Two queries total
+  regardless of box count (memberships for the box ids, then which of those accounts are
+  operators). ⚠️ Operator-only — they are the only role that can appoint a box admin, so
+  on anyone else's dashboard it is noise that costs two extra queries. `adminCount` is
+  therefore `undefined` for non-operators, which is why the UI tests `=== 0`, not falsy.
+- **`tallyNonOperatorAdmins(boxIds, admins, operatorIds)` is exported and pure** so the
+  exclusion rule — the part that can actually be wrong — is unit-tested. It also fills
+  every requested box id with 0, so a box with no membership rows reports 0 rather than
+  going missing and silently hiding the flag.
+- **Dashboard:** a box with `adminCount === 0` shows a `· no admin yet` tag, and its
+  Invite form opens pre-set to **box admin** so handing it over is one field away.
+  ⚠️ The role state is clamped with `canMakeAdmin ? defaultRole : 'creator'` — the
+  `box admin` option is not rendered for a non-operator, so seeding the state with it
+  would submit a role the server refuses with no way to change it in the UI.
+- Tests: `tests/box-admin-count.test.ts` (6). **206 passing**; `tsc` clean; build clean.
+  **Not verified in a browser** (auth-gated).
+
 ## Session log — 2026-09-14 (box admins: grantable + creator-owned boxes)
 Branch `claude/box-admin-roles`. Migration `0022_invite_box_admin.sql` — **needs
 applying**; strictly widens a CHECK, so no existing row can violate it.

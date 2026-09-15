@@ -12,7 +12,7 @@ export type Box = {
   status: string;
   created_at: string;
 };
-export type BoxWithRole = Box & { role?: string };
+export type BoxWithRole = Box & { role?: string; adminCount?: number };
 
 const SELECT = 'id, public_id, name, description, status, created_at';
 
@@ -65,11 +65,56 @@ export async function renameBox(opts: { boxPublicId: string; name: string; actor
   return box;
 }
 
-// Operators see every box; everyone else sees the boxes they belong to.
+// Who actually runs a box: active box_admins who are NOT platform operators. An
+// operator is box_admin on every box they created, so counting admins naively makes
+// every box look staffed and hides the ones still waiting to be handed over.
+export function tallyNonOperatorAdmins(
+  boxIds: string[],
+  admins: { box_id: string; account_id: string }[],
+  operatorIds: Set<string>,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const id of boxIds) counts[id] = 0;
+  for (const a of admins) {
+    if (operatorIds.has(a.account_id)) continue;
+    if (!(a.box_id in counts)) continue;
+    counts[a.box_id] += 1;
+  }
+  return counts;
+}
+
+// Two queries regardless of how many boxes there are.
+async function nonOperatorAdminCounts(boxIds: string[]): Promise<Record<string, number>> {
+  if (!boxIds.length) return {};
+
+  const { data: memberships } = await admin()
+    .from('box_membership')
+    .select('box_id, account_id')
+    .in('box_id', boxIds)
+    .eq('role', 'box_admin')
+    .eq('status', 'active');
+  const rows = (memberships ?? []) as { box_id: string; account_id: string }[];
+  if (!rows.length) return tallyNonOperatorAdmins(boxIds, [], new Set());
+
+  const { data: operators } = await admin()
+    .from('account_role')
+    .select('account_id')
+    .eq('role', 'platform_operator')
+    .in('account_id', [...new Set(rows.map((r) => r.account_id))]);
+  const operatorIds = new Set(((operators ?? []) as { account_id: string }[]).map((o) => o.account_id));
+
+  return tallyNonOperatorAdmins(boxIds, rows, operatorIds);
+}
+
+// Operators see every box; everyone else sees the boxes they belong to. adminCount is
+// attached for operators only — they are the only ones who can appoint a box admin, so
+// on anyone else's dashboard it would be noise that costs two extra queries.
 export async function listBoxesForAccount(accountId: string, isOperator: boolean): Promise<BoxWithRole[]> {
   if (isOperator) {
     const { data } = await admin().from('box').select(SELECT).order('created_at', { ascending: false });
-    return (data ?? []) as Box[];
+    const boxes = (data ?? []) as Box[];
+    const counts = await nonOperatorAdminCounts(boxes.map((b) => b.id));
+    return boxes.map((b) => ({ ...b, adminCount: counts[b.id] ?? 0 }));
   }
   const { data } = await admin()
     .from('box_membership')

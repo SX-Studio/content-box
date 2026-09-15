@@ -5,7 +5,9 @@ import { PACKAGES } from '@/lib/packages';
 import { boxCss, BottomNav } from '@/app/box-ui';
 
 type Me = { account: { public_id: string; status: string; email: string | null }; roles: { role: string; box_id: string | null }[] };
-type Box = { public_id: string; name: string; description: string | null; status: string; role?: string };
+// adminCount = active box_admins who are not platform operators. Sent to operators
+// only; undefined for everyone else, which is why the badge below tests for === 0.
+type Box = { public_id: string; name: string; description: string | null; status: string; role?: string; adminCount?: number };
 
 export default function Dashboard() {
   const router = useRouter();
@@ -99,6 +101,9 @@ export default function Dashboard() {
             <div className="between">
               <div>
                 <strong>{b.name}</strong> {b.role && <span className="tag">· {b.role}</span>}
+                {b.adminCount === 0 && (
+                  <span className="tag" style={{ color: 'var(--warn, #e0a94a)' }}> · no admin yet</span>
+                )}
                 <div className="dim"><span className="mono">{b.public_id}</span>{b.description ? ` — ${b.description}` : ''}</div>
               </div>
               <div className="row" style={{ gap: 8 }}>
@@ -106,7 +111,9 @@ export default function Dashboard() {
                 <a href={`/box/${b.public_id}`}><button className="ghost sm">Open feed →</button></a>
               </div>
             </div>
-            {canAdmin(b) && <Invite boxId={b.public_id} canMakeAdmin={isOperator} />}
+            {canAdmin(b) && (
+              <Invite boxId={b.public_id} canMakeAdmin={isOperator} defaultRole={b.adminCount === 0 ? 'box_admin' : 'creator'} />
+            )}
           </div>
         ))
       )}
@@ -584,9 +591,13 @@ type InviteRow = {
   expires_at: string; status: 'pending' | 'accepted' | 'expired' | 'revoked';
 };
 
-function Invite({ boxId, canMakeAdmin }: { boxId: string; canMakeAdmin: boolean }) {
+function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: string; canMakeAdmin: boolean; defaultRole?: string }) {
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('creator');
+  // A box with no admin yet opens on 'box admin', so handing it over is one field away
+  // rather than a dropdown the operator has to remember to change.
+  // Clamp: the 'box admin' option is not rendered for a non-operator, so seeding the
+  // state with it would submit a role the server refuses with no way to change it.
+  const [role, setRole] = useState(canMakeAdmin ? defaultRole : 'creator');
   const [alsoSms, setAlsoSms] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
   const [link, setLink] = useState<string | null>(null);
