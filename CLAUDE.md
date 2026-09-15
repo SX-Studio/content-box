@@ -241,6 +241,41 @@ Same branch. **No migration.**
 - Tests: `tests/box-admin-count.test.ts` (6). **206 passing**; `tsc` clean; build clean.
   **Not verified in a browser** (auth-gated).
 
+## Session log — 2026-09-15 (removing a box, without destroying paid rentals)
+Same branch. **No migration** — `box.status` already allowed `archived` since `0002`.
+
+- ⚠️ **`box.status` was never checked anywhere.** Every `.eq('status','active')` in
+  `lib/boxes.ts` is on **`box_membership.status`**, not the box. So archiving a box would
+  have hidden nothing: it would still list, open, accept uploads and accept rentals.
+  Making archive mean something took gates in **five** places, not one.
+- ⚠️ **`box(id)` CASCADES to `content`, `rental`, `box_membership` and `invitation`.**
+  A `rental` is a paid 24h entitlement, so a plain `DELETE FROM box` destroys access
+  somebody bought *and* the record of what they bought — while the `ledger_entry` debit
+  that paid for it survives (`ledger_entry` has no FK to rental; `ref_id` is free text).
+  That leaves a charge with no counterpart, in a ledger that is meant to be immutable.
+- **So `removeBox()` decides, it does not just delete.** `boxRemovalMode(content, rentals)`
+  (exported + pure + tested) hard-deletes **only** a box that has never held content and
+  never had a rental — a typo made two minutes ago. Everything else **archives**, and
+  `POST /api/boxes/[id]/restore` brings it back. There is deliberately **no force flag**.
+- **The five gates that make archived real:** `listBoxesForAccount` (filters the BOX's
+  status for non-operators), `getBoxForAccount` (null for non-operators), the box feed
+  route (404), `/api/discover` (excludes archived for **everyone including operators** —
+  it is the rental surface, and rentable content is not archived in any useful sense),
+  `POST /api/content` (409 on upload), and `rentContent` (the `rent_content` RPC takes a
+  content id and knows nothing about boxes, so without a check an archived box's items
+  stay rentable to anyone holding a direct link).
+- **UI lives in the moderation console**, not the dashboard — a new **Boxes** tab.
+  ⚠️ **Operator-only, stricter than the rest of that console**, which is moderator-gated:
+  moderators judge content, but removing a box is structural and carries other people's
+  rentals with it. `GET /api/moderation/boxes` 403s for a moderator and the tab simply
+  does not render (a 403 there is not treated as console denial).
+- The button says what will actually happen — **Delete permanently** only when the box is
+  empty, **Archive** otherwise — decided client-side by the same rule as the server, with
+  a `confirm()` that names the counts. Claiming "Delete" on a box that only archives
+  would be a lie.
+- Tests: `tests/box-removal.test.ts` (5). **211 passing**; `tsc` clean; build clean.
+  **Not verified in a browser** (auth-gated).
+
 ## Session log — 2026-09-14 (box admins: grantable + creator-owned boxes)
 Branch `claude/box-admin-roles`. Migration `0022_invite_box_admin.sql` — **needs
 applying**; strictly widens a CHECK, so no existing row can violate it.

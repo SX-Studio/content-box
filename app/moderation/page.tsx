@@ -9,15 +9,20 @@ type Case = {
   content: { public_id: string; title: string; status: string; creator: { public_id: string } | null; box: { public_id: string; name: string } | null } | null;
 };
 type Report = { public_id: string; target_type: string; target_id: string; reason: string; details: string | null; status: string; created_at: string };
+type BoxRow = { public_id: string; name: string; status: string; created_at: string; contentCount: number; rentalCount: number };
 
 const RISK_COLOR: Record<string, string> = { low: 'var(--ok)', uncertain: 'var(--warn, var(--warn))', high: 'var(--bad)' };
 
 export default function ModerationPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<'queue' | 'reports'>('queue');
+  const [tab, setTab] = useState<'queue' | 'reports' | 'boxes'>('queue');
   const [queue, setQueue] = useState<Case[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
+  const [boxes, setBoxes] = useState<BoxRow[]>([]);
+  // Boxes are operator-only, stricter than the rest of this console. A 403 here just
+  // means 'moderator, not operator' — the tab hides, the console still works.
+  const [isOperator, setIsOperator] = useState(false);
   const [state, setState] = useState<'loading' | 'ok' | 'denied'>('loading');
 
   const load = useCallback(async () => {
@@ -27,6 +32,8 @@ export default function ModerationPage() {
     setQueue((await q.json()).queue || []);
     const r = await fetch('/api/moderation/reports');
     if (r.ok) setReports((await r.json()).reports || []);
+    const b = await fetch('/api/moderation/boxes');
+    if (b.ok) { setIsOperator(true); setBoxes((await b.json()).boxes || []); } else { setIsOperator(false); }
     setState('ok');
   }, [router]);
 
@@ -46,6 +53,26 @@ export default function ModerationPage() {
     if (r.ok) load();
   }
 
+  // Removing a box is the one irreversible action in this console when the box is empty,
+  // so it asks first — and the prompt names which of the two things will happen.
+  async function remove(b: BoxRow, permanent: boolean) {
+    const warning = permanent
+      ? `Permanently delete "${b.name}"? It holds no content and no rentals, so this cannot be undone.`
+      : `Archive "${b.name}"? It holds ${b.contentCount} content and ${b.rentalCount} rentals, so it will be hidden everywhere rather than deleted. You can restore it later.`;
+    if (!window.confirm(warning)) return;
+    const r = await fetch(`/api/boxes/${b.public_id}`, { method: 'DELETE' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { window.alert(j.error || 'Could not remove this box'); return; }
+    load();
+  }
+
+  async function restore(b: BoxRow) {
+    const r = await fetch(`/api/boxes/${b.public_id}/restore`, { method: 'POST' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { window.alert(j.error || 'Could not restore this box'); return; }
+    load();
+  }
+
   if (state === 'loading') return <div className="container"><p className="dim">Loading…</p></div>;
   if (state === 'denied') return <div className="container"><h1>Moderation</h1><p className="muted">You don’t have moderator access.</p><a href="/app"><button className="ghost sm">← Dashboard</button></a></div>;
 
@@ -59,6 +86,7 @@ export default function ModerationPage() {
       <div className="row" style={{ margin: '10px 0 4px' }}>
         <button className={tab === 'queue' ? '' : 'ghost'} onClick={() => setTab('queue')}>Content ({queue.length})</button>
         <button className={tab === 'reports' ? '' : 'ghost'} onClick={() => setTab('reports')}>Reports ({reports.filter((r) => r.status === 'open').length})</button>
+        {isOperator && <button className={tab === 'boxes' ? '' : 'ghost'} onClick={() => setTab('boxes')}>Boxes ({boxes.length})</button>}
       </div>
 
       {tab === 'queue' && (queue.length === 0 ? <div className="card"><p className="dim" style={{ margin: 0 }}>No content yet.</p></div> : queue.map((c) => (
@@ -99,6 +127,41 @@ export default function ModerationPage() {
           )}
         </div>
       )))}
+
+      {tab === 'boxes' && (boxes.length === 0 ? <div className="card"><p className="dim" style={{ margin: 0 }}>No boxes.</p></div> : boxes.map((b) => {
+        // What the button will actually do, decided the same way the server decides it.
+        // Saying "Delete" on a box that will only be archived would be a lie.
+        const willDelete = b.contentCount === 0 && b.rentalCount === 0;
+        const archived = b.status === 'archived';
+        return (
+          <div className="card" key={b.public_id}>
+            <div className="between">
+              <div>
+                <strong>{b.name}</strong> <span className="pill">{b.status}</span>
+                <div className="dim mono" style={{ fontSize: 11 }}>{b.public_id}</div>
+                <div className="dim" style={{ fontSize: 13 }}>
+                  {b.contentCount} content · {b.rentalCount} rentals
+                </div>
+              </div>
+            </div>
+            <div className="row" style={{ marginTop: 10 }}>
+              {archived ? (
+                <button className="sm ghost" onClick={() => restore(b)}>Restore</button>
+              ) : willDelete ? (
+                <button className="sm" style={{ background: 'var(--bad)' }} onClick={() => remove(b, true)}>Delete permanently</button>
+              ) : (
+                <button className="sm" style={{ background: 'var(--warn, #e0a94a)', color: '#05030c' }} onClick={() => remove(b, false)}>Archive</button>
+              )}
+            </div>
+            {!archived && !willDelete && (
+              <div className="dim" style={{ fontSize: 12, marginTop: 6 }}>
+                Holds rentals people paid for, so it archives instead of deleting. Archived boxes
+                disappear from every feed and accept no uploads or rentals — and can be restored.
+              </div>
+            )}
+          </div>
+        );
+      }))}
     </div>
   );
 }

@@ -14,8 +14,17 @@ export type MyRental = {
 
 // Rent by content public id. Atomic via rent_content(); friendly errors on the way out.
 export async function rentContent(userId: string, contentPublicId: string, idempotencyKey: string): Promise<{ rentalPublicId: string; expiresAt: string; price: number }> {
-  const { data: content } = await admin().from('content').select('id, public_id').eq('public_id', contentPublicId).maybeSingle();
+  const { data: content } = await admin()
+    .from('content')
+    .select('id, public_id, box:box_id ( status )')
+    .eq('public_id', contentPublicId)
+    .maybeSingle();
   if (!content) throw new Error('Content not found');
+  // rent_content() takes a content id and knows nothing about boxes, so without this an
+  // archived box's items stay rentable to anyone holding a direct link — money changes
+  // hands for a box the operator believes is gone.
+  const box = (content as unknown as { box?: { status?: string } | null }).box;
+  if (box?.status === 'archived') throw new Error('This content is no longer available');
 
   const { data, error } = await admin().rpc('rent_content', {
     p_user: userId,

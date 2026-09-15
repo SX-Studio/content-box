@@ -12,11 +12,16 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const account = await currentAccount();
   if (!account) return NextResponse.json({ ok: false, error: 'Not authenticated' }, { status: 401 });
 
-  const { data: box } = await admin().from('box').select('id').eq('public_id', params.id).maybeSingle();
+  const { data: box } = await admin().from('box').select('id, status').eq('public_id', params.id).maybeSingle();
   if (!box) return NextResponse.json({ ok: false, error: 'Box not found' }, { status: 404 });
   const boxId = (box as { id: string }).id;
 
   if (!(await hasRole(account.id, 'platform_operator'))) {
+    // An archived box reads as gone to everyone but an operator, who still needs to
+    // reach it to restore it.
+    if ((box as { status?: string }).status === 'archived') {
+      return NextResponse.json({ ok: false, error: 'Box not found' }, { status: 404 });
+    }
     const { data: membership } = await admin()
       .from('box_membership')
       .select('id')

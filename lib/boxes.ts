@@ -121,13 +121,88 @@ export async function listBoxesForAccount(accountId: string, isOperator: boolean
     .select(`role, box:box_id ( ${SELECT} )`)
     .eq('account_id', accountId)
     .eq('status', 'active');
-  return ((data ?? []) as unknown as { role: string; box: Box }[]).map((r) => ({ ...r.box, role: r.role }));
+  // The .eq above is on the MEMBERSHIP status. The box's own status is a separate
+  // field and was never filtered anywhere — which is why archiving used to hide nothing.
+  return ((data ?? []) as unknown as { role: string; box: Box }[])
+    .filter((r) => r.box && r.box.status !== 'archived')
+    .map((r) => ({ ...r.box, role: r.role }));
+}
+
+// Deleting a box CASCADES to content, rental, box_membership and invitation. A rental is
+// a paid 24h entitlement, so hard-deleting a box that has any history destroys access
+// somebody bought and the record of what they bought (the ledger debit survives, its
+// counterpart does not). So a hard delete is reserved for a box that has never held
+// anything — a typo made two minutes ago. Everything else archives.
+export function boxRemovalMode(contentCount: number, rentalCount: number): 'delete' | 'archive' {
+  return contentCount === 0 && rentalCount === 0 ? 'delete' : 'archive';
+}
+
+export type BoxRemoval = { mode: 'delete' | 'archive'; contentCount: number; rentalCount: number; box: Box };
+
+export async function removeBox(opts: { boxPublicId: string; actorId: string }): Promise<BoxRemoval> {
+  const { data: found } = await admin().from('box').select(SELECT).eq('public_id', opts.boxPublicId).maybeSingle();
+  if (!found) throw new Error('Box not found');
+  const box = found as Box;
+
+  const [{ count: contentCount }, { count: rentalCount }] = await Promise.all([
+    admin().from('content').select('id', { count: 'exact', head: true }).eq('box_id', box.id),
+    admin().from('rental').select('id', { count: 'exact', head: true }).eq('box_id', box.id),
+  ]);
+  const content = contentCount ?? 0;
+  const rentals = rentalCount ?? 0;
+  const mode = boxRemovalMode(content, rentals);
+
+  if (mode === 'delete') {
+    const { error } = await admin().from('box').delete().eq('id', box.id);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await admin().from('box').update({ status: 'archived' }).eq('id', box.id);
+    if (error) throw new Error(error.message);
+  }
+
+  await writeAudit({
+    actorId: opts.actorId,
+    action: mode === 'delete' ? 'box.deleted' : 'box.archived',
+    targetType: 'box',
+    targetId: box.public_id,
+    metadata: { name: box.name, content_count: content, rental_count: rentals },
+  });
+  await emit(mode === 'delete' ? 'BOX_DELETED' : 'BOX_ARCHIVED', {
+    public_id: box.public_id, by: opts.actorId, content_count: content, rental_count: rentals,
+  });
+  return { mode, contentCount: content, rentalCount: rentals, box };
+}
+
+// Archiving is reversible on purpose — an operator who archives the wrong box would
+// otherwise have destroyed it, which is exactly what archiving exists to avoid.
+export async function restoreBox(opts: { boxPublicId: string; actorId: string }): Promise<Box> {
+  const { data, error } = await admin()
+    .from('box')
+    .update({ status: 'active' })
+    .eq('public_id', opts.boxPublicId)
+    .select(SELECT)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Box not found');
+  const box = data as Box;
+  await writeAudit({ actorId: opts.actorId, action: 'box.restored', targetType: 'box', targetId: box.public_id });
+  await emit('BOX_RESTORED', { public_id: box.public_id, by: opts.actorId });
+  return box;
+}
+
+// An archived box is invisible and unusable to everyone except operators, who still need
+// to see it to restore it. Every other gate (feed, discover, upload, rent) enforces the
+// same rule at its own layer — status on the box row alone stops nothing.
+export async function isBoxArchived(boxId: string): Promise<boolean> {
+  const { data } = await admin().from('box').select('status').eq('id', boxId).maybeSingle();
+  return (data as { status?: string } | null)?.status === 'archived';
 }
 
 export async function getBoxForAccount(boxPublicId: string, accountId: string, isOperator: boolean): Promise<BoxWithRole | null> {
   const { data: box } = await admin().from('box').select(SELECT).eq('public_id', boxPublicId).maybeSingle();
   if (!box) return null;
   if (isOperator) return box as Box;
+  if ((box as Box).status === 'archived') return null;
   const { data: mem } = await admin()
     .from('box_membership')
     .select('role')
