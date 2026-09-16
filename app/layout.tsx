@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { getLocale } from '@/lib/i18n/server';
+import { I18nProvider } from './i18n-provider';
 
 // icon.png / apple-icon.png in app/ are picked up as favicon + touch icon
 // automatically; manifest.ts adds the installable PWA icons.
@@ -15,9 +17,13 @@ export const viewport: Viewport = {
   themeColor: '#000000',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// async so the locale is known before the first byte: <html lang> must be right for
+// screen readers and translation tools, and the provider must hand the locale down
+// before anything renders or the page would flash English first.
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
   return (
-    <html lang="en">
+    <html lang={locale}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -26,7 +32,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Poppins:wght@500;600;700;800&display=swap"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <I18nProvider locale={locale}>{children}</I18nProvider>
+      </body>
     </html>
   );
 }

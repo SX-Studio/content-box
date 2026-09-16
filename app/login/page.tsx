@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT, LocaleSwitcher } from '@/app/i18n-provider';
 
 // Tolerate empty/non-JSON responses: a bodyless 500 (e.g. a server route that threw
 // before returning) must surface a real message, not "Unexpected end of JSON input".
@@ -18,6 +19,7 @@ type Channel = 'sms' | 'email';
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useT();
   const [next, setNext] = useState('/app');
   useEffect(() => {
     const n = new URLSearchParams(window.location.search).get('next');
@@ -68,7 +70,7 @@ export default function LoginPage() {
         body: JSON.stringify({ ...identifier, password }),
       });
       const j = await readJson(r);
-      if (!r.ok) throw new Error(j.error || `Could not sign in (HTTP ${r.status})`);
+      if (!r.ok) throw new Error(j.error || t('login.errSignIn', { status: r.status }));
       router.push(next);
     } catch (err) {
       setMsg({ kind: 'err', text: (err as Error).message });
@@ -92,14 +94,12 @@ export default function LoginPage() {
       // misconfigured sender is visible here instead of only in the server logs.
       if (!r.ok) {
         const detail = typeof j.detail === 'string' ? j.detail : '';
-        throw new Error([j.error || `Could not send code (HTTP ${r.status})`, detail].filter(Boolean).join(' — '));
+        throw new Error([j.error || t('login.errSendCode', { status: r.status }), detail].filter(Boolean).join(' — '));
       }
       setStep('code');
       setMsg({
         kind: 'ok',
-        text: channel === 'email'
-          ? 'Code sent. Check your inbox (and your spam folder).'
-          : 'Code sent. Check your messages.',
+        text: channel === 'email' ? t('login.codeSentEmail') : t('login.codeSentSms'),
       });
     } catch (err) {
       setMsg({ kind: 'err', text: (err as Error).message });
@@ -119,7 +119,7 @@ export default function LoginPage() {
         body: JSON.stringify({ ...identifier, code }),
       });
       const j = await readJson(r);
-      if (!r.ok) throw new Error(j.error || `Verification failed (HTTP ${r.status})`);
+      if (!r.ok) throw new Error(j.error || t('login.errVerify', { status: r.status }));
       router.push(next);
     } catch (err) {
       setMsg({ kind: 'err', text: (err as Error).message });
@@ -134,38 +134,39 @@ export default function LoginPage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icon-512.png" alt="Content24" />
         <div className="wordmark">CONTENT24</div>
-        <p className="eyebrow">— {mode === 'password' ? 'Wachtwoord' : 'Inloggen'} —</p>
+        <p className="eyebrow">— {mode === 'password' ? t('login.eyebrowPassword') : t('login.eyebrowSignIn')} —</p>
       </div>
       <p className="muted" style={{ textAlign: 'center', marginTop: 16 }}>
         {mode === 'password'
-          ? 'Sign in with the password you set. Forgotten it? Use a code instead — that always works.'
+          ? t('login.leadPassword')
           : channel === 'email'
-            ? 'We’ll email you a 6-digit code. Your address stays private — other members never see it.'
-            : 'We’ll text you a 6-digit code to verify your number.'}
+            ? t('login.leadEmailPrivate')
+            : t('login.leadSms')}
       </p>
+      <div style={{ marginTop: 12 }}><LocaleSwitcher /></div>
 
       {step === 'identify' ? (
         <form onSubmit={mode === 'password' ? signInWithPassword : start} className="card">
-          <div className="seg" style={{ marginBottom: 14 }} role="tablist" aria-label="Sign-in method">
-            <button type="button" role="tab" aria-selected={channel === 'sms'} className={channel === 'sms' ? 'on' : ''} onClick={() => switchChannel('sms')}>Telefoon</button>
-            <button type="button" role="tab" aria-selected={channel === 'email'} className={channel === 'email' ? 'on' : ''} onClick={() => switchChannel('email')}>E-mail</button>
+          <div className="seg" style={{ marginBottom: 14 }} role="tablist" aria-label={t('login.methodLabel')}>
+            <button type="button" role="tab" aria-selected={channel === 'sms'} className={channel === 'sms' ? 'on' : ''} onClick={() => switchChannel('sms')}>{t('login.tabPhone')}</button>
+            <button type="button" role="tab" aria-selected={channel === 'email'} className={channel === 'email' ? 'on' : ''} onClick={() => switchChannel('email')}>{t('login.tabEmail')}</button>
           </div>
 
           {channel === 'email' ? (
             <>
-              <label htmlFor="email">Email address</label>
+              <label htmlFor="email">{t('login.emailLabel')}</label>
               <input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" inputMode="email" />
             </>
           ) : (
             <>
-              <label htmlFor="phone">Phone number (E.164)</label>
+              <label htmlFor="phone">{t('login.phoneLabel')}</label>
               <input id="phone" placeholder="+32470123456" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
             </>
           )}
 
           {mode === 'password' && (
             <>
-              <label htmlFor="pw">Password</label>
+              <label htmlFor="pw">{t('login.passwordLabel')}</label>
               <input
                 id="pw" type="password" value={password} autoComplete="current-password"
                 onChange={(e) => setPassword(e.target.value)}
@@ -175,33 +176,33 @@ export default function LoginPage() {
 
           <div className="row" style={{ marginTop: 16 }}>
             {mode === 'password' ? (
-              <button disabled={busy || !canStart || !password}>{busy ? 'Signing in…' : 'Sign in'}</button>
+              <button disabled={busy || !canStart || !password}>{busy ? t('login.signingIn') : t('login.signIn')}</button>
             ) : (
-              <button disabled={busy || !canStart}>{busy ? 'Versturen…' : 'Code versturen'}</button>
+              <button disabled={busy || !canStart}>{busy ? t('login.sending') : t('login.sendCode')}</button>
             )}
           </div>
 
           <p className="dim" style={{ marginTop: 12 }}>
             {mode === 'password' ? (
               <a onClick={() => { setMode('code'); setMsg(null); setPassword(''); }} style={{ cursor: 'pointer' }}>
-                Sign in with a code instead
+                {t('login.useCode')}
               </a>
             ) : (
               <a onClick={() => { setMode('password'); setMsg(null); }} style={{ cursor: 'pointer' }}>
-                I have a password
+                {t('login.usePassword')}
               </a>
             )}
           </p>
         </form>
       ) : (
         <form onSubmit={verify} className="card">
-          <div className="dim">Code for <span className="mono">{identifierShown}</span> · <a onClick={() => { setStep('identify'); setCode(''); }} style={{ cursor: 'pointer' }}>change</a></div>
-          <label htmlFor="code">6-cijferige code</label>
+          <div className="dim">{t('login.codeFor')} <span className="mono">{identifierShown}</span> · <a onClick={() => { setStep('identify'); setCode(''); }} style={{ cursor: 'pointer' }}>{t('common.change')}</a></div>
+          <label htmlFor="code">{t('login.codeLabel')}</label>
           <div className="code-wrap">
             <input
               id="code" inputMode="numeric" maxLength={6} value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              autoComplete="one-time-code" autoFocus aria-label="6-cijferige code"
+              autoComplete="one-time-code" autoFocus aria-label={t('login.codeLabel')}
             />
             <div className="code-row" aria-hidden="true">
               {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -212,7 +213,7 @@ export default function LoginPage() {
             </div>
           </div>
           <div className="row" style={{ marginTop: 16 }}>
-            <button className="alt" disabled={busy || code.length !== 6}>{busy ? 'Verifiëren…' : 'Verifieer & ga verder'}</button>
+            <button className="alt" disabled={busy || code.length !== 6}>{busy ? t('login.verifying') : t('login.verify')}</button>
           </div>
         </form>
       )}

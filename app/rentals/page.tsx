@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { boxCss, fmtCountdown, gradOf, ClockIcon, LockIcon, BottomNav } from '@/app/box-ui';
+import { useT, LocaleSwitcher } from '@/app/i18n-provider';
 
 type Rental = {
   public_id: string;
@@ -14,6 +15,7 @@ type Rental = {
 
 export default function MyRentalsPage() {
   const router = useRouter();
+  const t = useT();
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,7 @@ export default function MyRentalsPage() {
     if (r.ok) { const j = await r.json(); setUrls((u) => ({ ...u, [contentId]: j.url })); }
   }
 
-  if (loading) return <div className="boxui"><style>{boxCss}</style><p className="bx-loading">Loading…</p></div>;
+  if (loading) return <div className="boxui"><style>{boxCss}</style><p className="bx-loading">{t('common.loading')}</p></div>;
 
   const active = rentals.filter((r) => new Date(r.expires_at).getTime() > Date.now()).length;
 
@@ -45,21 +47,22 @@ export default function MyRentalsPage() {
       <header className="bx-top">
         <div className="bx-badge"><ClockIcon /></div>
         <div className="bx-titles">
-          <div className="bx-name">My rentals</div>
-          <div className="bx-sub">{active || '—'} actief · jouw tijdelijke library</div>
+          <div className="bx-name">{t('rentals.title')}</div>
+          <div className="bx-sub">{t('rentals.subtitle', { count: active || '—' })}</div>
         </div>
-        <a href="/discover" className="bx-chip" title="Discover">◧ Discover</a>
-        <a href="/app" className="bx-chip" title="Dashboard">↩ Dashboard</a>
+        <a href="/discover" className="bx-chip" title={t('nav.discover')}>◧ {t('nav.discover')}</a>
+        <a href="/app" className="bx-chip" title={t('nav.dashboard')}>↩ {t('nav.dashboard')}</a>
+        <LocaleSwitcher compact />
       </header>
 
       {rentals.length === 0 ? (
         <div className="bx-empty">
           <ClockIcon />
-          <div className="h">Nog niets gehuurd</div>
-          <p>Open een box of Discover en huur iets — het verschijnt hier met een 24u-timer.</p>
+          <div className="h">{t('rentals.emptyTitle')}</div>
+          <p>{t('rentals.emptyBody')}</p>
         </div>
       ) : (
-        <div className="bx-vhead"><h2>Library</h2><span className="bx-cnt">{active} actief</span></div>
+        <div className="bx-vhead"><h2>{t('rentals.library')}</h2><span className="bx-cnt">{t('rentals.activeCount', { count: active })}</span></div>
       )}
 
       <div style={{ display: 'grid', gap: 12 }}>
@@ -78,14 +81,14 @@ export default function MyRentalsPage() {
               </div>
               <div className="bx-rmeta">
                 <div className="t">{r.title}</div>
-                <div className="c">Creator {r.creator} · {r.content_public_id}</div>
+                <div className="c">{t('rentals.creator')} {r.creator} · {r.content_public_id}</div>
                 {expired
-                  ? <div className="bx-timer exp"><LockIcon /> Toegang verlopen</div>
-                  : <div className={`bx-timer ${left < 3600 ? 'warn' : ''}`}>◷ {fmtCountdown(r.expires_at)} resterend</div>}
+                  ? <div className="bx-timer exp"><LockIcon /> {t('rentals.expired')}</div>
+                  : <div className={`bx-timer ${left < 3600 ? 'warn' : ''}`}>◷ {t('rentals.remaining', { time: fmtCountdown(r.expires_at) })}</div>}
               </div>
               {!expired && (
                 <div className="bx-ract">
-                  <button className="bx-btn ember" onClick={() => view(r.content_public_id)}>{url ? 'Refresh' : 'Bekijk'}</button>
+                  <button className="bx-btn ember" onClick={() => view(r.content_public_id)}>{url ? t('rentals.refresh') : t('rentals.view')}</button>
                 </div>
               )}
             </div>

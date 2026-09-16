@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useT } from '@/app/i18n-provider';
 
 // Shared UI for the Content Box surfaces (group box, discover, rentals): one card
 // language + design tokens so /box/[id], /discover and /rentals read as one product.
@@ -75,6 +76,7 @@ export function FeedCard({ item, expiry, rentedNow, selected, onToggle, onRent, 
   showBox?: boolean;
   showReport?: boolean;
 }) {
+  const t = useT();
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -94,16 +96,16 @@ export function FeedCard({ item, expiry, rentedNow, selected, onToggle, onRent, 
     try {
       const r = await fetch(`/api/content/${item.public_id}/view`);
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'Could not open');
+      if (!r.ok) throw new Error(j.error || t('feed.errOpen'));
       setUrl(j.url);
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   }
 
   async function report() {
-    const reason = window.prompt('Waarom rapporteer je deze content? (3–80 tekens)');
+    const reason = window.prompt(t('feed.reportPrompt'));
     if (!reason) return;
     const r = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentId: item.public_id, reason }) });
-    if (r.ok) onReported(); else setErr((await r.json()).error || 'Kon niet rapporteren');
+    if (r.ok) onReported(); else setErr((await r.json()).error || t('feed.reportFailed'));
   }
 
   const grad = gradOf(item.public_id);
@@ -131,16 +133,16 @@ export function FeedCard({ item, expiry, rentedNow, selected, onToggle, onRent, 
         </div>
 
         {!owner && !rentedNow && (
-          <button type="button" className={`bx-sel ${selected ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); onToggle(); }} aria-label="Select">
+          <button type="button" className={`bx-sel ${selected ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); onToggle(); }} aria-label={t('feed.select')}>
             {selected ? '✓' : ''}
           </button>
         )}
 
         <div className="bx-lockrow">
           <span className="bx-lk">
-            {owner ? <>✦ Jouw content</>
-              : rentedNow ? <><LockIcon /> Gehuurd · <span className="bx-cd">{fmtCountdown(expiry!)}</span></>
-              : <><LockIcon /> Blurred preview · huur om te bekijken</>}
+            {owner ? <>✦ {t('feed.ownContent')}</>
+              : rentedNow ? <><LockIcon /> {t('feed.rented')} · <span className="bx-cd">{fmtCountdown(expiry!)}</span></>
+              : <><LockIcon /> {t('feed.blurred')}</>}
           </span>
         </div>
       </div>
@@ -148,24 +150,26 @@ export function FeedCard({ item, expiry, rentedNow, selected, onToggle, onRent, 
       <div className="bx-body">
         <div className="bx-crow">
           <span className="bx-av" style={{ background: avColorOf(item.creator || '?') }}>{(item.creator || '?')[0].toUpperCase()}</span>
-          <span className="bx-cname">Creator {item.creator}</span>
+          <span className="bx-cname">{t('rentals.creator')} {item.creator}</span>
         </div>
         <div className="bx-title">{item.title}</div>
         <div className="bx-meta">
           {showBox && item.box_public_id
             ? <a className="bx-boxlink" href={`/box/${item.box_public_id}`} onClick={(e) => e.stopPropagation()}>◫ {item.box_name}</a>
             : null}
-          <span>{item.media_type === 'video' ? 'video' : `${item.asset_count ?? ''} foto${item.asset_count === 1 ? '' : "'s"}`.trim()}</span>
-          <span>24u toegang</span>
+          <span>{item.media_type === 'video'
+            ? t('feed.video')
+            : item.asset_count === 1 ? t('feed.photoOne') : t('feed.photos', { count: item.asset_count ?? 0 })}</span>
+          <span>{t('wallet.accessHours', { hours: 24 })}</span>
         </div>
         <div className="bx-buyrow">
           <span className="bx-price">◈ {item.price_tokens}</span>
           {unlocked
-            ? <button className="bx-btn ember" onClick={view} disabled={busy}>{busy ? '…' : url ? 'Refresh' : 'Bekijk'}</button>
-            : <button className="bx-btn ember" onClick={onRent} disabled={renting}>{renting ? '…' : 'Rent 24u'}</button>}
+            ? <button className="bx-btn ember" onClick={view} disabled={busy}>{busy ? '…' : url ? t('rentals.refresh') : t('rentals.view')}</button>
+            : <button className="bx-btn ember" onClick={onRent} disabled={renting}>{renting ? '…' : t('feed.rent24')}</button>}
         </div>
         {err && <div className="bx-err">{err}</div>}
-        {showReport && !owner && <button onClick={report} className="bx-report">⚑ Rapporteer</button>}
+        {showReport && !owner && <button onClick={report} className="bx-report">⚑ {t('feed.report')}</button>}
       </div>
     </div>
   );
@@ -175,23 +179,24 @@ export function FeedCard({ item, expiry, rentedNow, selected, onToggle, onRent, 
 // the current route (a /box/* page counts as Discover). Mount once per page.
 export function BottomNav({ disabled }: { disabled?: boolean } = {}) {
   const path = usePathname() || '';
+  const tr = useT();
   const tabs = [
-    { href: '/discover', label: 'Discover', active: path === '/discover' || path.startsWith('/box'),
+    { href: '/discover', label: tr('nav.discover'), active: path === '/discover' || path.startsWith('/box'),
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg> },
-    { href: '/rentals', label: 'Rentals', active: path === '/rentals',
+    { href: '/rentals', label: tr('nav.rentals'), active: path === '/rentals',
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></svg> },
-    { href: '/wallet', label: 'Wallet', active: path === '/wallet',
+    { href: '/wallet', label: tr('nav.wallet'), active: path === '/wallet',
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="6" width="18" height="13" rx="2.5" /><path d="M3 10h18" /><circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" stroke="none" /></svg> },
-    { href: '/app', label: 'Dashboard', active: path === '/app',
+    { href: '/app', label: tr('nav.dashboard'), active: path === '/app',
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 11l9-7 9 7" /><path d="M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9" /></svg> },
   ];
   return (
     <nav className={`bx-nav ${disabled ? 'off' : ''}`} aria-disabled={disabled || undefined}>
       <div className="bx-nav-inner">
-        {tabs.map((t) => (
+        {tabs.map((tab) => (
           disabled
-            ? <span key={t.href} className="bx-nav-btn" aria-disabled>{t.icon}<span>{t.label}</span></span>
-            : <a key={t.href} href={t.href} className={`bx-nav-btn ${t.active ? 'on' : ''}`}>{t.icon}<span>{t.label}</span></a>
+            ? <span key={tab.href} className="bx-nav-btn" aria-disabled>{tab.icon}<span>{tab.label}</span></span>
+            : <a key={tab.href} href={tab.href} className={`bx-nav-btn ${tab.active ? 'on' : ''}`}>{tab.icon}<span>{tab.label}</span></a>
         ))}
       </div>
     </nav>
