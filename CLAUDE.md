@@ -119,6 +119,74 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-16 (landing page replaced: the Content24 Marketplace artboard)
+Branch `claude/exciting-gates-aotopt`. No migration.
+
+- **`app/page.tsx` now renders `app/c24-landing/C24Landing.tsx`.** Built from an approved
+  HTML design reference (`index_2.html`, supplied as one self-contained file).
+  `app/neon-landing/` is gone with it, and so is `public/fonts/tabler-icons-subset.woff2`
+  — it existed only for that page's seven icon glyphs, and the new design uses none.
+- **The design is one artboard, not a layout.** A single 1024x1536 artwork carries the
+  phone, the feature rings and the cube; the type and every control are positioned over
+  it in `--u` units (`--u: calc(100cqw/1024)` on a container-query container), so the
+  whole composition scales as one piece. Under 760px the artboard is swapped for a flow
+  layout that **crops its imagery out of that same one image** — that is all the
+  `.crop` background-size/background-position pairs are doing. ⚠️ Those percentages are
+  keyed to the image's exact pixel dimensions: **replacing `c24-plate.webp` with a
+  differently-sized artwork silently breaks all six crops.**
+- **The artwork is a file, not a data URI.** The reference inlined 236 KB of base64 into
+  its `<style>`; it is `public/brand/c24-plate.webp` (177 KB) and
+  `public/brand/c24-mark.webp` (32 KB) here, so both are cacheable and off the critical
+  path. Page JS for `/` is 192 B — the reference's inline `<script>` only resolved hrefs
+  from a `CONFIG` object, and those are real hrefs now. **Verified the page renders
+  identically with JavaScript disabled.**
+- ⚠️ **Scoping: every reference selector is prefixed with `.c24`.** That raises them all
+  by exactly (0,1,0), so their order relative to each other is untouched while the whole
+  sheet clears `globals.css`. Needed because this design uses generic class names the app
+  already owns — `.nav`, `.logo`, `.store`, `.contact`, and a `.tag` that globals.css
+  styles as mono/teal. Two more guards, both load-bearing:
+  - `.c24{line-height:normal}` — same trap the neon landing hit: `body{line-height:1.55}`
+    inflates every metric on a page whose reference renders on a bare document.
+  - `.c24 :is(h1,h2,h3,p){font:inherit;…}` at (0,1,1) — outranks globals' bare `h1`-`h3`
+    (Poppins, its own sizes and margins) and its `.tag`, and loses to every `.c24 .xxx`
+    rule below. Do not raise it: at (0,2,0)+ it would start overriding the design.
+- ⚠️ **`overflow-x: clip`, not `hidden`, on `.c24`.** The reference put `overflow-x:hidden`
+  on `body`; moved onto a div it forces `overflow-y` to `auto`, and at >=1900px the
+  `.backdrop` (`min(150vw,2200px)`) is 16 px taller than the page — which became 16 px of
+  nested scroll inside the landing. `clip` clips without creating a scroll container.
+  `hidden` stays behind `@supports` as the Safari < 16 fallback.
+- **Every route into the product points at `/login`** — both Download App pills, all four
+  store badges, both Log in / Register pairs on the phone: **10 links, all verified with
+  real hit areas** at 1440 and 390. This keeps the standing rule (the landing offers the
+  sign-in door; `/login` forwards an already-signed-in visitor to `/app`) and the
+  all-entry-points rule. The reference pointed the store badges at `#` and Register at a
+  `/register` route **that does not exist here** — registration is invitation-only.
+  Neither phone is a `role="img"`, for the same reason as last time: it would hide those
+  real links from assistive tech. Only the decorative crops carry `aria-hidden`.
+- **Footer keeps all five `/legal` routes and the 18+ notice**, not the reference's Terms
+  + Privacy alone. That is the only departure from the reference in the rendered output,
+  and it is deliberate: the 2257/DMCA/refunds links are a compliance surface.
+- **Verified, not assumed:** reference and route captured side by side in headless
+  Chromium with real Figtree, then pixel-diffed — **0 differing pixels at
+  1920/1440/1280/1024/834/768/600/430/390/360/320 px** over everything above the footer
+  (the footer being the one intended difference; its top offset matches exactly at all
+  eleven). **No horizontal overflow at any width**, where the reference had some.
+  `tsc` clean, **211 tests passing**, `next build` clean with no warnings. Harness in the
+  session scratchpad (`fdiff.mjs`, `shot.mjs`, `probe.mjs`); it needs `next start` on
+  3210 and the reference served on 3211.
+- **Fonts: Figtree joined the existing Google Fonts link in `layout.tsx`** rather than
+  adding a second request. Google Fonts serves the css for every family there, but a
+  browser fetches a family's woff2 only on a page that uses it, so the app pages pay
+  nothing. Confirmed the only third-party host the landing touches is
+  `fonts.googleapis.com` — the one that was already in the root layout.
+- ⚠️ **Known defect, inherited from the design, NOT introduced here and NOT fixed here:**
+  the mobile card headline `INVITE - DROP - EARN` is `white-space:nowrap` at
+  `clamp(26px,8.6vw,36px)`, which is **58-70 px wider than its card at every phone width**
+  — "EARN" is clipped to "EAR" on a 390 px phone. It renders exactly this way in the
+  supplied reference (hence the 0-pixel diff). The fix is one value —
+  `8.6vw` → `7vw` in `.c24 .m-card h2` — but it is a design change, so it waits on a
+  decision rather than being made quietly.
+
 ## Session log — 2026-09-13 (box invitations actually deliver)
 Branch `claude/invite-sms`. No migration. Three real bugs, not a missing feature.
 
