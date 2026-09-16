@@ -119,6 +119,47 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-16 (three languages, one dictionary)
+Branch `claude/lucid-einstein-r49f6g` → PR #13. **No migration.**
+
+- **The app was speaking two languages at once.** `/login` rendered *"Inloggen"*,
+  *"Telefoon"*, *"Code versturen"* beside *"Email address"*, *"Password"*, *"Sign in"* —
+  on one screen. Box/discover/rentals were Dutch, the dashboard English. Now **en / nl /
+  pt**, one typed dictionary. ⚠️ **pt is BRAZILIAN** (`celular`, `você`), on purpose.
+- **`lib/i18n/en.ts` is the source of truth.** `Dict` is derived from it with the leaves
+  **widened to `string`** — `as const` keeps the English copy self-documenting, and the
+  widening is what lets a translation differ while still being *required* to supply
+  every key. Without it every nl/pt value is a type error against an English literal.
+- **Cookie beats `Accept-Language`**, always: a chosen language must stick even for a
+  browser asking for something else. Regional tags fold to base (`pt-BR`→`pt`,
+  `nl-BE`→`nl`), q-values honoured. Resolved server-side in the root layout, handed
+  down via `I18nProvider`, so the first paint and `<html lang>` are already right.
+- ⚠️ **Cost, accepted deliberately: the root layout now reads a cookie, so EVERY route
+  is dynamic.** The signed-in app already was; the landing and `/legal/*` lose static
+  prerendering. A client-side effect would keep them static but flash English first and
+  lie in `lang`. If static landing matters more, move the provider down to a route group
+  rather than reverting the locale model.
+- **Not converted, on purpose:** `/moderation` and `/admin` (internal operator tooling —
+  a whole route is a clean boundary, half a screen is not), and the **neon landing**,
+  whose copy is marketing content and whose page is verified pixel-identical to the
+  design reference. Translating it changes every metric on it.
+- ⚠️ **Watch for `t` shadowing.** `app/wallet/page.tsx` had `const t = await fetch(…)`
+  and `Earnings` had `const eur = (t: number) => …`; both collide with the translator the
+  moment one exists. Renamed to `dev` and `n`. `BottomNav`'s `tabs.map((t) => …)` was the
+  same trap — it uses `tr` for the translator.
+- **Verified in a browser, not assumed** (rare for this repo): `/login` under
+  `Accept-Language` `pt-BR` / `nl-BE` / `en` returns the right `lang` + copy;
+  `cb_locale=pt` overrides a Dutch header; `cb_locale=__proto__` falls back to English.
+  In headless Chromium the switcher moves en → pt → nl live, writes a 365-day Lax
+  cookie, survives a reload and carries into the next route.
+- Tests: `tests/i18n.test.ts` (17) — exact key-set match (tsc cannot see an EXTRA key),
+  placeholders preserved per key (tsc cannot see a dropped `{count}`), no blank labels,
+  fallback chain, `Accept-Language` ranking incl. `q=0`, and `isLocale` refusing
+  `'pt-BR'`/`'__proto__'` because the cookie is attacker-controlled.
+  **228 passing**; `tsc` clean; build clean.
+- **Adding a language** = add the code to `LOCALES` + `LOCALE_LABELS`, copy `en.ts`,
+  translate, register in `DICTS`. The tests then enforce completeness.
+
 ## Session log — 2026-09-13 (box invitations actually deliver)
 Branch `claude/invite-sms`. No migration. Three real bugs, not a missing feature.
 
@@ -797,6 +838,8 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - Never store or log a plaintext phone number.
 - Never expose the service-role key or `lib/crypto` / `lib/supabase/admin` to the client.
 - Never wire Stripe for token purchase in this product.
+- User-facing copy goes in `lib/i18n/en.ts` and all three dictionaries — never inline in
+  a component. `/moderation` and `/admin` are the exception (operator tooling, English).
 - Work in reviewable chunks: analyse → build → test → security check → report → next.
 - Don't break existing functionality without explicit permission.
 
@@ -816,6 +859,8 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - `docs/resend-setup.md` — turn on email sign-in (Resend key + verified sender) + error-code fixes
 - `lib/email.ts` — shared Resend transport: `sendEmail` (fire-and-forget) / `sendEmailChecked` (detailed)
 - `docs/twilio-setup.md` — Twilio (fallback provider) setup + error-code fixes
+- `lib/i18n/` — en (source of truth) / nl / pt dictionaries, locale resolution, `translate`
+- `lib/i18n/server.ts` — `getLocale()` / `getT()` for server components; `app/i18n-provider.tsx` — `useT`, `LocaleSwitcher`
 
 ## How to run
 ```bash
