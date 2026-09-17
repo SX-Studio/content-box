@@ -1,0 +1,161 @@
+/* Content24 Marketplace — landing page.
+   Generated from the approved HTML design reference (index_2.html). Values are exact;
+   do not round. Load once per page: import './c24-landing.css';
+   Requires: Figtree 400-900 (added to the Google Fonts link in app/layout.tsx).
+
+   Every selector from the reference is prefixed with `.c24`, which raises them all by
+   exactly (0,1,0) and so preserves their order relative to each other while lifting the
+   whole sheet clear of app/globals.css. The reference's generic class names (.nav, .logo,
+   .store, .contact, .tag) would otherwise collide with the app's.
+
+   The reference inlined its artwork as a 236 KB base64 data URI in this file; it is
+   public/brand/c24-plate.webp here instead, so it is cacheable and off the critical path.
+   The mobile layout crops its phone, feature rings and cube out of that same one image —
+   that is what the .crop background-size/background-position pairs are doing. */
+.c24{--c24-plate:url('/brand/c24-plate.webp');--c24-bg:#01142f;--c24-font:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif}
+.c24,.c24 *{box-sizing:border-box;margin:0;padding:0}
+/* globals.css styles bare h1/h2/h3 (Poppins, its own sizes, margins and text-wrap) and a
+   .tag class this design also uses. The reference expects UA defaults there. At (0,1,1)
+   this outranks all of those and none of the design's own rules below. */
+.c24 :is(h1,h2,h3,p){font:inherit;letter-spacing:inherit;text-wrap:wrap}
+html{scroll-behavior:smooth}
+/* line-height is pinned to the UA default: the reference renders on a bare document,
+   while globals.css sets body{line-height:1.55}, which would inflate every metric on
+   this page. position/min-height carry the .backdrop, which was absolute against the
+   initial containing block in the reference. */
+.c24{background:var(--c24-bg);color:#fff;font-family:var(--c24-font);line-height:normal;-webkit-font-smoothing:antialiased;overflow-x:hidden;position:relative;min-height:100vh}
+/* overflow-x:hidden forces overflow-y to `auto`, which turns .c24 into a scroll
+   container: at >=1900px the .backdrop (min(150vw,2200px)) is 16px taller than the
+   page and became 16px of nested scroll. `clip` clips without scrolling and leaves
+   overflow-y visible. Hidden stays as the fallback for Safari < 16. */
+@supports (overflow-x:clip){.c24{overflow-x:clip}}
+/* (0,1,0): beats globals.css `a{color:var(--ember)}` outright, and still loses to every
+   .c24 .xxx colour rule below (0,2,0) exactly as the reference's bare `a {}` did. */
+.c24 :where(a){color:inherit;text-decoration:none}
+.c24 :focus-visible{outline:2px solid #1bd0f2;outline-offset:3px;border-radius:6px}
+
+/* soft full-width backdrop so wide screens blend with the artwork */
+.c24 .backdrop{position:absolute;inset:0 0 auto 0;height:min(150vw,2200px);z-index:0;pointer-events:none;
+  background:var(--c24-plate) center top/cover no-repeat;filter:blur(70px) saturate(1.05);opacity:.6;
+  -webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
+
+/* ================= DESKTOP ARTBOARD (exact design) ================= */
+.c24 .stage{position:relative;z-index:1;max-width:1280px;margin:0 auto;container-type:inline-size}
+.c24 .art{--u:calc(100cqw/1024);position:relative;width:100%;height:calc(var(--u)*1536);
+  background:var(--c24-plate) 0 0/100% 100% no-repeat}
+@media (min-width:1281px){
+  .c24 .art{-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent),linear-gradient(#000 96%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent),linear-gradient(#000 96%,transparent);mask-composite:intersect}
+}
+.c24 .art > *{position:absolute;line-height:1;white-space:nowrap}
+.c24 .logo{left:calc(var(--u)*38);top:calc(var(--u)*24);width:calc(var(--u)*108);height:calc(var(--u)*108)}
+.c24 .logo img{width:100%;height:100%;object-fit:contain;display:block}
+.c24 .wm{left:calc(var(--u)*148.31);top:calc(var(--u)*46.49);font-size:calc(var(--u)*34.72);letter-spacing:calc(var(--u)*-1.14);font-weight:900;}
+.c24 .grad24{background:linear-gradient(90deg,#c83cf5,#ff3fd6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.c24 .mp{left:calc(var(--u)*151.17);top:calc(var(--u)*85.83);font-size:calc(var(--u)*16.67);letter-spacing:calc(var(--u)*5.72);font-weight:600;color:#eef1ff}
+.c24 .nav{font-weight:400;color:#eef1ff;transition:color .2s}
+.c24 .nav::after{content:"";position:absolute;left:0;right:0;bottom:calc(var(--u)*-6);height:calc(var(--u)*2);border-radius:2px;background:linear-gradient(90deg,#f23ce6,#1bd0f2);transform:scaleX(0);transition:transform .25s}
+.c24 .nav:hover::after{transform:scaleX(1)}
+.c24 .n1{left:calc(var(--u)*448.45);top:calc(var(--u)*61.41);font-size:calc(var(--u)*17.28);letter-spacing:calc(var(--u)*0);font-weight:400;} .c24 .n2{left:calc(var(--u)*586.47);top:calc(var(--u)*61.45);font-size:calc(var(--u)*17.02);letter-spacing:calc(var(--u)*0);font-weight:400;} .c24 .n3{left:calc(var(--u)*689.33);top:calc(var(--u)*61.83);font-size:calc(var(--u)*16.67);letter-spacing:calc(var(--u)*0);font-weight:400;}
+.c24 .dl{left:calc(var(--u)*787);top:calc(var(--u)*33);width:calc(var(--u)*203);height:calc(var(--u)*64);border-radius:999px;display:flex;align-items:center;justify-content:center;
+  font-size:calc(var(--u)*20.83);font-weight:500;color:#fff;
+  background:linear-gradient(90deg,#a92cff 0%,#e22fe9 55%,#ff2fd2 100%);
+  box-shadow:inset 0 0 0 calc(var(--u)*2) rgba(255,170,255,.55),0 0 calc(var(--u)*22) rgba(235,60,255,.6);transition:filter .2s,transform .2s}
+.c24 .dl:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.c24 h1{font-size:inherit;font-weight:900}
+.c24 .hl{text-transform:uppercase}
+.c24 .hl span{line-height:1;white-space:nowrap}
+.c24 .h1{left:calc(var(--u)*53.28);top:calc(var(--u)*228.81);font-size:calc(var(--u)*86.11);letter-spacing:calc(var(--u)*0);font-weight:900;letter-spacing:calc(var(--u)*-6.07);color:#fff}
+.c24 .h2{left:calc(var(--u)*55.28);top:calc(var(--u)*313.81);font-size:calc(var(--u)*86.11);letter-spacing:calc(var(--u)*-6.07);font-weight:900;background:linear-gradient(90deg,#f63be2,#dd3cf3);-webkit-background-clip:text;background-clip:text;color:transparent}
+.c24 .h3{left:calc(var(--u)*53.39);top:calc(var(--u)*398.53);font-size:calc(var(--u)*80.56);letter-spacing:calc(var(--u)*-4.09);font-weight:900;background:linear-gradient(90deg,#16d4f1,#2aa4f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.c24 .h4{left:calc(var(--u)*56.0);top:calc(var(--u)*478.43);font-size:calc(var(--u)*73.61);letter-spacing:calc(var(--u)*-5.07);font-weight:900;background:linear-gradient(90deg,#ffa53c,#ff8646 55%,#ff6a50);-webkit-background-clip:text;background-clip:text;color:transparent}
+.c24 .h5{left:calc(var(--u)*56.0);top:calc(var(--u)*552.61);font-size:calc(var(--u)*72.22);letter-spacing:calc(var(--u)*-7.0);font-weight:900;background:linear-gradient(90deg,#ff7a3c,#ff5a47 50%,#ff3f5c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.c24 .lead{left:calc(var(--u)*57.5);top:calc(var(--u)*651.99);font-size:calc(var(--u)*27.8);line-height:1.277;font-weight:400;color:#f2f4ff}
+.c24 .store{top:calc(var(--u)*800);height:calc(var(--u)*68);display:flex;align-items:center;background:#000;border:calc(var(--u)*1.5) solid #9a9ca6;border-radius:calc(var(--u)*11);color:#fff;transition:transform .2s,box-shadow .2s}
+.c24 .store:hover{transform:translateY(-2px);box-shadow:0 calc(var(--u)*8) calc(var(--u)*26) rgba(0,120,255,.4)}
+.c24 .store svg{flex:none}
+.c24 .store .t{display:flex;flex-direction:column;font-family:var(--c24-font);line-height:1.04}
+.c24 .as{left:calc(var(--u)*58);width:calc(var(--u)*213);padding-left:calc(var(--u)*17);gap:calc(var(--u)*14)}
+.c24 .as svg{width:calc(var(--u)*36);height:calc(var(--u)*42)}
+.c24 .as small{font-size:calc(var(--u)*13);font-weight:500} .c24 .as strong{font-size:calc(var(--u)*29);font-weight:600;letter-spacing:-.025em}
+.c24 .gp{left:calc(var(--u)*289);width:calc(var(--u)*228);padding-left:calc(var(--u)*18);gap:calc(var(--u)*15)}
+.c24 .gp svg{width:calc(var(--u)*40);height:calc(var(--u)*44)}
+.c24 .gp small{font-size:calc(var(--u)*13);font-weight:500;text-transform:uppercase} .c24 .gp strong{font-size:calc(var(--u)*28);font-weight:600;letter-spacing:-.025em}
+.c24 .hot{border-radius:999px}
+.c24 .hot:hover{box-shadow:0 0 calc(var(--u)*24) rgba(255,80,230,.55)}
+.c24 .f{color:#fff}
+.c24 .f1{left:calc(var(--u)*86.58);top:calc(var(--u)*1131.29);font-size:calc(var(--u)*20.83);letter-spacing:calc(var(--u)*0.41);font-weight:800;} .c24 .f2{left:calc(var(--u)*306.38);top:calc(var(--u)*1132.29);font-size:calc(var(--u)*20.83);letter-spacing:calc(var(--u)*1.1);font-weight:800;} .c24 .f3{left:calc(var(--u)*568.38);top:calc(var(--u)*1132.29);font-size:calc(var(--u)*20.83);letter-spacing:calc(var(--u)*0.61);font-weight:800;} .c24 .f4{left:calc(var(--u)*765.38);top:calc(var(--u)*1132.29);font-size:calc(var(--u)*20.83);letter-spacing:calc(var(--u)*0.07);font-weight:800;}
+.c24 .ide{left:calc(var(--u)*342.17);top:calc(var(--u)*1258.93);font-size:calc(var(--u)*47.14);letter-spacing:calc(var(--u)*-2.0);font-weight:900;text-transform:uppercase}
+.c24 .ide .m{color:#e33cf0} .c24 .ide .c{color:#16a9ee} .c24 .ide .o{color:#ff8a2a} .c24 .ide .d{color:#9c9cf2}
+.c24 .ide .m{background:linear-gradient(90deg,#d53cf7,#f23ce2);-webkit-background-clip:text;background-clip:text;color:transparent}
+.c24 .ide .c{background:linear-gradient(90deg,#1ac0f0,#169fef);-webkit-background-clip:text;background-clip:text;color:transparent}
+.c24 .ide .o{background:linear-gradient(90deg,#ff9a2e,#ff7d2c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.c24 .par{left:calc(var(--u)*343.39);top:calc(var(--u)*1318.26);font-size:calc(var(--u)*29.1);line-height:1.1649;font-weight:400;color:#f2f4ff}
+.c24 .arrow{left:calc(var(--u)*850);top:calc(var(--u)*1274);width:calc(var(--u)*102);height:calc(var(--u)*103);border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(40deg,#2f78ff 0%,#7a4dff 45%,#ff2fe6 100%);
+  box-shadow:0 0 calc(var(--u)*26) rgba(170,80,255,.55),inset 0 0 0 calc(var(--u)*1.5) rgba(255,255,255,.18);transition:transform .25s,box-shadow .25s}
+.c24 .arrow:hover{transform:scale(1.05);box-shadow:0 0 calc(var(--u)*40) rgba(190,90,255,.85)}
+.c24 .arrow svg{width:calc(var(--u)*52);height:calc(var(--u)*52)}
+.c24 .tag{left:calc(var(--u)*327.5);top:calc(var(--u)*1479.38);font-size:calc(var(--u)*12.5);letter-spacing:calc(var(--u)*3.53);font-weight:400;color:#a9b0d6}
+.c24 .tl{top:calc(var(--u)*1485);height:1px}
+.c24 .tl1{left:calc(var(--u)*210);width:calc(var(--u)*100);background:linear-gradient(90deg,transparent,#3d66c9)}
+.c24 .tl2{left:calc(var(--u)*712);width:calc(var(--u)*104);background:linear-gradient(90deg,#8d4fd6,transparent)}
+.c24 .anchor{width:1px;height:1px}
+
+/* ================= MOBILE LAYOUT ================= */
+.c24 .mobile{display:none}
+@media (max-width:760px){
+  .c24 .stage{display:none}
+  .c24 .mobile{display:block;position:relative;z-index:1;padding:18px 16px 0}
+  .c24 .m-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .c24 .m-brand{display:flex;align-items:center;gap:8px}
+  .c24 .m-brand img{width:46px;height:46px;object-fit:contain}
+  .c24 .m-wm{display:flex;flex-direction:column;align-items:center;line-height:1}
+  .c24 .m-wm b{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  .c24 .m-wm small{font-size:8.5px;font-weight:600;letter-spacing:.36em;margin-top:4px;padding-left:.36em}
+  .c24 .m-dl{font-size:14px;font-weight:500;padding:11px 16px;border-radius:999px;white-space:nowrap;background:linear-gradient(90deg,#a92cff,#e22fe9 55%,#ff2fd2);box-shadow:inset 0 0 0 1.5px rgba(255,170,255,.55),0 0 18px rgba(235,60,255,.55)}
+  .c24 .m-h1{margin-top:38px;font-weight:900;text-transform:uppercase;line-height:.98;font-size:clamp(34px,11vw,60px);letter-spacing:-.06em}
+  .c24 .m-h1 span{display:block;width:fit-content}
+  .c24 .m-h1 .s4,.c24 .m-h1 .s5{font-size:.86em;margin-top:.04em}
+  .c24 .g1{color:#fff}
+  .c24 .g2{background:linear-gradient(90deg,#f63be2,#dd3cf3);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .c24 .g3{background:linear-gradient(90deg,#16d4f1,#2aa4f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .c24 .g4{background:linear-gradient(90deg,#ffa53c,#ff8646 55%,#ff6a50);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .c24 .g5{background:linear-gradient(90deg,#ff7a3c,#ff5a47 50%,#ff3f5c);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .c24 .m-lead{margin-top:24px;font-size:19px;line-height:1.3;color:#f2f4ff;max-width:22em}
+  .c24 .m-stores{display:flex;gap:10px;margin-top:26px}
+  .c24 .m-stores a{flex:1;display:flex;align-items:center;gap:8px;height:56px;padding:0 12px;background:#000;border:1.5px solid #9a9ca6;border-radius:10px}
+  .c24 .m-stores svg{width:28px;height:30px;flex:none}
+  .c24 .m-stores .t{display:flex;flex-direction:column;line-height:1.04}
+  .c24 .m-stores small{font-size:10px;font-weight:500} .c24 .m-stores strong{font-size:clamp(16px,5.2vw,21px);font-weight:600;letter-spacing:-.025em}
+  .c24 .crop{background-image:var(--c24-plate);background-repeat:no-repeat}
+  .c24 .m-phone{position:relative;margin:18px -16px 0;aspect-ratio:554/870;background-size:184.838% auto;background-position:100.0% 18.018%;
+    -webkit-mask-image:radial-gradient(75% 60% at 55% 50%,#000 62%,transparent 100%);mask-image:radial-gradient(75% 60% at 55% 50%,#000 62%,transparent 100%)}
+  .c24 .m-phone a{position:absolute;border-radius:999px}
+  .c24 .m-feat{display:grid;grid-template-columns:1fr 1fr;gap:26px 10px;margin-top:6px;text-align:center}
+  .c24 .m-ring{width:118px;margin:0 auto;border-radius:50%;
+    -webkit-mask-image:radial-gradient(circle,#000 62%,transparent 71%);mask-image:radial-gradient(circle,#000 62%,transparent 71%)}
+  .c24 .m-feat h3{font-size:15px;font-weight:800;margin-top:10px;letter-spacing:.01em}
+  .c24 .m-card{margin-top:34px;border-radius:26px;border:1.5px solid rgba(90,150,255,.65);box-shadow:0 0 26px rgba(60,130,255,.35);
+    background:linear-gradient(180deg,rgba(30,50,140,.35),rgba(10,20,80,.35));padding:18px 18px 24px;text-align:center}
+  .c24 .m-cube{width:190px;margin:0 auto;aspect-ratio:262/248;background-size:390.84% auto;background-position:7.874% 93.168%;
+    -webkit-mask-image:radial-gradient(circle,#000 55%,transparent 72%);mask-image:radial-gradient(circle,#000 55%,transparent 72%)}
+  .c24 .m-card h2{font-size:clamp(26px,8.6vw,36px);font-weight:900;letter-spacing:-.03em;margin-top:6px;white-space:nowrap}
+  .c24 .m-card h2 .m{color:#e33cf0} .c24 .m-card h2 .c{color:#16a9ee} .c24 .m-card h2 .o{color:#ff8a2a} .c24 .m-card h2 .d{color:#9c9cf2}
+  .c24 .m-card p{font-size:18px;line-height:1.3;margin-top:8px;color:#f2f4ff}
+  .c24 .m-arrow{display:inline-grid;place-items:center;width:64px;height:64px;border-radius:50%;margin-top:16px;
+    background:linear-gradient(135deg,#7a4dff,#b44df5);box-shadow:0 0 22px rgba(170,80,255,.55)}
+  .c24 .m-arrow svg{width:28px;height:28px}
+  .c24 .m-tag{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:40px;font-size:10px;letter-spacing:.2em;color:#a9b0d6;white-space:nowrap}
+  .c24 .m-tag::before,.c24 .m-tag::after{content:"";height:1px;width:34px;background:linear-gradient(90deg,transparent,#3d66c9)}
+  .c24 .m-tag::after{background:linear-gradient(90deg,#8d4fd6,transparent)}
+}
+
+/* ================= CONTACT + FOOTER ================= */
+.c24 .contact{position:relative;z-index:1;text-align:center;padding:30px 16px 0;scroll-margin-top:20px}
+.c24 .contact h2{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.02em;text-transform:uppercase}
+.c24 .contact h2 span{background:linear-gradient(90deg,#f63be2,#dd3cf3);-webkit-background-clip:text;background-clip:text;color:transparent}
+.c24 .contact p{color:#c9d0f0;font-size:18px;margin-top:10px}
+.c24 .contact a.btn{display:inline-flex;margin-top:22px;font-size:17px;font-weight:500;padding:13px 30px;border-radius:999px;background:linear-gradient(90deg,#a92cff,#e22fe9 55%,#ff2fd2);box-shadow:inset 0 0 0 1.5px rgba(255,170,255,.55),0 0 22px rgba(235,60,255,.55)}
+.c24 footer{position:relative;z-index:1;text-align:center;padding:40px 16px 34px;font-size:13px;color:#6f79a8;display:flex;justify-content:center;flex-wrap:wrap;gap:6px 18px}
+.c24 footer a:hover{color:#fff}
+@media (prefers-reduced-motion:reduce){.c24,.c24 *{transition:none!important}html{scroll-behavior:auto}}
