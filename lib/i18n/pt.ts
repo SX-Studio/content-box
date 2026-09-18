@@ -80,6 +80,22 @@ export const pt: Dict = {
     rate: '100 tokens = €1',
   },
 
+  nickname: {
+    title: 'Apelido',
+    none: 'Nenhum apelido definido',
+    label: 'Apelido',
+    placeholder: 'ex.: Ana B',
+    hint: 'Outros membros veem isto ao lado do seu ID. Seu número de celular nunca é mostrado.',
+    saved: 'Apelido salvo.',
+    cleared: 'Apelido removido.',
+    remove: 'Remover apelido',
+    inviteTitle: 'Escolha um apelido',
+    inviteBody: 'Você entrou. Escolha um apelido para os outros saberem quem é você — ou pule e fique só com seu ID.',
+    skip: 'Pular por enquanto',
+    saveAndContinue: 'Salvar e continuar',
+    errSave: 'Não foi possível salvar o apelido',
+  },
+
   invite: {
     eyebrow: 'Convite',
     title: 'Você foi convidado para uma box',

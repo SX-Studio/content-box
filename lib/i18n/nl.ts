@@ -79,6 +79,22 @@ export const nl: Dict = {
     rate: '100 tokens = €1',
   },
 
+  nickname: {
+    title: 'Bijnaam',
+    none: 'Geen bijnaam ingesteld',
+    label: 'Bijnaam',
+    placeholder: 'bijv. Ana B',
+    hint: 'Andere leden zien dit naast je ID. Je telefoonnummer wordt nooit getoond.',
+    saved: 'Bijnaam opgeslagen.',
+    cleared: 'Bijnaam verwijderd.',
+    remove: 'Bijnaam verwijderen',
+    inviteTitle: 'Kies een bijnaam',
+    inviteBody: 'Je bent binnen. Kies een bijnaam zodat de anderen weten wie je bent — of sla over en blijf alleen je ID.',
+    skip: 'Nu overslaan',
+    saveAndContinue: 'Opslaan en doorgaan',
+    errSave: 'Bijnaam opslaan mislukt',
+  },
+
   invite: {
     eyebrow: 'Uitnodiging',
     title: 'Je bent uitgenodigd voor een box',

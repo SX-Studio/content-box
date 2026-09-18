@@ -3,12 +3,14 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { boxCss, fmtCountdown, gradOf, ClockIcon, LockIcon, BottomNav } from '@/app/box-ui';
 import { useT, LocaleSwitcher } from '@/app/i18n-provider';
+import { participantLabel } from '@/lib/display-name';
 
 type Rental = {
   public_id: string;
   content_public_id: string;
   title: string;
   creator: string | null;
+  creator_name: string | null;
   expires_at: string;
   preview_url: string | null;
 };
@@ -81,7 +83,7 @@ export default function MyRentalsPage() {
               </div>
               <div className="bx-rmeta">
                 <div className="t">{r.title}</div>
-                <div className="c">{t('rentals.creator')} {r.creator} · {r.content_public_id}</div>
+                <div className="c">{r.creator_name ? participantLabel(r.creator_name, r.creator ?? '') : `${t('rentals.creator')} ${r.creator}`} · {r.content_public_id}</div>
                 {expired
                   ? <div className="bx-timer exp"><LockIcon /> {t('rentals.expired')}</div>
                   : <div className={`bx-timer ${left < 3600 ? 'warn' : ''}`}>◷ {t('rentals.remaining', { time: fmtCountdown(r.expires_at) })}</div>}

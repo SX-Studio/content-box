@@ -81,6 +81,22 @@ export const en = {
     rate: '100 tokens = €1',
   },
 
+  nickname: {
+    title: 'Nickname',
+    none: 'No nickname set',
+    label: 'Nickname',
+    placeholder: 'e.g. Ana B',
+    hint: 'Other members see this next to your ID. Your phone number is never shown.',
+    saved: 'Nickname saved.',
+    cleared: 'Nickname removed.',
+    remove: 'Remove nickname',
+    inviteTitle: 'Pick a nickname',
+    inviteBody: 'You’re in. Choose a nickname so the others know who you are — or skip and stay just your ID.',
+    skip: 'Skip for now',
+    saveAndContinue: 'Save and continue',
+    errSave: 'Could not save the nickname',
+  },
+
   invite: {
     eyebrow: 'Invitation',
     title: 'You’ve been invited to a box',

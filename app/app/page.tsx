@@ -5,7 +5,7 @@ import { PACKAGES } from '@/lib/packages';
 import { boxCss, BottomNav } from '@/app/box-ui';
 import { useT, LocaleSwitcher } from '@/app/i18n-provider';
 
-type Me = { account: { public_id: string; status: string; email: string | null }; roles: { role: string; box_id: string | null }[] };
+type Me = { account: { public_id: string; status: string; email: string | null; display_name: string | null }; roles: { role: string; box_id: string | null }[] };
 // adminCount = active box_admins who are not platform operators. Sent to operators
 // only; undefined for everyone else, which is why the badge below tests for === 0.
 type Box = { public_id: string; name: string; description: string | null; status: string; role?: string; adminCount?: number };
@@ -66,7 +66,10 @@ export default function Dashboard() {
       <div className="between">
         <div>
           <p className="eyebrow">{t('dash.account')}</p>
-          <h1 style={{ marginBottom: 2 }}><span className="mono" style={{ fontSize: 22 }}>{me?.account.public_id}</span></h1>
+          <h1 style={{ marginBottom: 2 }}>
+            {me?.account.display_name && <span style={{ marginRight: 8 }}>{me.account.display_name}</span>}
+            <span className="mono" style={{ fontSize: 22 }}>{me?.account.public_id}</span>
+          </h1>
           <div className="row" style={{ marginTop: 6 }}>
             {me?.roles.length ? me.roles.map((r, i) => (
               <span key={i} className="pill">{r.role}{r.box_id ? ' · box' : ''}</span>
@@ -90,6 +93,8 @@ export default function Dashboard() {
       {isCreator && <Verification />}
 
       {isCreator && <Earnings />}
+
+      <Nickname initialName={me?.account.display_name ?? null} />
 
       <AccountSettings initialEmail={me?.account.email ?? null} />
 
@@ -456,6 +461,68 @@ function Verification() {
       </div>
       {msg && <div className={`msg ${msg.kind}`} style={{ marginTop: 10 }}>{msg.text}</div>}
     </form>
+  );
+}
+
+// Any account can set a nickname — no role gate here or on the route behind it.
+function Nickname({ initialName }: { initialName: string | null }) {
+  const t = useT();
+  const [name, setName] = useState(initialName ?? '');
+  const [saved, setSaved] = useState(initialName ?? '');
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
+
+  async function save(next: string | null) {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetch('/api/account/display-name', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: next }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || t('nickname.errSave'));
+      setSaved(j.displayName ?? '');
+      setName(j.displayName ?? '');
+      setMsg({ kind: 'ok', text: j.displayName ? t('nickname.saved') : t('nickname.cleared') });
+    } catch (e) {
+      setMsg({ kind: 'err', text: (e as Error).message });
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="card">
+      <div className="between">
+        <div>
+          <div className="dim" style={{ fontWeight: 600 }}>{t('nickname.title')}</div>
+          <div className="dim" style={{ fontSize: 13 }}>{saved || t('nickname.none')}</div>
+        </div>
+        <button className="ghost sm" onClick={() => setOpen((o) => !o)}>{open ? t('dash.hide') : t('dash.edit')}</button>
+      </div>
+
+      {open && (
+        <>
+          <hr />
+          <label htmlFor="nick">{t('nickname.label')}</label>
+          <div className="dim" style={{ fontSize: 12, marginBottom: 6 }}>{t('nickname.hint')}</div>
+          <div className="row" style={{ alignItems: 'flex-end', gap: 8 }}>
+            <input
+              id="nick" value={name} placeholder={t('nickname.placeholder')} maxLength={24}
+              autoComplete="nickname" onChange={(e) => setName(e.target.value)} style={{ flex: 1 }}
+            />
+            <button className="sm" onClick={() => void save(name)} disabled={busy || name.trim() === saved || name.trim().length < 2}>
+              {busy ? t('common.saving') : t('common.save')}
+            </button>
+          </div>
+          {saved && (
+            <p className="dim" style={{ marginTop: 10 }}>
+              <a onClick={() => { if (!busy) void save(null); }} style={{ cursor: 'pointer' }}>{t('nickname.remove')}</a>
+            </p>
+          )}
+          {msg && <div className={`msg ${msg.kind}`} style={{ marginTop: 10 }}>{msg.text}</div>}
+        </>
+      )}
+    </div>
   );
 }
 

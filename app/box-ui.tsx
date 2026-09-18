@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useT } from '@/app/i18n-provider';
+import { participantLabel } from '@/lib/display-name';
 
 // Shared UI for the Content Box surfaces (group box, discover, rentals): one card
 // language + design tokens so /box/[id], /discover and /rentals read as one product.
@@ -12,6 +13,7 @@ export type FeedItem = {
   title: string;
   price_tokens: number;
   creator: string | null;
+  creator_name?: string | null;
   is_owner?: boolean;
   asset_count?: number;
   media_type: 'image' | 'video';
@@ -149,8 +151,10 @@ export function FeedCard({ item, expiry, rentedNow, selected, onToggle, onRent, 
 
       <div className="bx-body">
         <div className="bx-crow">
-          <span className="bx-av" style={{ background: avColorOf(item.creator || '?') }}>{(item.creator || '?')[0].toUpperCase()}</span>
-          <span className="bx-cname">{t('rentals.creator')} {item.creator}</span>
+          <span className="bx-av" style={{ background: avColorOf(item.creator || '?') }}>{(item.creator_name || item.creator || '?')[0].toUpperCase()}</span>
+          <span className="bx-cname">{item.creator_name
+            ? participantLabel(item.creator_name, item.creator ?? '')
+            : `${t('rentals.creator')} ${item.creator}`}</span>
         </div>
         <div className="bx-title">{item.title}</div>
         <div className="bx-meta">
