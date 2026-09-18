@@ -84,6 +84,9 @@ export default function Dashboard() {
           {(isOperator || me?.roles.some((r) => r.role === 'moderator')) && (
             <a href="/moderation"><button className="ghost sm">🛡 {t('dash.moderationBtn')}</button></a>
           )}
+          {isOperator && (
+            <a href="/admin"><button className="ghost sm">◈ Admin console</button></a>
+          )}
           <button className="ghost sm" onClick={logout}>{t('dash.signOut')}</button>
         </div>
       </div>

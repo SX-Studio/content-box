@@ -28,13 +28,14 @@ export async function isAdminAccount(account: Account): Promise<boolean> {
   return (await hasRole(account.id, 'platform_operator')) || (await hasRole(account.id, 'moderator'));
 }
 
-// Gate for admin server pages: must be signed in, be an operator/moderator, AND have
-// a fresh fingerprint step-up. Non-admins are sent home (no hint the area exists);
-// admins without step-up go unlock with their fingerprint.
+// Gate for the admin console: must be signed in, be a platform operator, AND have a
+// fresh fingerprint step-up. The console is operators-only — moderators get the
+// moderation console instead. Non-operators are sent home (no hint the area exists);
+// operators without step-up go unlock with their fingerprint.
 export async function requireAdminStepUp(): Promise<Account> {
   const account = await currentAccount();
   if (!account) redirect('/login');
-  if (!(await isAdminAccount(account))) redirect('/app');
+  if (!(await hasRole(account.id, 'platform_operator'))) redirect('/app');
   if (!(await hasValidStepUp(account.id))) redirect('/admin/unlock');
   return account;
 }
