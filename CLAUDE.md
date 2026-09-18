@@ -30,7 +30,10 @@ Standalone product; optional SecretXperience integration is a later phase. This 
 
 ## Privacy model (non-negotiable)
 Pseudonymous **between participants**, transparent **to the platform**.
-- Participants identify each other only by public IDs (`USR-`/`CRT-`/`BOX-`/`CNT-`).
+- Participants identify each other only by public IDs (`USR-`/`CRT-`/`BOX-`/`CNT-`),
+  optionally prefixed by a self-chosen **nickname** (`0023`). The nickname is shown
+  WITH the ID, never instead of it, and can never be a phone number — see the
+  2026-09-18 log.
 - **No participant ever sees another's phone number or login email.** Only the
   platform can decrypt either, server-side, and every such access is audit-logged.
 - Phone stored `phone_enc` (AES-256-GCM) + `phone_hash` (keyed HMAC for lookup).
@@ -118,6 +121,47 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
     buttons), dashboard link, feed "⚑ Report" button. 28 tests; advisor clean.
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
+
+## Session log — 2026-09-18 (nicknames: any number can name itself)
+Same branch (`claude/lucid-einstein-r49f6g`, PR #13). Migration `0023_display_name.sql`
+— **APPLIED LIVE** to `jpnnzxnvubrosjjcbkmn` and verified (`display_name` nullable;
+`display_name_key` GENERATED ALWAYS AS `lower(btrim(display_name))`; unique index
+present). Additive; advisor reports nothing new.
+
+- **Why:** participants were only ever a public ID to each other. Correct for privacy,
+  useless for recognition. **Any authenticated account** can now set a nickname — no
+  role gate on `POST /api/account/display-name` or the UI, because a user who arrived by
+  invite link needs one as much as a creator does.
+- **Offered right after an invite is accepted** (`/invite/[token]` gains a `nickname`
+  step). ⚠️ It is a step, not a gate: the invitation is already accepted when it shows,
+  so **Skip** is real and leaves the account on its public ID. An account that already
+  has one is never asked again.
+- ⚠️ **Shown WITH the public ID, never instead of it.** `participantLabel()` →
+  `Ana B · CRT-7K3M` in feed cards, discover and rentals. Any system allowing Unicode
+  lets two people pick similar-looking names; keeping the ID beside the name is what
+  makes them tellable apart, and is why confusable detection is not needed for safety.
+- ⚠️ **A nickname cannot be a phone number.** ≥7 digits is refused however punctuated
+  (`+31 6 1234 5678`, `06-12345678`). A nickname is plain text shown to every member,
+  and the first rule of this product is that a phone number is never plain text. Four
+  digits ("Ana 2000") is fine.
+- ⚠️ **Invisible characters are checked BEFORE normalising, and the order is the point.**
+  JS treats **U+FEFF as whitespace**, so `trim()` and the `\s+` collapse quietly turn a
+  BOM into a space — `"An\uFEFFa"` would have been stored as `"An a"`, a name the person
+  never chose. **U+200B is not whitespace** and survives to the check. Running the check
+  first catches both and says so. (A test asserted the throw and failed; the test was
+  right about the intent, the code was wrong about the order.)
+- Also refused: reserved staff words (`admin`, `moderator`, `support`, `content24`…) and
+  names shaped like a public ID (`USR-…`, `CRT-…`). Both are impersonation, not naming.
+- ⚠️ **Uniqueness is Postgres's, not the app's.** `display_name_key` is GENERATED, so it
+  cannot drift from the name it came from; a key the app computes can, and then two
+  accounts hold what readers see as one nickname. A read-then-write check in JS would
+  also let two people racing for the same name both pass — `setDisplayName` translates
+  the `23505` into "That nickname is taken". NULLs are distinct, so any number of
+  accounts can have no nickname.
+- Tests: `tests/display-name.test.ts` (13). **241 passing**; `tsc` clean; build clean.
+- **Not built:** nickname moderation — an operator can see a nickname but cannot force
+  one off an account. Worth adding when the first bad one appears.
+- **Not verified in a browser** (the dashboard and invite accept are auth-gated).
 
 ## Session log — 2026-09-16 (three languages, one dictionary)
 Branch `claude/lucid-einstein-r49f6g` → PR #13. **No migration.**
@@ -844,7 +888,7 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - Don't break existing functionality without explicit permission.
 
 ## Useful files
-- `supabase/migrations/` — schema + RLS (`0001`–`0022` all applied live; `0020`'s four `account.password_*` columns verified present 2026-09-14)
+- `supabase/migrations/` — schema + RLS (`0001`–`0023` all applied live; `0020`'s four `account.password_*` columns verified present 2026-09-14)
 - `lib/password.ts` / `lib/password-auth.ts` — scrypt hashing + lockout for optional password sign-in
 - `lib/fresh-auth.ts` — 15-min proof of a from-scratch sign-in; NOT the admin step-up cookie
 - `lib/supabase/{admin,server,client}.ts` — service-role / SSR / browser clients
@@ -861,6 +905,7 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - `docs/twilio-setup.md` — Twilio (fallback provider) setup + error-code fixes
 - `lib/i18n/` — en (source of truth) / nl / pt dictionaries, locale resolution, `translate`
 - `lib/i18n/server.ts` — `getLocale()` / `getT()` for server components; `app/i18n-provider.tsx` — `useT`, `LocaleSwitcher`
+- `lib/display-name.ts` — nickname rules (pure): validate, case-fold key, `participantLabel` (nickname · public ID)
 
 ## How to run
 ```bash
