@@ -2,9 +2,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { boxCss, FeedCard, PhotoIcon, BottomNav, type FeedItem } from '@/app/box-ui';
+import { useT, LocaleSwitcher } from '@/app/i18n-provider';
 
 export default function DiscoverPage() {
   const router = useRouter();
+  const t = useT();
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [rented, setRented] = useState<Record<string, string>>({});
   const [box, setBox] = useState<string>('all');
@@ -53,7 +55,7 @@ export default function DiscoverPage() {
           body: JSON.stringify({ idempotencyKey: `${id}:${Date.now()}` }),
         });
         const j = await r.json();
-        if (!r.ok) throw new Error(j.error || 'Could not rent');
+        if (!r.ok) throw new Error(j.error || t('discover.errRent'));
         setRented((m) => ({ ...m, [id]: j.expiresAt }));
         setSelected((s) => { const n = { ...s }; delete n[id]; return n; });
         ok++;
@@ -61,11 +63,11 @@ export default function DiscoverPage() {
     }
     await loadWallet();
     setRenting(false);
-    if (ok) flash(ok > 1 ? `${ok} items gehuurd · 24u toegang` : 'Gehuurd · 24u toegang actief');
+    if (ok) flash(ok > 1 ? t('discover.rentedMany', { count: ok }) : t('discover.rentedOne'));
     if (failMsg) flash(failMsg);
-  }, [renting, loadWallet, flash]);
+  }, [renting, loadWallet, flash, t]);
 
-  if (loading) return <div className="boxui"><style>{boxCss}</style><p className="bx-loading">Loading…</p></div>;
+  if (loading) return <div className="boxui"><style>{boxCss}</style><p className="bx-loading">{t('common.loading')}</p></div>;
 
   const boxes = Array.from(new Map(feed.map((i) => [i.box_public_id, i.box_name])).entries());
   const shown = box === 'all' ? feed : feed.filter((i) => i.box_public_id === box);
@@ -81,17 +83,18 @@ export default function DiscoverPage() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
         </div>
         <div className="bx-titles">
-          <div className="bx-name">Discover</div>
-          <div className="bx-sub">één feed · alle boxen die je volgt</div>
+          <div className="bx-name">{t('discover.title')}</div>
+          <div className="bx-sub">{t('discover.subtitle')}</div>
         </div>
-        <a href="/rentals" className="bx-chip" title="My rentals">◷ Rentals</a>
-        <a href="/app" className="bx-chip" title="Dashboard">↩ Dashboard</a>
-        <a href="/wallet" className="bx-chip wallet" title="Wallet">◈ {balance ?? '—'}</a>
+        <a href="/rentals" className="bx-chip" title={t('rentals.title')}>◷ {t('nav.rentals')}</a>
+        <a href="/app" className="bx-chip" title={t('nav.dashboard')}>↩ {t('nav.dashboard')}</a>
+        <a href="/wallet" className="bx-chip wallet" title={t('nav.wallet')}>◈ {balance ?? '—'}</a>
+        <LocaleSwitcher compact />
       </header>
 
       {boxes.length > 1 && (
         <div className="bx-pills">
-          <button className={`bx-pill ${box === 'all' ? 'on' : ''}`} onClick={() => setBox('all')}>Alle</button>
+          <button className={`bx-pill ${box === 'all' ? 'on' : ''}`} onClick={() => setBox('all')}>{t('discover.all')}</button>
           {boxes.map(([id, name]) => (
             <button key={id} className={`bx-pill ${box === id ? 'on' : ''}`} onClick={() => setBox(id!)}>{name}</button>
           ))}
@@ -99,15 +102,15 @@ export default function DiscoverPage() {
       )}
 
       <div className="bx-vhead">
-        <h2>Nieuwste drops</h2>
-        <span className="bx-cnt">{shown.length} drop{shown.length === 1 ? '' : 's'}</span>
+        <h2>{t('discover.newest')}</h2>
+        <span className="bx-cnt">{shown.length === 1 ? t('discover.dropOne') : t('discover.drops', { count: shown.length })}</span>
       </div>
 
       {shown.length === 0 ? (
         <div className="bx-empty">
           <PhotoIcon />
-          <div className="h">Nog niets hier</div>
-          <p>Word lid van een box of kom binnenkort terug.</p>
+          <div className="h">{t('discover.emptyTitle')}</div>
+          <p>{t('discover.emptyBody')}</p>
         </div>
       ) : (
         <div className="bx-grid">
@@ -121,7 +124,7 @@ export default function DiscoverPage() {
               onToggle={() => toggle(c.public_id)}
               onRent={() => rent([c.public_id])}
               renting={renting}
-              onReported={() => flash('Gerapporteerd — bedankt. Ons team bekijkt het.')}
+              onReported={() => flash(t('discover.reported'))}
               showBox
               showReport
             />
@@ -130,9 +133,9 @@ export default function DiscoverPage() {
       )}
 
       <div className={`bx-cart ${selectedIds.length ? 'show' : ''}`}>
-        <div className="info">Rent selected<b>{cartTotal} tokens</b></div>
-        <div className="cnt">{selectedIds.length} item{selectedIds.length === 1 ? '' : 's'}</div>
-        <button className="bx-btn ember" disabled={renting} onClick={() => rent(selectedIds)}>{renting ? '…' : 'Rent 24u'}</button>
+        <div className="info">{t('discover.rentSelected')}<b>{cartTotal} {t('wallet.tokens')}</b></div>
+        <div className="cnt">{selectedIds.length === 1 ? t('discover.itemOne') : t('discover.items', { count: selectedIds.length })}</div>
+        <button className="bx-btn ember" disabled={renting} onClick={() => rent(selectedIds)}>{renting ? '…' : t('feed.rent24')}</button>
       </div>
 
       <div className={`bx-toast ${toast ? 'show' : ''}`}>{toast}</div>

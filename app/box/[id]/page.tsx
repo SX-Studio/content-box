@@ -2,11 +2,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { boxCss, FeedCard, PhotoIcon, BottomNav, type FeedItem } from '@/app/box-ui';
+import { useT, LocaleSwitcher } from '@/app/i18n-provider';
 
 type Ctx = { canUpload: boolean; boxName: string };
 
 export default function BoxPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const t = useT();
   const boxId = params.id;
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [rented, setRented] = useState<Record<string, string>>({}); // content_public_id -> expires_at
@@ -68,7 +70,7 @@ export default function BoxPage({ params }: { params: { id: string } }) {
           body: JSON.stringify({ idempotencyKey: `${id}:${Date.now()}` }),
         });
         const j = await r.json();
-        if (!r.ok) throw new Error(j.error || 'Could not rent');
+        if (!r.ok) throw new Error(j.error || t('discover.errRent'));
         setRented((m) => ({ ...m, [id]: j.expiresAt }));
         setSelected((s) => { const n = { ...s }; delete n[id]; return n; });
         ok++;
@@ -76,7 +78,7 @@ export default function BoxPage({ params }: { params: { id: string } }) {
     }
     await loadWallet();
     setRenting(false);
-    if (ok) flash(ok > 1 ? `${ok} items gehuurd · 24u toegang` : 'Gehuurd · 24u toegang actief');
+    if (ok) flash(ok > 1 ? t('discover.rentedMany', { count: ok }) : t('discover.rentedOne'));
     if (failMsg) flash(failMsg);
   }, [renting, loadWallet, flash]);
 
@@ -94,25 +96,26 @@ export default function BoxPage({ params }: { params: { id: string } }) {
         <div className="bx-badge">✦</div>
         <div className="bx-titles">
           <div className="bx-name">{ctx.boxName}</div>
-          <div className="bx-sub">{creators || '—'} creator{creators === 1 ? '' : 's'} · besloten box</div>
+          <div className="bx-sub">{creators === 1 ? t('box.creatorOne') : t('box.creators', { count: creators || '—' })}</div>
         </div>
-        <a href="/rentals" className="bx-chip" title="My rentals">◷ Rentals</a>
-        <a href="/app" className="bx-chip" title="Dashboard">↩ Dashboard</a>
-        <a href="/wallet" className="bx-chip wallet" title="Wallet">◈ {balance ?? '—'}</a>
+        <a href="/rentals" className="bx-chip" title={t('rentals.title')}>◷ {t('nav.rentals')}</a>
+        <a href="/app" className="bx-chip" title={t('nav.dashboard')}>↩ {t('nav.dashboard')}</a>
+        <a href="/wallet" className="bx-chip wallet" title={t('nav.wallet')}>◈ {balance ?? '—'}</a>
+        <LocaleSwitcher compact />
       </header>
 
       {ctx.canUpload && <Upload boxId={boxId} onUploaded={loadFeed} />}
 
       <div className="bx-vhead">
-        <h2>Discover</h2>
-        <span className="bx-cnt">{feed.length} drop{feed.length === 1 ? '' : 's'}</span>
+        <h2>{t('discover.title')}</h2>
+        <span className="bx-cnt">{feed.length === 1 ? t('discover.dropOne') : t('discover.drops', { count: feed.length })}</span>
       </div>
 
       {feed.length === 0 ? (
         <div className="bx-empty">
           <PhotoIcon />
-          <div className="h">Nog geen content</div>
-          <p>{ctx.canUpload ? 'Drop hierboven iets om te beginnen.' : 'Kom later terug — creators droppen binnenkort.'}</p>
+          <div className="h">{t('box.emptyTitle')}</div>
+          <p>{ctx.canUpload ? t('box.emptyUploader') : t('box.emptyMember')}</p>
         </div>
       ) : (
         <div className="bx-grid">
@@ -126,7 +129,7 @@ export default function BoxPage({ params }: { params: { id: string } }) {
               onToggle={() => toggle(c.public_id)}
               onRent={() => rent([c.public_id])}
               renting={renting}
-              onReported={() => flash('Gerapporteerd — bedankt. Ons team bekijkt het.')}
+              onReported={() => flash(t('discover.reported'))}
               showReport
             />
           ))}
@@ -134,9 +137,9 @@ export default function BoxPage({ params }: { params: { id: string } }) {
       )}
 
       <div className={`bx-cart ${selectedIds.length ? 'show' : ''}`}>
-        <div className="info">Rent selected<b>{cartTotal} tokens</b></div>
-        <div className="cnt">{selectedIds.length} item{selectedIds.length === 1 ? '' : 's'}</div>
-        <button className="bx-btn ember" disabled={renting} onClick={() => rent(selectedIds)}>{renting ? '…' : 'Rent 24u'}</button>
+        <div className="info">{t('discover.rentSelected')}<b>{cartTotal} {t('wallet.tokens')}</b></div>
+        <div className="cnt">{selectedIds.length === 1 ? t('discover.itemOne') : t('discover.items', { count: selectedIds.length })}</div>
+        <button className="bx-btn ember" disabled={renting} onClick={() => rent(selectedIds)}>{renting ? '…' : t('feed.rent24')}</button>
       </div>
 
       <div className={`bx-toast ${toast ? 'show' : ''}`}>{toast}</div>
@@ -146,6 +149,7 @@ export default function BoxPage({ params }: { params: { id: string } }) {
 }
 
 function Upload({ boxId, onUploaded }: { boxId: string; onUploaded: () => void }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'image' | 'video'>('image');
   const [title, setTitle] = useState('');
@@ -174,18 +178,18 @@ function Upload({ boxId, onUploaded }: { boxId: string; onUploaded: () => void }
       fd.set('boxId', boxId); fd.set('title', title); fd.set('price', price);
 
       if (mode === 'video' && video) {
-        setProgress('Upload voorbereiden…');
+        setProgress(t('box.prepUpload'));
         const u = await fetch('/api/content/video-upload-url', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ boxId, contentType: video.type }),
         });
         const uj = await u.json();
-        if (!u.ok) throw new Error(uj.error || 'Could not start video upload');
-        setProgress('Video uploaden…');
+        if (!u.ok) throw new Error(uj.error || t('box.errStartVideo'));
+        setProgress(t('box.uploadingVideo'));
         const put = await fetch(uj.uploadUrl, { method: 'PUT', headers: { 'Content-Type': video.type }, body: video });
-        if (!put.ok) throw new Error('Video upload failed');
+        if (!put.ok) throw new Error(t('box.errVideoUpload'));
         fd.set('videoPath', uj.path); fd.set('videoMime', video.type); fd.set('poster', file);
-        setProgress('Afronden…');
+        setProgress(t('box.finishing'));
       } else {
         fd.set('file', file);
         // Extra photos go straight to storage: a request body is capped at ~4.5MB, so
@@ -199,20 +203,22 @@ function Upload({ boxId, onUploaded }: { boxId: string; onUploaded: () => void }
               body: JSON.stringify({ boxId, contentType: extra[i].type }),
             });
             const uj = await u.json();
-            if (!u.ok) throw new Error(uj.error || 'Could not start photo upload');
+            if (!u.ok) throw new Error(uj.error || t('box.errStartPhoto'));
             const put = await fetch(uj.uploadUrl, { method: 'PUT', headers: { 'Content-Type': extra[i].type }, body: extra[i] });
             if (!put.ok) throw new Error(`Foto ${i + 2} upload failed`);
             paths.push(uj.path);
           }
           fd.set('imagePaths', JSON.stringify(paths));
-          setProgress('Afronden…');
+          setProgress(t('box.finishing'));
         }
       }
 
       const r = await fetch('/api/content', { method: 'POST', body: fd });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'Upload failed');
-      setMsg({ kind: 'ok', text: `Gepost ${j.content.public_id}${j.content.photos > 1 ? ` · ${j.content.photos} foto's` : ''}${j.content.status === 'pending' ? ' (in review)' : ''}` });
+      if (!r.ok) throw new Error(j.error || t('box.errUpload'));
+      setMsg({ kind: 'ok', text: t('box.posted', { id: j.content.public_id })
+        + (j.content.photos > 1 ? t('box.postedPhotos', { count: j.content.photos }) : '')
+        + (j.content.status === 'pending' ? t('box.postedPending') : '') });
       reset();
       onUploaded();
     } catch (err) {
@@ -224,35 +230,35 @@ function Upload({ boxId, onUploaded }: { boxId: string; onUploaded: () => void }
     <div className="bx-drop">
       <button type="button" className="bx-drop-toggle" onClick={() => setOpen((o) => !o)}>
         <span className="bx-drop-badge">▲</span>
-        <span>Drop content</span>
+        <span>{t('box.dropContent')}</span>
         <span className="bx-drop-chev">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
         <form onSubmit={submit} className="bx-drop-form">
           <div className="bx-seg">
-            <button type="button" className={mode === 'image' ? 'on' : ''} onClick={() => setMode('image')}>Foto</button>
-            <button type="button" className={mode === 'video' ? 'on' : ''} onClick={() => setMode('video')}>Video</button>
+            <button type="button" className={mode === 'image' ? 'on' : ''} onClick={() => setMode('image')}>{t('box.photo')}</button>
+            <button type="button" className={mode === 'video' ? 'on' : ''} onClick={() => setMode('video')}>{t('box.video')}</button>
           </div>
 
           {mode === 'image' ? (
             <div className="bx-field">
-              <label htmlFor={`file-${boxId}`}>Afbeelding (JPEG / PNG / WebP, max 15MB)</label>
+              <label htmlFor={`file-${boxId}`}>{t('box.imageLabel')}</label>
               <input id={`file-${boxId}`} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-              <label htmlFor={`extra-${boxId}`}>Meer foto&apos;s (optioneel, max 9 extra)</label>
+              <label htmlFor={`extra-${boxId}`}>{t('box.extraLabel')}</label>
               <input
                 id={`extra-${boxId}`} type="file" multiple accept="image/jpeg,image/png,image/webp"
                 onChange={(e) => setExtra(Array.from(e.target.files ?? []).slice(0, 9))}
               />
-              {extra.length > 0 && <p className="bx-hint">{extra.length + 1} foto&apos;s — de eerste is de cover</p>}
+              {extra.length > 0 && <p className="bx-hint">{t('box.extraHint', { count: extra.length + 1 })}</p>}
             </div>
           ) : (
             <>
               <div className="bx-field">
-                <label htmlFor={`video-${boxId}`}>Video (MP4 / WebM / MOV, max 100MB)</label>
+                <label htmlFor={`video-${boxId}`}>{t('box.videoLabel')}</label>
                 <input id={`video-${boxId}`} type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => setVideo(e.target.files?.[0] ?? null)} />
               </div>
               <div className="bx-field">
-                <label htmlFor={`poster-${boxId}`}>Poster (blurred als preview, max 15MB)</label>
+                <label htmlFor={`poster-${boxId}`}>{t('box.posterLabel')}</label>
                 <input id={`poster-${boxId}`} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
               </div>
             </>
@@ -260,20 +266,20 @@ function Upload({ boxId, onUploaded }: { boxId: string; onUploaded: () => void }
 
           <div className="bx-field-row">
             <div className="bx-field" style={{ flex: '1 1 200px' }}>
-              <label htmlFor={`t-${boxId}`}>Titel</label>
+              <label htmlFor={`t-${boxId}`}>{t('box.titleLabel')}</label>
               <input id={`t-${boxId}`} placeholder="Nairobi Weekend" value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
             <div className="bx-field" style={{ flex: '0 0 140px' }}>
-              <label htmlFor={`pr-${boxId}`}>Prijs (tokens)</label>
+              <label htmlFor={`pr-${boxId}`}>{t('box.priceLabel')}</label>
               <input id={`pr-${boxId}`} inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ''))} />
             </div>
           </div>
 
           <div className="bx-drop-actions">
-            <button className="bx-btn ember block" disabled={busy || !title || !file || (mode === 'video' && !video)}>{busy ? 'Bezig…' : '▲ Post naar Box'}</button>
+            <button className="bx-btn ember block" disabled={busy || !title || !file || (mode === 'video' && !video)}>{busy ? t('box.posting') : `▲ ${t('box.postToBox')}`}</button>
             {progress && <span className="bx-progress">{progress}</span>}
           </div>
-          <div className="bx-dropnote">Standaard blurred &amp; niet-gepubliceerd tot screening klaar is.</div>
+          <div className="bx-dropnote">{t('box.dropNote')}</div>
           {msg && <div className={msg.kind === 'ok' ? 'bx-ok' : 'bx-err'}>{msg.text}</div>}
         </form>
       )}

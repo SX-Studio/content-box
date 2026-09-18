@@ -30,7 +30,10 @@ Standalone product; optional SecretXperience integration is a later phase. This 
 
 ## Privacy model (non-negotiable)
 Pseudonymous **between participants**, transparent **to the platform**.
-- Participants identify each other only by public IDs (`USR-`/`CRT-`/`BOX-`/`CNT-`).
+- Participants identify each other only by public IDs (`USR-`/`CRT-`/`BOX-`/`CNT-`),
+  optionally prefixed by a self-chosen **nickname** (`0023`). The nickname is shown
+  WITH the ID, never instead of it, and can never be a phone number — see the
+  2026-09-18 log.
 - **No participant ever sees another's phone number or login email.** Only the
   platform can decrypt either, server-side, and every such access is audit-logged.
 - Phone stored `phone_enc` (AES-256-GCM) + `phone_hash` (keyed HMAC for lookup).
@@ -119,6 +122,90 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-18 (nicknames: any number can name itself)
+Same branch (`claude/lucid-einstein-r49f6g`, PR #13). Migration `0023_display_name.sql`
+— **APPLIED LIVE** to `jpnnzxnvubrosjjcbkmn` and verified (`display_name` nullable;
+`display_name_key` GENERATED ALWAYS AS `lower(btrim(display_name))`; unique index
+present). Additive; advisor reports nothing new.
+
+- **Why:** participants were only ever a public ID to each other. Correct for privacy,
+  useless for recognition. **Any authenticated account** can now set a nickname — no
+  role gate on `POST /api/account/display-name` or the UI, because a user who arrived by
+  invite link needs one as much as a creator does.
+- **Offered right after an invite is accepted** (`/invite/[token]` gains a `nickname`
+  step). ⚠️ It is a step, not a gate: the invitation is already accepted when it shows,
+  so **Skip** is real and leaves the account on its public ID. An account that already
+  has one is never asked again.
+- ⚠️ **Shown WITH the public ID, never instead of it.** `participantLabel()` →
+  `Ana B · CRT-7K3M` in feed cards, discover and rentals. Any system allowing Unicode
+  lets two people pick similar-looking names; keeping the ID beside the name is what
+  makes them tellable apart, and is why confusable detection is not needed for safety.
+- ⚠️ **A nickname cannot be a phone number.** ≥7 digits is refused however punctuated
+  (`+31 6 1234 5678`, `06-12345678`). A nickname is plain text shown to every member,
+  and the first rule of this product is that a phone number is never plain text. Four
+  digits ("Ana 2000") is fine.
+- ⚠️ **Invisible characters are checked BEFORE normalising, and the order is the point.**
+  JS treats **U+FEFF as whitespace**, so `trim()` and the `\s+` collapse quietly turn a
+  BOM into a space — `"An\uFEFFa"` would have been stored as `"An a"`, a name the person
+  never chose. **U+200B is not whitespace** and survives to the check. Running the check
+  first catches both and says so. (A test asserted the throw and failed; the test was
+  right about the intent, the code was wrong about the order.)
+- Also refused: reserved staff words (`admin`, `moderator`, `support`, `content24`…) and
+  names shaped like a public ID (`USR-…`, `CRT-…`). Both are impersonation, not naming.
+- ⚠️ **Uniqueness is Postgres's, not the app's.** `display_name_key` is GENERATED, so it
+  cannot drift from the name it came from; a key the app computes can, and then two
+  accounts hold what readers see as one nickname. A read-then-write check in JS would
+  also let two people racing for the same name both pass — `setDisplayName` translates
+  the `23505` into "That nickname is taken". NULLs are distinct, so any number of
+  accounts can have no nickname.
+- Tests: `tests/display-name.test.ts` (13). **241 passing**; `tsc` clean; build clean.
+- **Not built:** nickname moderation — an operator can see a nickname but cannot force
+  one off an account. Worth adding when the first bad one appears.
+- **Not verified in a browser** (the dashboard and invite accept are auth-gated).
+
+## Session log — 2026-09-16 (three languages, one dictionary)
+Branch `claude/lucid-einstein-r49f6g` → PR #13. **No migration.**
+
+- **The app was speaking two languages at once.** `/login` rendered *"Inloggen"*,
+  *"Telefoon"*, *"Code versturen"* beside *"Email address"*, *"Password"*, *"Sign in"* —
+  on one screen. Box/discover/rentals were Dutch, the dashboard English. Now **en / nl /
+  pt**, one typed dictionary. ⚠️ **pt is BRAZILIAN** (`celular`, `você`), on purpose.
+- **`lib/i18n/en.ts` is the source of truth.** `Dict` is derived from it with the leaves
+  **widened to `string`** — `as const` keeps the English copy self-documenting, and the
+  widening is what lets a translation differ while still being *required* to supply
+  every key. Without it every nl/pt value is a type error against an English literal.
+- **Cookie beats `Accept-Language`**, always: a chosen language must stick even for a
+  browser asking for something else. Regional tags fold to base (`pt-BR`→`pt`,
+  `nl-BE`→`nl`), q-values honoured. Resolved server-side in the root layout, handed
+  down via `I18nProvider`, so the first paint and `<html lang>` are already right.
+- ⚠️ **Cost, accepted deliberately: the root layout now reads a cookie, so EVERY route
+  is dynamic.** The signed-in app already was; the landing and `/legal/*` lose static
+  prerendering. A client-side effect would keep them static but flash English first and
+  lie in `lang`. If static landing matters more, move the provider down to a route group
+  rather than reverting the locale model.
+- **Not converted, on purpose:** `/moderation` and `/admin` (internal operator tooling —
+  a whole route is a clean boundary, half a screen is not), and the **landing page**,
+  whose copy is marketing content and whose page is verified pixel-identical to a design
+  reference. Translating it changes every metric on it. ⚠️ The landing this referred to
+  was the neon one; `main` has since replaced it with the C24 artboard (log below). The
+  reasoning carries over unchanged — the new landing is equally unconverted, and equally
+  pixel-diffed against its own reference.
+- ⚠️ **Watch for `t` shadowing.** `app/wallet/page.tsx` had `const t = await fetch(…)`
+  and `Earnings` had `const eur = (t: number) => …`; both collide with the translator the
+  moment one exists. Renamed to `dev` and `n`. `BottomNav`'s `tabs.map((t) => …)` was the
+  same trap — it uses `tr` for the translator.
+- **Verified in a browser, not assumed** (rare for this repo): `/login` under
+  `Accept-Language` `pt-BR` / `nl-BE` / `en` returns the right `lang` + copy;
+  `cb_locale=pt` overrides a Dutch header; `cb_locale=__proto__` falls back to English.
+  In headless Chromium the switcher moves en → pt → nl live, writes a 365-day Lax
+  cookie, survives a reload and carries into the next route.
+- Tests: `tests/i18n.test.ts` (17) — exact key-set match (tsc cannot see an EXTRA key),
+  placeholders preserved per key (tsc cannot see a dropped `{count}`), no blank labels,
+  fallback chain, `Accept-Language` ranking incl. `q=0`, and `isLocale` refusing
+  `'pt-BR'`/`'__proto__'` because the cookie is attacker-controlled.
+  **228 passing**; `tsc` clean; build clean.
+- **Adding a language** = add the code to `LOCALES` + `LOCALE_LABELS`, copy `en.ts`,
+  translate, register in `DICTS`. The tests then enforce completeness.
 ## Session log — 2026-09-16 (landing page replaced: the Content24 Marketplace artboard)
 Branch `claude/exciting-gates-aotopt`. No migration.
 
@@ -865,11 +952,13 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - Never store or log a plaintext phone number.
 - Never expose the service-role key or `lib/crypto` / `lib/supabase/admin` to the client.
 - Never wire Stripe for token purchase in this product.
+- User-facing copy goes in `lib/i18n/en.ts` and all three dictionaries — never inline in
+  a component. `/moderation` and `/admin` are the exception (operator tooling, English).
 - Work in reviewable chunks: analyse → build → test → security check → report → next.
 - Don't break existing functionality without explicit permission.
 
 ## Useful files
-- `supabase/migrations/` — schema + RLS (`0001`–`0022` all applied live; `0020`'s four `account.password_*` columns verified present 2026-09-14)
+- `supabase/migrations/` — schema + RLS (`0001`–`0023` all applied live; `0020`'s four `account.password_*` columns verified present 2026-09-14)
 - `lib/password.ts` / `lib/password-auth.ts` — scrypt hashing + lockout for optional password sign-in
 - `lib/fresh-auth.ts` — 15-min proof of a from-scratch sign-in; NOT the admin step-up cookie
 - `lib/supabase/{admin,server,client}.ts` — service-role / SSR / browser clients
@@ -884,6 +973,9 @@ Vercel project (then redeploy — env changes don't touch existing deployments):
 - `docs/resend-setup.md` — turn on email sign-in (Resend key + verified sender) + error-code fixes
 - `lib/email.ts` — shared Resend transport: `sendEmail` (fire-and-forget) / `sendEmailChecked` (detailed)
 - `docs/twilio-setup.md` — Twilio (fallback provider) setup + error-code fixes
+- `lib/i18n/` — en (source of truth) / nl / pt dictionaries, locale resolution, `translate`
+- `lib/i18n/server.ts` — `getLocale()` / `getT()` for server components; `app/i18n-provider.tsx` — `useT`, `LocaleSwitcher`
+- `lib/display-name.ts` — nickname rules (pure): validate, case-fold key, `participantLabel` (nickname · public ID)
 
 ## How to run
 ```bash
