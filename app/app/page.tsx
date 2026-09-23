@@ -115,7 +115,7 @@ export default function Dashboard() {
               </div>
             </div>
             {canAdmin(b) && (
-              <Invite boxId={b.public_id} canMakeAdmin={isOperator} defaultRole={b.adminCount === 0 ? 'box_admin' : 'creator'} />
+              <Invite boxId={b.public_id} boxName={b.name} canMakeAdmin={isOperator} defaultRole={b.adminCount === 0 ? 'box_admin' : 'creator'} />
             )}
           </div>
         ))
@@ -594,7 +594,7 @@ type InviteRow = {
   expires_at: string; status: 'pending' | 'accepted' | 'expired' | 'revoked';
 };
 
-function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: string; canMakeAdmin: boolean; defaultRole?: string }) {
+function Invite({ boxId, boxName, canMakeAdmin, defaultRole = 'creator' }: { boxId: string; boxName: string; canMakeAdmin: boolean; defaultRole?: string }) {
   const [phone, setPhone] = useState('');
   // A box with no admin yet opens on 'box admin', so handing it over is one field away
   // rather than a dropdown the operator has to remember to change.
@@ -604,7 +604,8 @@ function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: strin
   const [alsoSms, setAlsoSms] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
   const [link, setLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [issued, setIssued] = useState<{ role: string; phone: string; expiresAt: string | null } | null>(null);
+  const [copied, setCopied] = useState<'message' | 'link' | null>(null);
   const [busy, setBusy] = useState(false);
   const [rows, setRows] = useState<InviteRow[]>([]);
 
@@ -614,20 +615,34 @@ function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: strin
   }, [boxId]);
   useEffect(() => { loadRows(); }, [loadRows]);
 
-  async function copy() {
+  // What the admin pastes into WhatsApp or SMS themselves. A bare URL arrives as an
+  // unexplained link from an unknown sender — easy to ignore, and it omits the one rule
+  // that decides whether it works at all: the invitee must sign in with THAT number,
+  // because acceptInvitation matches the token against their own verified phone.
+  const inviteMessage = !link || !issued ? '' : [
+    `You've been invited to "${boxName}" on Content24`,
+    issued.role === 'creator' ? ' as a creator (you can post content).'
+      : issued.role === 'box_admin' ? ' as an admin (you can run the box).'
+      : ' as a member (you can buy and view content).',
+    `\n\nOpen this link and sign in with this phone number (${issued.phone}) — it only works for you:\n`,
+    link,
+    issued.expiresAt ? `\n\nExpires ${new Date(issued.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}.` : '',
+  ].join('');
+
+  async function copy(what: 'message' | 'link') {
     if (!link) return;
     try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(what === 'message' ? inviteMessage : link);
+      setCopied(what);
+      window.setTimeout(() => setCopied(null), 2000);
     } catch {
-      setMsg({ kind: 'err', text: 'Could not copy — select the link and copy it manually.' });
+      setMsg({ kind: 'err', text: 'Could not copy — select the text and copy it manually.' });
     }
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true); setMsg(null); setLink(null); setCopied(false);
+    setBusy(true); setMsg(null); setLink(null); setIssued(null); setCopied(null);
     try {
       const r = await fetch(`/api/boxes/${boxId}/invitations`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -636,6 +651,7 @@ function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: strin
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Could not create invitation');
       setLink(j.link ?? null);
+      setIssued({ role, phone, expiresAt: j.invitation?.expires_at ?? null });
       const sms = j.sms as { attempted: boolean; sent: boolean; detail?: string } | undefined;
       // Say what actually happened. Reporting "sent" on a failed send is what hid the
       // delivery problem: the invitation existed and nobody could reach it.
@@ -688,11 +704,21 @@ function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: strin
       {msg && <div className={`msg ${msg.kind}`}>{msg.text}</div>}
       {link && (
         <div style={{ marginTop: 8 }}>
-          <div className="row" style={{ alignItems: 'center', gap: 8 }}>
-            <div className="dim" style={{ fontWeight: 600 }}>Invite link — valid once, for this number only</div>
-            <button type="button" className="sm alt" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
+          <div className="dim" style={{ fontWeight: 600 }}>
+            Invite link — valid once, for {issued?.phone ?? 'this number'} only
           </div>
-          <code className="link">{link}</code>
+          <div className="row" style={{ alignItems: 'center', gap: 8, marginTop: 6 }}>
+            <button type="button" className="sm alt" onClick={() => copy('message')}>
+              {copied === 'message' ? '✓ Copied' : 'Copy message'}
+            </button>
+            <button type="button" className="sm" onClick={() => copy('link')}>
+              {copied === 'link' ? '✓ Copied' : 'Copy link only'}
+            </button>
+          </div>
+          <div className="dim" style={{ fontSize: 12, marginTop: 8 }}>
+            Paste it into WhatsApp, SMS or Signal to {issued?.phone ?? 'them'}:
+          </div>
+          <pre className="link" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, marginTop: 4 }}>{inviteMessage}</pre>
         </div>
       )}
       {rows.length > 0 && (
