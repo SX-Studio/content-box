@@ -122,6 +122,50 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-24 (end-to-end audit: can an operator, creator and member actually get through today?)
+Branch `main`. No migration; one live `app_config` change.
+
+Live snapshot before the fixes (project `jpnnzxnvubrosjjcbkmn`): 7 accounts, 6 active boxes,
+9 memberships, 3 content items — **all three uploaded by an operator**, who bypasses the
+18+ gate. 0 identity verifications, 0 admin passkeys, 0 rentals, 0 tokens in any wallet,
+0 paid orders. Every invitation had expired (72h TTL) and 4 invited numbers never signed up.
+So no real creator had ever completed invite → verify → upload, and the reason was not
+the people — three gates in a row were shut:
+
+- **Accepting an invite never applied the role to an existing member.** `acceptInvitation`
+  upserted `box_membership` with `ignoreDuplicates:true`, so a second invite (creator after
+  member, or the other way round) left the membership as it was and only added a stray
+  `account_role` row. Live example: `INV-R4FQSZJG` invited as creator, membership stayed
+  `box_admin`. Now `resolveAcceptedRole()` (`lib/invitations.ts`) decides the role — the
+  invite's role wins, **except a `box_admin` is never demoted by a member/creator invite** —
+  the membership row is upserted with it, and `account_role` rows for that box that
+  disagree are removed. `tests/invite-role.test.ts` (5) pins the rule. A brand-new invitee
+  (the usual case) was already fine; this is for re-invites and role changes.
+- **Invitations expired in 72h.** Admins copy the link and text it themselves, so three
+  days was too short for a real person to get round to it. `app_config.invitation_ttl_hours`
+  raised **live** from 72 to **336 (14 days)**. Config, not code — change it back in the
+  table if that ever feels long.
+- **Nobody could approve a creator's ID, ever.** Approvals lived only in `/admin`, which
+  sits behind a passkey step-up, and passkey enrolment demanded
+  `authenticatorAttachment:'platform'` — a laptop without Touch ID could never enrol, and
+  zero passkeys existed. Two fixes: (1) `/moderation` (role-gated, no passkey) gained an
+  **ID checks** tab mounting the same `AdminVerifications` queue — its two routes were
+  already operator-or-moderator, exactly like the console; (2) the register options no
+  longer pin the attachment, so the browser can offer the phone (QR / cross-device) or a
+  security key; `userVerification:'required'` stays. `/admin` (payouts, operators,
+  economics) still needs the passkey — it is just now possible to get one.
+
+Verified: `tsc` clean, `next build` OK, 216 tests passing, the built `/moderation` chunk
+carries the new tab and the verification queue. ⚠️ Not verifiable from here: whether
+`NOWPAYMENTS_API_KEY` / `NOWPAYMENTS_IPN_SECRET` are set on the content-box Vercel project
+— until they are, **no member can buy tokens**, and the wallet says so honestly. That is
+the last shut gate on the member side. Vercel MCP note: the project IS visible as
+`sx-content-box` (`prj_uHdELKP8IurrIOxMLah4gEIqXCCK`, team `team_8bUh79wAVTN5pyFKcCQGIXEy`)
+and `list_deployments` filtered by commit sha is the reliable deploy check; listing its
+env vars is 403 for the integration, so env presence has to be confirmed in the dashboard.
+Do not verify deploys by chunk-hash: Vercel's page-chunk hashes differ from a local build,
+and shared chunks keep their names when the change touches only a page.
+
 ## Session log — 2026-09-18 (nicknames: any number can name itself)
 Same branch (`claude/lucid-einstein-r49f6g`, PR #13). Migration `0023_display_name.sql`
 — **APPLIED LIVE** to `jpnnzxnvubrosjjcbkmn` and verified (`display_name` nullable;

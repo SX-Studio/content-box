@@ -279,6 +279,7 @@ export const en = {
     errVideoUpload: 'Video upload failed',
     errStartPhoto: 'Could not start photo upload',
     errUpload: 'Upload failed',
+    verifyNow: 'Verify now',
   },
 
   discover: {

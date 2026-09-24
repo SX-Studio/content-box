@@ -28,10 +28,15 @@ export async function POST() {
       id: c.credential_id as string,
       transports: (c.transports ?? []) as AuthenticatorTransport[],
     })),
+    // No authenticatorAttachment: 'platform' pinned this to the device's own biometric,
+    // which locks out an operator on a laptop without Touch ID — and with zero passkeys
+    // enrolled that meant nobody could reach /admin to approve a creator's ID or a
+    // payout. Leaving it open lets the browser offer the phone (QR / cross-device
+    // passkey) or a security key too. userVerification stays required, so it is still
+    // a biometric or PIN on whatever authenticator is chosen.
     authenticatorSelection: {
       residentKey: 'preferred',
       userVerification: 'required',
-      authenticatorAttachment: 'platform', // device biometric (fingerprint / Face)
     },
   });
 

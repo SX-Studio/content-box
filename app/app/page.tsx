@@ -395,7 +395,7 @@ function Verification() {
 
   if (state?.status === 'approved') {
     return (
-      <div className="card">
+      <div className="card" id="verification">
         <div className="dim" style={{ fontWeight: 600 }}>{t('dash.identity')}</div>
         <div style={{ color: 'var(--ok)', fontWeight: 600, marginTop: 4 }}>✓ {t('dash.verified')}</div>
         <div className="dim" style={{ fontSize: 13 }}>{t('dash.canPublish')}</div>
@@ -405,7 +405,7 @@ function Verification() {
 
   if (state?.status === 'pending') {
     return (
-      <div className="card">
+      <div className="card" id="verification">
         <div className="dim" style={{ fontWeight: 600 }}>{t('dash.identity')}</div>
         <div style={{ fontWeight: 600, marginTop: 4 }}>◷ {t('dash.underReview')}</div>
         <div className="dim" style={{ fontSize: 13 }}>{t('dash.underReviewBody')}</div>
@@ -415,7 +415,7 @@ function Verification() {
 
   // Not submitted, or rejected → show the form.
   return (
-    <form className="card" onSubmit={submit}>
+    <form className="card" id="verification" onSubmit={submit}>
       <div className="dim" style={{ fontWeight: 600 }}>{t('dash.verifyTitle')}</div>
       <div className="dim" style={{ fontSize: 13, marginTop: 2 }}>{t('dash.verifyBody')}</div>
       {state?.status === 'rejected' && (

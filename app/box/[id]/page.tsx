@@ -159,7 +159,7 @@ function Upload({ boxId, onUploaded }: { boxId: string; onUploaded: () => void }
   const [video, setVideo] = useState<File | null>(null);     // video master
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
-  const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string; href?: string; cta?: string } | null>(null);
 
   function reset() {
     setTitle(''); setFile(null); setVideo(null); setExtra([]); setProgress(null);
@@ -215,7 +215,12 @@ function Upload({ boxId, onUploaded }: { boxId: string; onUploaded: () => void }
 
       const r = await fetch('/api/content', { method: 'POST', body: fd });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error || t('box.errUpload'));
+      if (!r.ok) {
+        // The server says why, but not where: an unverified creator has to go to the
+        // dashboard to submit an ID, and nothing on this page hints at that.
+        if (j.code === 'AGE_VERIFICATION_REQUIRED') { setMsg({ kind: 'err', text: j.error, href: '/app#verification', cta: t('box.verifyNow') }); return; }
+        throw new Error(j.error || t('box.errUpload'));
+      }
       setMsg({ kind: 'ok', text: t('box.posted', { id: j.content.public_id })
         + (j.content.photos > 1 ? t('box.postedPhotos', { count: j.content.photos }) : '')
         + (j.content.status === 'pending' ? t('box.postedPending') : '') });
@@ -280,7 +285,7 @@ function Upload({ boxId, onUploaded }: { boxId: string; onUploaded: () => void }
             {progress && <span className="bx-progress">{progress}</span>}
           </div>
           <div className="bx-dropnote">{t('box.dropNote')}</div>
-          {msg && <div className={msg.kind === 'ok' ? 'bx-ok' : 'bx-err'}>{msg.text}</div>}
+          {msg && <div className={msg.kind === 'ok' ? 'bx-ok' : 'bx-err'}>{msg.text}{msg.href && <> — <a href={msg.href} style={{ color: 'inherit', textDecoration: 'underline' }}>{msg.cta}</a></>}</div>}
         </form>
       )}
     </div>

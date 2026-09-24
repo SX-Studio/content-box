@@ -275,6 +275,7 @@ export const nl: Dict = {
     errVideoUpload: 'Video-upload mislukt',
     errStartPhoto: 'Foto-upload starten mislukt',
     errUpload: 'Upload mislukt',
+    verifyNow: 'Nu verifiëren',
   },
 
   discover: {

@@ -276,6 +276,7 @@ export const pt: Dict = {
     errVideoUpload: 'Falha no envio do vídeo',
     errStartPhoto: 'Não foi possível iniciar o envio da foto',
     errUpload: 'Falha no envio',
+    verifyNow: 'Verificar agora',
   },
 
   discover: {
