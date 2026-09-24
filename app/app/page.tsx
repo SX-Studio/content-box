@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { PACKAGES } from '@/lib/packages';
 import { boxCss, BottomNav } from '@/app/box-ui';
-import { useT, LocaleSwitcher } from '@/app/i18n-provider';
+import { useT, useLocale, LocaleSwitcher } from '@/app/i18n-provider';
 
 type Me = { account: { public_id: string; status: string; email: string | null; display_name: string | null }; roles: { role: string; box_id: string | null }[] };
 // adminCount = active box_admins who are not platform operators. Sent to operators
@@ -123,7 +123,7 @@ export default function Dashboard() {
               </div>
             </div>
             {canAdmin(b) && (
-              <Invite boxId={b.public_id} canMakeAdmin={isOperator} defaultRole={b.adminCount === 0 ? 'box_admin' : 'creator'} />
+              <Invite boxId={b.public_id} boxName={b.name} canMakeAdmin={isOperator} defaultRole={b.adminCount === 0 ? 'box_admin' : 'creator'} />
             )}
           </div>
         ))
@@ -669,8 +669,9 @@ type InviteRow = {
   expires_at: string; status: 'pending' | 'accepted' | 'expired' | 'revoked';
 };
 
-function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: string; canMakeAdmin: boolean; defaultRole?: string }) {
+function Invite({ boxId, boxName, canMakeAdmin, defaultRole = 'creator' }: { boxId: string; boxName: string; canMakeAdmin: boolean; defaultRole?: string }) {
   const t = useT();
+  const locale = useLocale();
   const [phone, setPhone] = useState('');
   // A box with no admin yet opens on 'box admin', so handing it over is one field away
   // rather than a dropdown the operator has to remember to change.
@@ -680,7 +681,8 @@ function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: strin
   const [alsoSms, setAlsoSms] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'err' | 'ok'; text: string } | null>(null);
   const [link, setLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [issued, setIssued] = useState<{ role: string; phone: string; expiresAt: string | null } | null>(null);
+  const [copied, setCopied] = useState<'message' | 'link' | null>(null);
   const [busy, setBusy] = useState(false);
   const [rows, setRows] = useState<InviteRow[]>([]);
 
@@ -690,12 +692,30 @@ function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: strin
   }, [boxId]);
   useEffect(() => { loadRows(); }, [loadRows]);
 
-  async function copy() {
+  // What the admin pastes into WhatsApp or SMS themselves. A bare URL arrives as an
+  // unexplained link from an unknown sender — easy to ignore, and it omits the one rule
+  // that decides whether it works at all: the invitee must sign in with THAT number,
+  // because acceptInvitation matches the token against their own verified phone.
+  const inviteMessage = !link || !issued ? '' : [
+    t('dash.msgIntro', { box: boxName }),
+    issued.role === 'creator' ? t('dash.msgRoleCreator')
+      : issued.role === 'box_admin' ? t('dash.msgRoleAdmin')
+      : t('dash.msgRoleMember'),
+    t('dash.msgOpen', { phone: issued.phone }),
+    link,
+    issued.expiresAt
+      ? t('dash.msgExpires', {
+          date: new Date(issued.expiresAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
+        })
+      : '',
+  ].join('');
+
+  async function copy(what: 'message' | 'link') {
     if (!link) return;
     try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(what === 'message' ? inviteMessage : link);
+      setCopied(what);
+      window.setTimeout(() => setCopied(null), 2000);
     } catch {
       setMsg({ kind: 'err', text: t('dash.errCopy') });
     }
@@ -703,7 +723,7 @@ function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: strin
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true); setMsg(null); setLink(null); setCopied(false);
+    setBusy(true); setMsg(null); setLink(null); setIssued(null); setCopied(null);
     try {
       const r = await fetch(`/api/boxes/${boxId}/invitations`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -712,6 +732,7 @@ function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: strin
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || t('dash.errInvite'));
       setLink(j.link ?? null);
+      setIssued({ role, phone, expiresAt: j.invitation?.expires_at ?? null });
       const sms = j.sms as { attempted: boolean; sent: boolean; detail?: string } | undefined;
       // Say what actually happened. Reporting "sent" on a failed send is what hid the
       // delivery problem: the invitation existed and nobody could reach it.
@@ -764,11 +785,21 @@ function Invite({ boxId, canMakeAdmin, defaultRole = 'creator' }: { boxId: strin
       {msg && <div className={`msg ${msg.kind}`}>{msg.text}</div>}
       {link && (
         <div style={{ marginTop: 8 }}>
-          <div className="row" style={{ alignItems: 'center', gap: 8 }}>
-            <div className="dim" style={{ fontWeight: 600 }}>{t('dash.inviteLinkLabel')}</div>
-            <button type="button" className="sm alt" onClick={copy}>{copied ? t('dash.copied') : t('dash.copy')}</button>
+          <div className="dim" style={{ fontWeight: 600 }}>
+            {t('dash.inviteLinkLabel', { phone: issued?.phone ?? t('dash.thisNumber') })}
           </div>
-          <code className="link">{link}</code>
+          <div className="row" style={{ alignItems: 'center', gap: 8, marginTop: 6 }}>
+            <button type="button" className="sm alt" onClick={() => copy('message')}>
+              {copied === 'message' ? `✓ ${t('dash.copied')}` : t('dash.copyMessage')}
+            </button>
+            <button type="button" className="sm" onClick={() => copy('link')}>
+              {copied === 'link' ? `✓ ${t('dash.copied')}` : t('dash.copyLinkOnly')}
+            </button>
+          </div>
+          <div className="dim" style={{ fontSize: 12, marginTop: 8 }}>
+            {t('dash.pasteHint', { phone: issued?.phone ?? t('dash.them') })}
+          </div>
+          <pre className="link" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, marginTop: 4 }}>{inviteMessage}</pre>
         </div>
       )}
       {rows.length > 0 && (
