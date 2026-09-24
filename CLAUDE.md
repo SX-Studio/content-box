@@ -155,8 +155,13 @@ the people — three gates in a row were shut:
 Verified: `tsc` clean, `next build` OK, 216 tests passing, the built `/moderation` chunk
 carries the new tab and the verification queue. ⚠️ Not verifiable from here: whether
 `NOWPAYMENTS_API_KEY` / `NOWPAYMENTS_IPN_SECRET` are set on the content-box Vercel project
-(that project is not visible to the Vercel MCP) — until they are, **no member can buy
-tokens**, and the wallet says so honestly. That is the last shut gate on the member side.
+— until they are, **no member can buy tokens**, and the wallet says so honestly. That is
+the last shut gate on the member side. Vercel MCP note: the project IS visible as
+`sx-content-box` (`prj_uHdELKP8IurrIOxMLah4gEIqXCCK`, team `team_8bUh79wAVTN5pyFKcCQGIXEy`)
+and `list_deployments` filtered by commit sha is the reliable deploy check; listing its
+env vars is 403 for the integration, so env presence has to be confirmed in the dashboard.
+Do not verify deploys by chunk-hash: Vercel's page-chunk hashes differ from a local build,
+and shared chunks keep their names when the change touches only a page.
 
 ## Session log — 2026-09-16 (landing page replaced: the Content24 Marketplace artboard)
 Branch `claude/exciting-gates-aotopt`. No migration.
