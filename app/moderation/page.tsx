@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import AdminVerifications from '@/app/admin/AdminVerifications';
 
 type Case = {
   status: string;
@@ -15,7 +16,7 @@ const RISK_COLOR: Record<string, string> = { low: 'var(--ok)', uncertain: 'var(-
 
 export default function ModerationPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<'queue' | 'reports' | 'boxes'>('queue');
+  const [tab, setTab] = useState<'queue' | 'reports' | 'boxes' | 'verifications'>('queue');
   const [queue, setQueue] = useState<Case[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
@@ -86,8 +87,15 @@ export default function ModerationPage() {
       <div className="row" style={{ margin: '10px 0 4px' }}>
         <button className={tab === 'queue' ? '' : 'ghost'} onClick={() => setTab('queue')}>Content ({queue.length})</button>
         <button className={tab === 'reports' ? '' : 'ghost'} onClick={() => setTab('reports')}>Reports ({reports.filter((r) => r.status === 'open').length})</button>
+        <button className={tab === 'verifications' ? '' : 'ghost'} onClick={() => setTab('verifications')}>ID checks</button>
         {isOperator && <button className={tab === 'boxes' ? '' : 'ghost'} onClick={() => setTab('boxes')}>Boxes ({boxes.length})</button>}
       </div>
+
+      {/* Creator 18+/ID approvals. This lived only in /admin, which sits behind a passkey
+          step-up — and with no passkey enrolled, nobody could approve anyone, so no
+          invited creator could ever publish. The two verification routes are role-gated
+          (operator or moderator), exactly like this console, so the queue belongs here too. */}
+      {tab === 'verifications' && <AdminVerifications />}
 
       {tab === 'queue' && (queue.length === 0 ? <div className="card"><p className="dim" style={{ margin: 0 }}>No content yet.</p></div> : queue.map((c) => (
         <div className="card" key={c.content?.public_id}>

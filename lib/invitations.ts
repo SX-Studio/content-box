@@ -57,6 +57,17 @@ export async function createInvitation(opts: {
   return { invitation: data as NewInvitation, token };
 }
 
+// Which role an accepted invitation leaves the member with. Pure, so it is testable.
+//
+// The invite's role wins, with one exception: an invite for creator/user never strips
+// box_admin. An admin who accepts a plain creator link — or is sent one by mistake —
+// must not silently lose control of their own box; demotion is an explicit operator
+// action, not a side effect of opening a link.
+export function resolveAcceptedRole(existingRole: string | null, targetRole: string): string {
+  if (existingRole === 'box_admin' && targetRole !== 'box_admin') return 'box_admin';
+  return targetRole;
+}
+
 // Accept an invitation. The caller must already be OTP-verified (has a session) AND
 // their verified phone must match the invitation's target. Idempotent and race-safe.
 export async function acceptInvitation(opts: { token: string; accountId: string }): Promise<{ boxPublicId: string; role: string }> {
@@ -77,23 +88,44 @@ export async function acceptInvitation(opts: { token: string; accountId: string 
     throw new Error('This invitation was issued to a different phone number');
   }
 
+  // A member holds ONE role per box, and the invite says which. The old upserts used
+  // ignoreDuplicates, so an existing member's role was never touched: the invite was
+  // consumed, the screen said "Joined as creator", and nothing changed. Seen live —
+  // a box_admin re-invited as creator stayed box_admin while account_role gained a
+  // stray 'creator' row. Resolve the role first, then write both tables to match.
+  const { data: existing } = await admin()
+    .from('box_membership')
+    .select('role')
+    .eq('box_id', inv.box_id)
+    .eq('account_id', acc.id)
+    .maybeSingle();
+  const role = resolveAcceptedRole((existing as { role: string } | null)?.role ?? null, inv.target_role as string);
+
   await admin()
     .from('box_membership')
     .upsert(
-      { box_id: inv.box_id, account_id: acc.id, role: inv.target_role, invited_by: inv.invited_by },
-      { onConflict: 'box_id,account_id', ignoreDuplicates: true }
+      { box_id: inv.box_id, account_id: acc.id, role, invited_by: inv.invited_by, status: 'active' },
+      { onConflict: 'box_id,account_id' }
     );
+  // account_role is keyed on (account, role, box), so a role change must retire the old
+  // box-scoped row or hasRole() keeps answering yes for a role the member no longer has.
+  await admin()
+    .from('account_role')
+    .delete()
+    .eq('account_id', acc.id)
+    .eq('box_id', inv.box_id)
+    .neq('role', role);
   await admin()
     .from('account_role')
     .upsert(
-      { account_id: acc.id, role: inv.target_role, box_id: inv.box_id },
+      { account_id: acc.id, role, box_id: inv.box_id },
       { onConflict: 'account_id,role,box_id', ignoreDuplicates: true }
     );
   await admin().from('invitation').update({ used_at: new Date().toISOString() }).eq('id', inv.id).is('used_at', null);
 
-  await writeAudit({ actorId: acc.id, action: 'invitation.accepted', targetType: 'invitation', targetId: inv.public_id, metadata: { role: inv.target_role, box_id: inv.box_id } });
-  await emit('MEMBERSHIP_CREATED', { box_id: inv.box_id, account_id: acc.id, role: inv.target_role });
+  await writeAudit({ actorId: acc.id, action: 'invitation.accepted', targetType: 'invitation', targetId: inv.public_id, metadata: { role, invited_as: inv.target_role, box_id: inv.box_id } });
+  await emit('MEMBERSHIP_CREATED', { box_id: inv.box_id, account_id: acc.id, role });
 
   const boxPublicId = (inv.box as unknown as { public_id: string } | null)?.public_id ?? '';
-  return { boxPublicId, role: inv.target_role as string };
+  return { boxPublicId, role };
 }

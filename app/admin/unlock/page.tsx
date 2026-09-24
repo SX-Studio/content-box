@@ -40,8 +40,8 @@ export default function AdminUnlockPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ response: attestation, deviceLabel: navigator.userAgent.slice(0, 80) }),
       });
-      if (!vr.ok) throw new Error('Could not register fingerprint');
-      setInfo('Fingerprint registered.');
+      if (!vr.ok) throw new Error('Could not register passkey');
+      setInfo('Passkey registered — unlocking…');
       window.location.href = '/admin';
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Registration failed');
@@ -58,10 +58,10 @@ export default function AdminUnlockPage() {
       </div>
       <h1 style={{ textAlign: 'center' }}>Unlock</h1>
       <div className="card">
-        <p className="dim" style={{ marginTop: 0 }}>Confirm your fingerprint to open the admin backend.</p>
+        <p className="dim" style={{ marginTop: 0 }}>Confirm with a passkey to open the admin backend — fingerprint or Face on this device, or your phone via the QR prompt on a laptop.</p>
         <div className="row" style={{ flexDirection: 'column', gap: 8 }}>
-          <button onClick={unlock} disabled={busy}>{busy ? 'Waiting for fingerprint…' : 'Unlock with fingerprint'}</button>
-          <button className="ghost" onClick={register} disabled={busy}>Register a new fingerprint on this device</button>
+          <button onClick={unlock} disabled={busy}>{busy ? 'Waiting for passkey…' : 'Unlock with passkey'}</button>
+          <button className="ghost" onClick={register} disabled={busy}>Register a passkey (first time here)</button>
         </div>
         {info && <p style={{ color: 'var(--ok)', fontSize: 13 }}>{info}</p>}
         {error && <p style={{ color: 'var(--bad)', fontSize: 13 }}>{error}</p>}
