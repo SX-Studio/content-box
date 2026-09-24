@@ -8,6 +8,7 @@ export type MyRental = {
   content_public_id: string;
   title: string;
   creator: string | null;
+  creator_name: string | null;
   expires_at: string;
   preview_url: string | null;
 };
@@ -89,7 +90,7 @@ export async function viewContent(userId: string, contentPublicId: string): Prom
 export async function listMyRentals(userId: string): Promise<MyRental[]> {
   const { data } = await admin()
     .from('rental')
-    .select('public_id, expires_at, content:content_id ( public_id, title, creator:creator_id ( public_id ), assets:content_asset ( preview_path, position ) )')
+    .select('public_id, expires_at, content:content_id ( public_id, title, creator:creator_id ( public_id, display_name ), assets:content_asset ( preview_path, position ) )')
     .eq('user_id', userId)
     .eq('status', 'active')
     .gt('expires_at', new Date().toISOString())
@@ -101,7 +102,7 @@ export async function listMyRentals(userId: string): Promise<MyRental[]> {
     content: {
       public_id: string;
       title: string;
-      creator: { public_id: string } | null;
+      creator: { public_id: string; display_name: string | null } | null;
       assets: { preview_path: string | null; position: number }[];
     } | null;
   }[]).map((r) => {
@@ -111,6 +112,7 @@ export async function listMyRentals(userId: string): Promise<MyRental[]> {
       content_public_id: r.content?.public_id ?? '',
       title: r.content?.title ?? '',
       creator: r.content?.creator?.public_id ?? null,
+      creator_name: r.content?.creator?.display_name ?? null,
       expires_at: r.expires_at,
       preview_url: asset?.preview_path
         ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/preview/${asset.preview_path}`

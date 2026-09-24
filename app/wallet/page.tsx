@@ -3,6 +3,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { boxCss, BottomNav } from '@/app/box-ui';
 import { PACKAGES } from '@/lib/packages';
+import { useT, LocaleSwitcher } from '@/app/i18n-provider';
+import type { T } from '@/lib/i18n';
 
 type LedgerRow = {
   type: string;
@@ -14,17 +16,18 @@ type LedgerRow = {
 };
 
 // Friendly label for a ledger row from its type + refs.
-function describe(r: LedgerRow): { title: string; sub: string } {
-  const t = r.type.toLowerCase();
-  if (t === 'topup') return { title: 'Top-up', sub: r.ref_type === 'dev_topup' ? 'dev top-up' : 'top-up' };
-  if (t === 'purchase') return { title: 'Token purchase', sub: `via payment provider${r.ref_id ? ' · ' + r.ref_id : ''}` };
-  if (t === 'rent' || t === 'rental' || t === 'spend') return { title: `Rental${r.ref_id ? ' · ' + r.ref_id : ''}`, sub: '24u toegang' };
-  if (t === 'payout' || t === 'earning' || t === 'earn') return { title: 'Creator earning', sub: r.ref_id || 'payout' };
+function describe(r: LedgerRow, t: T): { title: string; sub: string } {
+  const kind = r.type.toLowerCase();
+  if (kind === 'topup') return { title: t('wallet.topUp'), sub: r.ref_type === 'dev_topup' ? t('wallet.devTopUp') : t('wallet.topUpSub') };
+  if (kind === 'purchase') return { title: t('wallet.tokenPurchase'), sub: `${t('wallet.viaProvider')}${r.ref_id ? ' · ' + r.ref_id : ''}` };
+  if (kind === 'rent' || kind === 'rental' || kind === 'spend') return { title: `${t('wallet.rental')}${r.ref_id ? ' · ' + r.ref_id : ''}`, sub: t('wallet.accessHours', { hours: 24 }) };
+  if (kind === 'payout' || kind === 'earning' || kind === 'earn') return { title: t('wallet.creatorEarning'), sub: r.ref_id || t('wallet.payout') };
   return { title: r.type, sub: [r.ref_type, r.ref_id].filter(Boolean).join(' · ') };
 }
 
 export default function WalletPage() {
   const router = useRouter();
+  const t = useT();
   const [balance, setBalance] = useState<number | null>(null);
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
   const [accountId, setAccountId] = useState<string>('');
@@ -65,23 +68,23 @@ export default function WalletPage() {
         const j = await r.json().catch(() => ({}));
         if (r.ok && j.url) { window.location.href = j.url; return; }
         if (r.ok && j.configured === false) continue; // rail not set up — try the next
-        flash(j.error || `Kon aankoop niet starten (${rail.label})`);
+        flash(j.error || t('wallet.purchaseFailed', { rail: rail.label }));
         return;
       }
 
       // No payment rail is configured. The dev top-up only answers in stub mode; in
       // production it 403s, so say what is actually true rather than pointing at a
       // store that does not exist.
-      const t = await fetch('/api/wallet/topup', {
+      const dev = await fetch('/api/wallet/topup', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: tokens }),
       });
-      if (t.ok) { await load(); flash(`+${tokens} tokens toegevoegd (dev)`); return; }
-      flash('Tokens kopen kan nog niet — er is nog geen betaalmethode ingesteld.');
+      if (dev.ok) { await load(); flash(t('wallet.devTopUpAdded', { tokens })); return; }
+      flash(t('wallet.noPaymentMethod'));
     } catch (e) { flash((e as Error).message); } finally { setBusy(null); }
   }
 
-  if (loading) return <div className="boxui"><style>{boxCss}</style><p className="bx-loading">Loading…</p></div>;
+  if (loading) return <div className="boxui"><style>{boxCss}</style><p className="bx-loading">{t('common.loading')}</p></div>;
 
   const eur = ((balance ?? 0) / 100).toFixed(2);
 
@@ -94,20 +97,21 @@ export default function WalletPage() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="6" width="18" height="13" rx="2.5" /><path d="M3 10h18" /><circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" stroke="none" /></svg>
         </div>
         <div className="bx-titles">
-          <div className="bx-name">Wallet</div>
-          <div className="bx-sub">tokens · transactie-ledger</div>
+          <div className="bx-name">{t('wallet.title')}</div>
+          <div className="bx-sub">{t('wallet.subtitle')}</div>
         </div>
-        <a href="/discover" className="bx-chip" title="Discover">◧ Discover</a>
-        <a href="/app" className="bx-chip" title="Dashboard">↩ Dashboard</a>
+        <a href="/discover" className="bx-chip" title={t('nav.discover')}>◧ {t('nav.discover')}</a>
+        <a href="/app" className="bx-chip" title={t('nav.dashboard')}>↩ {t('nav.dashboard')}</a>
+        <LocaleSwitcher compact />
       </header>
 
       <div className="bx-balcard">
-        <div className="lab">User wallet{accountId ? ` · ${accountId}` : ''}</div>
-        <div className="big">{balance ?? 0} <span>tokens</span></div>
-        <div className="eur">≈ €{eur} · 100 tokens = €1</div>
+        <div className="lab">{t('wallet.userWallet')}{accountId ? ` · ${accountId}` : ''}</div>
+        <div className="big">{balance ?? 0} <span>{t('wallet.tokens')}</span></div>
+        <div className="eur">≈ €{eur} · {t('wallet.rate')}</div>
       </div>
 
-      <div className="bx-ledlab">Koop tokens</div>
+      <div className="bx-ledlab">{t('wallet.buyTokens')}</div>
       <div className="bx-pkgs">
         {PACKAGES.map((p) => (
           <button key={p.id} className="bx-pkg" disabled={!!busy} onClick={() => buy(p.id, p.tokens)}>
@@ -118,13 +122,13 @@ export default function WalletPage() {
         ))}
       </div>
 
-      <div className="bx-ledlab">Ledger — onveranderlijk</div>
+      <div className="bx-ledlab">{t('wallet.ledger')}</div>
       {ledger.length === 0 ? (
-        <div className="bx-led"><div className="r"><div className="d">Nog geen transacties<small>koop tokens of huur content om te beginnen</small></div></div></div>
+        <div className="bx-led"><div className="r"><div className="d">{t('wallet.noTransactions')}<small>{t('wallet.emptyHint')}</small></div></div></div>
       ) : (
         <div className="bx-led">
           {ledger.map((r, i) => {
-            const d = describe(r);
+            const d = describe(r, t);
             const pos = r.amount_tokens > 0;
             return (
               <div className="r" key={`${r.created_at}-${i}`}>
