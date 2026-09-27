@@ -122,6 +122,26 @@ re-checks `active AND now() < expires_at` on every view before issuing a signed 
   - ⏳ Next (finish the product): Phase 3 leftovers — creator earnings dashboard +
     payout requests (€50) + pg_cron expiry sweep; then account restrict/suspend in console.
 
+## Session log — 2026-09-27 (Verotel answers: conditional yes, with a demo-site requirement)
+No code. Two documents.
+
+- **Verotel replied** (Mathilda, ticket #11894813) to our 2026-09-14 request to add this
+  site as a second website. The SX account (#136440) was *"canceled on August 10th"*;
+  this site needs its **own new registration** under content creation / pics & clips and
+  gets its own shop ID + key. Terms: **15.5%** (+1.5% rebills, n/a for us), daily payouts
+  with an 8-day lag to a Yoursafe Business account, **10% rolling reserve for 26 weeks**,
+  creator payouts handled outside Verotel (Yoursafe mass payouts CSV/API).
+- **Review requires a demo we do not have:** *"premium test credentials … as a paid user
+  (with sufficient tokens)"* and *"at least 10 complete demo profiles with content for
+  sale"*. Live: 6 boxes, 3 items (operator-uploaded), 0 tokens, no creator-profile
+  concept in the schema, discover feed membership-gated. Everything is in
+  `docs/verotel-review.md`: verbatim quotes, gap table, order of work, reply draft.
+  ⚠️ Do not seed demo content without the owner supplying images they hold rights to.
+- **Side finding:** `token_order` has 18 NOWPayments invoices (€425, 09-06 → 09-24), all
+  `pending`, 0 credited. NOWPayments env is evidently set (invoices get created); whether
+  the IPN webhook ever fires/verifies is unproven. Check `/api/wallet/crypto/webhook`
+  logs before trusting the crypto rail.
+
 ## Session log — 2026-09-24 (end-to-end audit: can an operator, creator and member actually get through today?)
 Branch `main`. No migration; one live `app_config` change.
 
