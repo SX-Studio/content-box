@@ -36,7 +36,7 @@ export async function GET(_req: NextRequest) {
 
   let query = admin()
     .from('content')
-    .select('public_id, title, description, price_tokens, created_at, box:box_id ( public_id, name ), creator:creator_id ( public_id ), assets:content_asset ( preview_path, kind, position )')
+    .select('public_id, title, description, price_tokens, created_at, box:box_id ( public_id, name ), creator:creator_id ( public_id, display_name ), assets:content_asset ( preview_path, kind, position )')
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
     .limit(80);
@@ -51,7 +51,7 @@ export async function GET(_req: NextRequest) {
     price_tokens: number;
     created_at: string;
     box: { public_id: string; name: string } | null;
-    creator: { public_id: string } | null;
+    creator: { public_id: string; display_name: string | null } | null;
     assets: { preview_path: string | null; kind: string | null; position: number }[];
   }[]).map((c) => {
     const asset = [...(c.assets ?? [])].sort((a, b) => a.position - b.position)[0];
@@ -60,6 +60,7 @@ export async function GET(_req: NextRequest) {
       title: c.title,
       price_tokens: c.price_tokens,
       creator: c.creator?.public_id ?? null,
+      creator_name: c.creator?.display_name ?? null,
       is_owner: c.creator?.public_id === account.public_id,
       box_name: c.box?.name ?? '',
       box_public_id: c.box?.public_id ?? '',

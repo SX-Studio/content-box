@@ -14,7 +14,12 @@ export async function GET() {
   const roles = await accountRoles(account.id);
   return NextResponse.json({
     ok: true,
-    account: { public_id: account.public_id, status: account.status, email: account.email ?? null },
+    account: {
+      public_id: account.public_id,
+      status: account.status,
+      email: account.email ?? null,
+      display_name: account.display_name ?? null,
+    },
     roles,
   });
 }

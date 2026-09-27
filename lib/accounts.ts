@@ -2,6 +2,7 @@ import 'server-only';
 import { admin } from '@/lib/supabase/admin';
 import { encryptPhone, phoneHash, encryptEmail, emailHash } from '@/lib/crypto';
 import { publicId } from '@/lib/ids';
+import { validateDisplayName } from '@/lib/display-name';
 import { writeAudit } from '@/lib/audit';
 import { emit } from '@/lib/events';
 
@@ -12,9 +13,10 @@ export type Account = {
   phone_verified_at: string | null;
   email_verified_at: string | null;
   email: string | null;
+  display_name: string | null;
 };
 
-const SELECT = 'id, public_id, status, phone_verified_at, email_verified_at, email';
+const SELECT = 'id, public_id, status, phone_verified_at, email_verified_at, email, display_name';
 
 // bytea columns take a Postgres hex literal (\x…) over PostgREST, not a raw Buffer.
 function toBytea(buf: Buffer): string {
@@ -32,6 +34,24 @@ export function normalizeEmail(raw: unknown): string | null {
 // Set (or clear, with null) an account's contact email.
 export async function setAccountEmail(accountId: string, email: string | null): Promise<void> {
   await admin().from('account').update({ email }).eq('id', accountId);
+}
+
+// Set (or clear, with null) an account's nickname. Open to ANY account — a nickname
+// is how a participant is recognised, not a privilege of a role.
+//
+// Uniqueness is the database's to enforce (unique index on the generated
+// display_name_key), not this function's: a read-then-write check here would let two
+// people racing for the same name both pass it. The 23505 is translated back into
+// something the person can act on.
+export async function setDisplayName(accountId: string, raw: unknown): Promise<string | null> {
+  const name = raw === null || String(raw ?? '').trim() === '' ? null : validateDisplayName(raw);
+  const { error } = await admin().from('account').update({ display_name: name }).eq('id', accountId);
+  if (error) {
+    if (error.code === '23505') throw new Error('That nickname is taken');
+    throw new Error(error.message);
+  }
+  await writeAudit({ actorId: accountId, action: name ? 'account.display_name_set' : 'account.display_name_cleared', targetType: 'account', targetId: accountId });
+  return name;
 }
 
 export async function findAccountByPhoneHash(hash: string): Promise<Account | null> {
